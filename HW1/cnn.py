@@ -67,12 +67,12 @@ model = CNN()
 criterion = nn.CrossEntropyLoss() # accounts for the softmax component
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-ctr = 0
 for epoch in range(num_epochs):
+	ctr = 0
 	for batch in train_iter:
 		sentences = batch.text.transpose(1,0)
-		labels = batch.label
-		# TODO: change labels from "1" and "2"
+		labels = (batch.label==1).type(torch.LongTensor)
+		# change labels from 1,2 to 1,0
 		optimizer.zero_grad()
 		outputs = model(sentences)
 		loss = criterion(outputs, labels)
@@ -88,8 +88,8 @@ correct = 0
 total = 0
 for batch in val_iter:
 	sentences = batch.text.transpose(1,0)
-	labels = batch.label
-	# TODO: change labels from "1" and "2"
+	labels = (batch.label==1).type(torch.LongTensor).data
+	# change labels from 1,2 to 1,0
 	outputs = model(sentences)
 	_, predicted = torch.max(outputs.data, 1)
 	total += labels.size(0)

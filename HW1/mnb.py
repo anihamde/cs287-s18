@@ -51,10 +51,12 @@ for batch in train_iter:
 			pass
 
 r = np.log((p/np.linalg.norm(p))/(q/np.linalg.norm(q)))
+# TODO: how to handle divide by zeros?
 b = np.log(ngood/nbad)
 
+# model takes in a batch.text and return a bs*2 tensor of probs
 def predict(text):
-	ys = []
+	ys = torch.zeros(text.size()[1],2)
 	for i in range(text.size()[1]):
 		x = text.data.numpy()[:,i]
 		sparse_x = np.zeros(len(TEXT.vocab))
@@ -62,9 +64,10 @@ def predict(text):
 			sparse_x[word] = 1
 		y = np.dot(r,sparse_x) + b
 		if y > 0:
-			ys.append(1)
+			ys[i,1] = 1
 		else:
-			ys.append(2)
-	return torch.Tensor(ys)
+			ys[i,0] = 1
+	return ys
 
-# write something to calculate the accuracy in-house
+# TODO: write something to calculate the accuracy in-house
+# realizing that TEXT.label uses 2 and 1, not 0 and 1

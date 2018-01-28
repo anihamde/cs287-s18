@@ -9,6 +9,7 @@ from torchtext.vocab import Vectors, GloVe
 # Hyperparams
 learning_rate = 0.001
 bs = 10
+num_epochs = 1
 
 # Our input $x$
 TEXT = torchtext.data.Field()
@@ -28,7 +29,7 @@ print('len(TEXT.vocab)', len(TEXT.vocab))
 print('len(LABEL.vocab)', len(LABEL.vocab))
 
 train_iter, val_iter, test_iter = torchtext.data.BucketIterator.splits(
-	(train, val, test), batch_size=bs, device=-1)
+	(train, val, test), batch_size=bs, device=-1, repeat=False)
 
 # Build the vocabulary with word embeddings
 url = 'https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.simple.vec'
@@ -43,28 +44,29 @@ print("Word embeddings size ", TEXT.vocab.vectors.size())
 input_size = len(TEXT.vocab)
 
 class LogisticRegression(nn.Module):
-    def __init__(self, input_size):
-        super(LogisticRegression, self).__init__()
-        self.linear = nn.Linear(input_size, 2)
-    
-    def forward(self, x):
-        out = self.linear(x)
-        return out
+	def __init__(self, input_size):
+		super(LogisticRegression, self).__init__()
+		self.linear = nn.Linear(input_size, 2)
+
+	def forward(self, x):
+		out = self.linear(x)
+		return out
 
 model = LogisticRegression(input_size)
 criterion = nn.CrossEntropyLoss()  
 optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 
-ctr = 0
 for epoch in range(num_epochs):
+	ctr = 0
 	for batch in train_iter:
+		# TODO: is there a better way to sparsify?
 		sentences = Variable(torch.zeros(bs,input_size))
 		for i in range(batch.text.size()[1]):
 			x = batch.text.data.numpy()[:,i]
 			for word in x:
 				sentences[i,word] = 1 # += 1
-		labels = batch.label
-		# TODO: change labels from "1" and "2"
+		labels = (batch.label==1).type(torch.LongTensor)
+		# change labels from 1,2 to 1,0
 		optimizer.zero_grad()
 		outputs = model(sentences)
 		loss = criterion(outputs, labels)
@@ -78,14 +80,17 @@ for epoch in range(num_epochs):
 correct = 0
 total = 0
 for batch in val_iter:
-	sentences = Variable(torch.zeros(bs,input_size))
-		for i in range(batch.text.size()[1]):
-			x = batch.text.data.numpy()[:,i]
-			for word in x:
-				sentences[i,word] = 1 # += 1
-	labels = batch.label
-	# TODO: change labels from "1" and "2"
+	bsz = batch.text.size()[1] # batch size might change
+	sentences = Variable(torch.zeros(bsz,input_size))
+	for i in range(bsz):
+		x = batch.text.data.numpy()[:,i]
+		for word in x:
+			sentences[i,word] = 1 # += 1
+	labels = (batch.label==1).type(torch.LongTensor).data
+	# change labels from 1,2 to 1,0
 	outputs = model(sentences)
 	_, predicted = torch.max(outputs.data, 1)
 	total += labels.size(0)
 	correct += (predicted == labels).sum()
+
+print('test accuracy', correct/total)
