@@ -22,7 +22,7 @@ print('len(TEXT.vocab)', len(TEXT.vocab))
 print('len(LABEL.vocab)', len(LABEL.vocab))
 
 train_iter, val_iter, test_iter = torchtext.data.BucketIterator.splits(
-	(train, val, test), batch_size=10, device=-1)
+	(train, val, test), batch_size=10, device=-1, repeat=False)
 
 ############################################
 

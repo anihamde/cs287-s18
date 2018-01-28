@@ -32,7 +32,7 @@ print('len(TEXT.vocab)', len(TEXT.vocab))
 print('len(LABEL.vocab)', len(LABEL.vocab))
 
 train_iter, val_iter, test_iter = torchtext.data.BucketIterator.splits(
-	(train, val, test), batch_size=bs, device=-1) # could be 50?
+	(train, val, test), batch_size=bs, device=-1, repeat=False)
 
 # Build the vocabulary with word embeddings
 url = 'https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.simple.vec'
