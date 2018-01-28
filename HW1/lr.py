@@ -7,12 +7,8 @@ import numpy as np
 from torchtext.vocab import Vectors, GloVe
 
 # Hyperparams
-filter_window = 3
-n_featmaps = 100
-bs = 10
-dropout_rate = 0.5
-num_epochs = 1
 learning_rate = 0.001
+bs = 10
 
 # Our input $x$
 TEXT = torchtext.data.Field()
@@ -43,34 +39,30 @@ print("Word embeddings size ", TEXT.vocab.vectors.size())
 ############################################
 # With help from Yunjey Pytorch Tutorial on Github
 
-class CNN(nn.Module):
+# Hyperparams
+input_size = len(TEXT.vocab)
 
-	def __init__(self):
-		super(CNN, self).__init__()
-		self.embeddings = nn.Embedding(TEXT.vocab.vectors.size())
-		self.embeddings.weight = TEXT.vocab.vectors
-		self.conv = nn.Conv2d(1,n_featmaps,kernel_size=(filter_window,300))
-		self.maxpool = nn.AdaptiveMaxPool1d(1)
-		self.linear = nn.Linear(n_featmaps, 2)
-		self.dropout = nn.Dropout(dropout_rate)
+class LogisticRegression(nn.Module):
+    def __init__(self, input_size):
+        super(LogisticRegression, self).__init__()
+        self.linear = nn.Linear(input_size, 2)
+    
+    def forward(self, x):
+        out = self.linear(x)
+        return out
 
-	def forward(self, inputs):
-		embeds = self.embeddings(inputs) # .view((1, -1))
-		out = F.tanh(self.conv(embeds))
-		out = out.view(bs,n_featmaps,-1)
-		out = self.maxpool(out)
-		out = out.view(bs,-1)
-		out = self.linear(out)
-		out = self.dropout(out),dim=1
-
-model = CNN()
-criterion = nn.CrossEntropyLoss() # accounts for the softmax component
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+model = LogisticRegression(input_size)
+criterion = nn.CrossEntropyLoss()  
+optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 
 ctr = 0
 for epoch in range(num_epochs):
 	for batch in train_iter:
-		sentences = batch.text.transpose(1,0)
+		sentences = Variable(torch.zeros(bs,input_size))
+		for i in range(batch.text.size()[1]):
+			x = batch.text.data.numpy()[:,i]
+			for word in x:
+				sentences[i,word] = 1 # += 1
 		labels = batch.label
 		# TODO: change labels from "1" and "2"
 		optimizer.zero_grad()
@@ -83,18 +75,17 @@ for epoch in range(num_epochs):
 			print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
 				%(epoch+1, num_epochs, ctr, len(train)//bs, loss.data[0]))
 
-model.eval()
 correct = 0
 total = 0
 for batch in val_iter:
-	sentences = batch.text.transpose(1,0)
+	sentences = Variable(torch.zeros(bs,input_size))
+		for i in range(batch.text.size()[1]):
+			x = batch.text.data.numpy()[:,i]
+			for word in x:
+				sentences[i,word] = 1 # += 1
 	labels = batch.label
 	# TODO: change labels from "1" and "2"
 	outputs = model(sentences)
 	_, predicted = torch.max(outputs.data, 1)
 	total += labels.size(0)
 	correct += (predicted == labels).sum()
-
-print('test accuracy', correct/total)
-
-torch.save(model.state_dict(), 'cnn.pkl')

@@ -10,8 +10,8 @@ TEXT = torchtext.data.Field()
 LABEL = torchtext.data.Field(sequential=False)
 
 train, val, test = torchtext.datasets.SST.splits(
-    TEXT, LABEL,
-    filter_pred=lambda ex: ex.label != 'neutral')
+	TEXT, LABEL,
+	filter_pred=lambda ex: ex.label != 'neutral')
 
 print('len(train)', len(train))
 print('vars(train[0])', vars(train[0]))
@@ -22,7 +22,7 @@ print('len(TEXT.vocab)', len(TEXT.vocab))
 print('len(LABEL.vocab)', len(LABEL.vocab))
 
 train_iter, val_iter, test_iter = torchtext.data.BucketIterator.splits(
-    (train, val, test), batch_size=10, device=-1)
+	(train, val, test), batch_size=10, device=-1)
 
 ############################################
 
