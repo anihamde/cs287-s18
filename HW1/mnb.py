@@ -41,12 +41,14 @@ for batch in train_iter:
 		sparse_x = np.zeros(len(TEXT.vocab))
 		for word in x:
 			sparse_x[word] = 1 # += 1
-		if y == 2:
+		if y == 1:
 			p += sparse_x
 			ngood += 1
-		else:
+		elif y == 2:
 			q += sparse_x
 			nbad += 1
+		else:
+			pass
 
 r = np.log((p/np.linalg.norm(p))/(q/np.linalg.norm(q)))
 b = np.log(ngood/nbad)
@@ -60,9 +62,9 @@ def predict(text):
 			sparse_x[word] = 1
 		y = np.dot(r,sparse_x) + b
 		if y > 0:
-			ys.append(2)
-		else:
 			ys.append(1)
+		else:
+			ys.append(2)
 	return torch.Tensor(ys)
 
 # write something to calculate the accuracy in-house
