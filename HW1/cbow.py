@@ -31,22 +31,31 @@ print('len(LABEL.vocab)', len(LABEL.vocab))
 train_iter, val_iter, test_iter = torchtext.data.BucketIterator.splits(
 	(train, val, test), batch_size=bs, device=-1, repeat=False)
 
+# Build the vocabulary with word embeddings
+url = 'https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.simple.vec'
+TEXT.vocab.load_vectors(vectors=Vectors('wiki.simple.vec', url=url))
+
+print("Word embeddings size ", TEXT.vocab.vectors.size())
+
 ############################################
 # With help from Yunjey Pytorch Tutorial on Github
 
 # Hyperparams
 input_size = len(TEXT.vocab)
 
-class LogisticRegression(nn.Module):
+class CBOWLogReg(nn.Module):
 	def __init__(self, input_size):
-		super(LogisticRegression, self).__init__()
-		self.linear = nn.Linear(input_size, 2)
+		super(CBOWLogReg, self).__init__()
+		self.embeddings = nn.Embedding(TEXT.vocab.vectors.size())
+		self.embeddings.weight = TEXT.vocab.vectors
+
+		self.linear = # ??????????????????????????????
 
 	def forward(self, x):
 		out = self.linear(x)
 		return out
 
-model = LogisticRegression(input_size)
+model = CBOWLogReg(input_size)
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 # TODO: apparently the ce loss takes care of the softmax so I don't have to

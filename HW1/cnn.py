@@ -44,7 +44,6 @@ print("Word embeddings size ", TEXT.vocab.vectors.size())
 # With help from Yunjey Pytorch Tutorial on Github
 
 class CNN(nn.Module):
-
 	def __init__(self):
 		super(CNN, self).__init__()
 		self.embeddings = nn.Embedding(TEXT.vocab.vectors.size())
@@ -54,17 +53,19 @@ class CNN(nn.Module):
 		self.linear = nn.Linear(n_featmaps, 2)
 		self.dropout = nn.Dropout(dropout_rate)
 
-	def forward(self, inputs):
-		embeds = self.embeddings(inputs) # .view((1, -1))
-		out = F.tanh(self.conv(embeds))
-		out = out.view(bs,n_featmaps,-1)
-		out = self.maxpool(out)
-		out = out.view(bs,-1)
-		out = self.linear(out)
-		out = self.dropout(out),dim=1
+	def forward(self, inputs): # inputs (bs,words/sentence) 10,7
+		bsz = input.size()[0] # batch size might change
+		embeds = self.embeddings(inputs) # 10,7,300
+		out = embeds.unsqueeze(1) # 10,1,7,300
+		out = F.tanh(self.conv(embeds)) # 10,100,6,1
+		out = out.view(bsz,n_featmaps,-1) # 10,100,6
+		out = self.maxpool(out) # 10,100,1
+		out = out.view(bsz,-1) # 10,100
+		out = self.linear(out) # 10,2
+		out = self.dropout(out,dim=1)
 
 model = CNN()
-criterion = nn.CrossEntropyLoss() # accounts for the softmax component
+criterion = nn.CrossEntropyLoss() # accounts for the softmax component?
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
 for epoch in range(num_epochs):
