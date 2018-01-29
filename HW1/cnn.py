@@ -57,7 +57,7 @@ class CNN(nn.Module):
 		bsz = inputs.size()[0] # batch size might change
 		embeds = self.embeddings(inputs) # 10,7,300
 		out = embeds.unsqueeze(1) # 10,1,7,300
-		out = F.tanh(self.conv(out)) # 10,100,6,1
+		out = F.relu(self.conv(out)) # 10,100,6,1
 		out = out.view(bsz,n_featmaps,-1) # 10,100,6
 		out = self.maxpool(out) # 10,100,1
 		out = out.view(bsz,-1) # 10,100
@@ -81,6 +81,7 @@ for epoch in range(num_epochs):
 		loss = criterion(outputs, labels)
 		loss.backward()
 		optimizer.step()
+		nn.utils.clip_grad_norm(model.parameters(), 3)
 		ctr += 1
 		if ctr % 100 == 0:
 			print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
