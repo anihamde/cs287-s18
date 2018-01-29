@@ -9,7 +9,7 @@ from torchtext.vocab import Vectors, GloVe
 # Hyperparams
 learning_rate = 0.001
 bs = 10
-num_epochs = 1
+num_epochs = 200
 
 # Our input $x$
 TEXT = torchtext.data.Field()
@@ -87,6 +87,31 @@ for batch in val_iter:
 	total += labels.size(0)
 	correct += (predicted == labels).sum()
 
-print('test accuracy', correct/total)
+print('val accuracy', correct/total)
 
 torch.save(model.state_dict(), 'lr.pkl')
+
+def test(model):
+	"All models should be able to be run with following command."
+	upload = []
+	# Update: for kaggle the bucket iterator needs to have batch_size 10
+	# test_iter = torchtext.data.BucketIterator(test, train=False, batch_size=10)
+	for batch in test_iter:
+		# Your prediction data here (don't cheat!)
+		probs = model(batch.text)
+		_, argmax = probs.max(1)
+		upload += list(argmax.data)
+
+	with open("lr_predictions.csv", "w") as f:
+		writer = csv.writer(f)
+		writer.writerow(['Id','Cat'])
+		idcntr = 0
+		for u in upload:
+			if u == 0:
+				u = 2
+			writer.writerow([idcntr,u])
+			idcntr += 1
+			# f.write(str(u) + "\n")
+
+test(model)
+
