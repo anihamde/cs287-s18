@@ -49,8 +49,6 @@ class LogisticRegression(nn.Module):
 model = LogisticRegression(input_size)
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
-# TODO: apparently the ce loss takes care of the softmax so I don't have to
-# but I don't really understand how it works
 
 for epoch in range(num_epochs):
 	ctr = 0
