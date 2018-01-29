@@ -13,6 +13,7 @@ bs = 10
 dropout_rate = 0.5
 num_epochs = 1
 learning_rate = 0.001
+constraint = 3
 
 # Our input $x$
 TEXT = torchtext.data.Field()
@@ -80,7 +81,7 @@ for epoch in range(num_epochs):
 		loss = criterion(outputs, labels)
 		loss.backward()
 		optimizer.step()
-		nn.utils.clip_grad_norm(model.parameters(), 3)
+		nn.utils.clip_grad_norm(model.parameters(), constraint)
 		ctr += 1
 		if ctr % 100 == 0:
 			print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
