@@ -96,7 +96,7 @@ for batch in val_iter:
 
 print('val accuracy', correct/total)
 
-torch.save(model.state_dict(), 'cbow.pkl')
+torch.save(model.state_dict(), '../../models/cbow.pkl')
 
 def test(model):
 	"All models should be able to be run with following command."
