@@ -47,30 +47,25 @@ input_size = len(TEXT.vocab)
 class CBOWLogReg(nn.Module):
 	def __init__(self, input_size):
 		super(CBOWLogReg, self).__init__()
-		self.embeddings = nn.Embedding(TEXT.vocab.vectors.size())
+		self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
 		self.embeddings.weight = TEXT.vocab.vectors
+		self.linear = nn.Linear(TEXT.vocab.vectors.size(1), 2)
 
-		self.linear = # ??????????????????????????????
-
-	def forward(self, x):
-		out = self.linear(x)
+	def forward(self, inputs): # inputs (bs,words/sentence) 10,7
+		bsz = inputs.size(0) # batch size might change
+		embeds = self.embeddings(inputs) # 10,7,300
+		out = out.sum(dim=1) # 10,300 (sum together embeddings across sentences)
+		out = self.linear(x) # 300,2
 		return out
 
 model = CBOWLogReg(input_size)
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
-# TODO: apparently the ce loss takes care of the softmax so I don't have to
-# but I don't really understand how it works
 
 for epoch in range(num_epochs):
 	ctr = 0
 	for batch in train_iter:
-		# TODO: is there a better way to sparsify?
-		sentences = Variable(torch.zeros(bs,input_size))
-		for i in range(batch.text.size()[1]):
-			x = batch.text.data.numpy()[:,i]
-			for word in x:
-				sentences[i,word] = 1 # += 1
+		sentences = batch.text.transpose(1,0)
 		labels = (batch.label==1).type(torch.LongTensor)
 		# change labels from 1,2 to 1,0
 		optimizer.zero_grad()
@@ -86,12 +81,8 @@ for epoch in range(num_epochs):
 correct = 0
 total = 0
 for batch in val_iter:
-	bsz = batch.text.size()[1] # batch size might change
-	sentences = Variable(torch.zeros(bsz,input_size))
-	for i in range(bsz):
-		x = batch.text.data.numpy()[:,i]
-		for word in x:
-			sentences[i,word] = 1 # += 1
+	bsz = batch.text.size(1) # batch size might change
+	sentences = batch.text.transpose(1,0)
 	labels = (batch.label==1).type(torch.LongTensor).data
 	# change labels from 1,2 to 1,0
 	outputs = model(sentences)
@@ -100,3 +91,5 @@ for batch in val_iter:
 	correct += (predicted == labels).sum()
 
 print('test accuracy', correct/total)
+
+torch.save(model.state_dict(), 'cbow.pkl')

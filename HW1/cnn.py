@@ -13,6 +13,7 @@ bs = 10
 dropout_rate = 0.5
 num_epochs = 1
 learning_rate = 0.001
+constraint = 3
 
 # Our input $x$
 TEXT = torchtext.data.Field()
@@ -46,7 +47,7 @@ print("Word embeddings size ", TEXT.vocab.vectors.size())
 class CNN(nn.Module):
 	def __init__(self):
 		super(CNN, self).__init__()
-		self.embeddings = nn.Embedding(TEXT.vocab.vectors.size()[0],TEXT.vocab.vectors.size()[1])
+		self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
 		self.embeddings.weight.data = TEXT.vocab.vectors
 		self.conv = nn.Conv2d(1,n_featmaps,kernel_size=(filter_window,300))
 		self.maxpool = nn.AdaptiveMaxPool1d(1)
@@ -54,7 +55,7 @@ class CNN(nn.Module):
 		self.dropout = nn.Dropout(dropout_rate)
 
 	def forward(self, inputs): # inputs (bs,words/sentence) 10,7
-		bsz = inputs.size()[0] # batch size might change
+		bsz = inputs.size(0) # batch size might change
 		embeds = self.embeddings(inputs) # 10,7,300
 		out = embeds.unsqueeze(1) # 10,1,7,300
 		out = F.relu(self.conv(out)) # 10,100,6,1
@@ -80,7 +81,7 @@ for epoch in range(num_epochs):
 		loss = criterion(outputs, labels)
 		loss.backward()
 		optimizer.step()
-		nn.utils.clip_grad_norm(model.parameters(), 3)
+		nn.utils.clip_grad_norm(model.parameters(), constraint)
 		ctr += 1
 		if ctr % 100 == 0:
 			print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 

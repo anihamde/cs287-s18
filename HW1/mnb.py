@@ -35,7 +35,7 @@ ngood = 0
 nbad = 0
 
 for batch in train_iter:
-	for i in range(batch.text.size()[1]):
+	for i in range(batch.text.size(1)):
 		x = batch.text.data.numpy()[:,i]
 		y = batch.label.data.numpy()[i]
 		sparse_x = np.zeros(len(TEXT.vocab))
@@ -55,8 +55,8 @@ b = np.log(ngood/nbad)
 
 # model takes in a batch.text and return a bs*2 tensor of probs
 def predict(text):
-	ys = torch.zeros(text.size()[1],2)
-	for i in range(text.size()[1]):
+	ys = torch.zeros(text.size(1),2)
+	for i in range(text.size(1)):
 		x = text.data.numpy()[:,i]
 		sparse_x = np.zeros(len(TEXT.vocab))
 		for word in x:
