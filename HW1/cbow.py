@@ -3,6 +3,7 @@ import torchtext
 import torch
 from torch.autograd import Variable
 import torch.nn as nn
+import torch.nn.functional as F
 import numpy as np
 from torchtext.vocab import Vectors, GloVe
 

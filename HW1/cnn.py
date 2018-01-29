@@ -46,23 +46,25 @@ print("Word embeddings size ", TEXT.vocab.vectors.size())
 class CNN(nn.Module):
 	def __init__(self):
 		super(CNN, self).__init__()
-		self.embeddings = nn.Embedding(TEXT.vocab.vectors.size())
-		self.embeddings.weight = TEXT.vocab.vectors
+		self.embeddings = nn.Embedding(TEXT.vocab.vectors.size()[0],TEXT.vocab.vectors.size()[1])
+		self.embeddings.weight.data = TEXT.vocab.vectors
 		self.conv = nn.Conv2d(1,n_featmaps,kernel_size=(filter_window,300))
 		self.maxpool = nn.AdaptiveMaxPool1d(1)
 		self.linear = nn.Linear(n_featmaps, 2)
 		self.dropout = nn.Dropout(dropout_rate)
 
 	def forward(self, inputs): # inputs (bs,words/sentence) 10,7
-		bsz = input.size()[0] # batch size might change
+		bsz = inputs.size()[0] # batch size might change
 		embeds = self.embeddings(inputs) # 10,7,300
 		out = embeds.unsqueeze(1) # 10,1,7,300
-		out = F.tanh(self.conv(embeds)) # 10,100,6,1
+		out = F.tanh(self.conv(out)) # 10,100,6,1
 		out = out.view(bsz,n_featmaps,-1) # 10,100,6
 		out = self.maxpool(out) # 10,100,1
 		out = out.view(bsz,-1) # 10,100
 		out = self.linear(out) # 10,2
-		out = self.dropout(out,dim=1)
+		out = self.dropout(out) # 10,2
+		return out
+# TODO: what about weight constraints?
 
 model = CNN()
 criterion = nn.CrossEntropyLoss() # accounts for the softmax component?
@@ -84,7 +86,7 @@ for epoch in range(num_epochs):
 			print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
 				%(epoch+1, num_epochs, ctr, len(train)//bs, loss.data[0]))
 
-model.eval()
+model.eval() # lets dropout layer know that this is the test set
 correct = 0
 total = 0
 for batch in val_iter:
