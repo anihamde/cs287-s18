@@ -3,6 +3,8 @@ import torchtext
 import torch
 import numpy as np
 from torchtext.vocab import Vectors, GloVe
+from torch.autograd import Variable
+import csv
 
 # Our input $x$
 TEXT = torchtext.data.Field()
@@ -66,7 +68,7 @@ def predict(text):
 			ys[i,1] = 1
 		else:
 			ys[i,0] = 1
-	return ys
+	return Variable(ys)
 
 def inhousepredict(batch):
 	ys = torch.zeros(batch.text.size()[1])
@@ -86,6 +88,29 @@ def inhousepredict(batch):
 
 	return incorrect, len(check)
 
+def test(model):
+	"All models should be able to be run with following command."
+	upload = []
+	# Update: for kaggle the bucket iterator needs to have batch_size 10
+	# test_iter = torchtext.data.BucketIterator(test, train=False, batch_size=10)
+	for batch in test_iter:
+		# Your prediction data here (don't cheat!)
+		probs = model(batch.text)
+		_, argmax = probs.max(1)
+		upload += list(argmax.data)
+
+	with open("mnb_predictions.csv", "w") as f:
+		writer = csv.writer(f)
+		writer.writerow(['Id','Cat'])
+		idcntr = 0
+		for u in upload:
+			if u == 0:
+				u = 2
+			writer.writerow([idcntr,u])
+			idcntr += 1
+			# f.write(str(u) + "\n")
+
+test(predict)
 # incorrect = 0
 # total = 0
 
