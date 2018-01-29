@@ -11,7 +11,7 @@ import csv
 # Hyperparams
 learning_rate = 0.001
 bs = 10
-num_epochs = 75
+num_epochs = 10
 
 # Our input $x$
 TEXT = torchtext.data.Field()
