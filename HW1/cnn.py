@@ -13,7 +13,7 @@ filter_window = 3
 n_featmaps = 100
 bs = 10
 dropout_rate = 0.5
-num_epochs = 10
+num_epochs = 1
 learning_rate = 0.001
 constraint = 3
 
@@ -112,7 +112,7 @@ def test(model):
 	# test_iter = torchtext.data.BucketIterator(test, train=False, batch_size=10)
 	for batch in test_iter:
 		# Your prediction data here (don't cheat!)
-		probs = model(batch.text)
+		probs = model(batch.text.transpose(1,0))
 		_, argmax = probs.max(1)
 		upload += list(argmax.data)
 
