@@ -51,6 +51,8 @@ model = LogisticRegression(input_size)
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 
+losses = []
+
 for epoch in range(num_epochs):
 	ctr = 0
 	for batch in train_iter:
@@ -71,6 +73,7 @@ for epoch in range(num_epochs):
 		if ctr % 100 == 0:
 			print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
 				%(epoch+1, num_epochs, ctr, len(train)//bs, loss.data[0]))
+		losses.append(loss)
 
 correct = 0
 total = 0
@@ -115,4 +118,6 @@ def test(model):
 			# f.write(str(u) + "\n")
 
 test(model)
+
+np.save("lr_losses",np.array(losses))
 
