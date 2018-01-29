@@ -13,7 +13,7 @@ filter_window = 3
 n_featmaps = 100
 bs = 10
 dropout_rate = 0.5
-num_epochs = 1
+num_epochs = 75
 learning_rate = 0.001
 constraint = 3
 
@@ -58,6 +58,9 @@ class CNN(nn.Module):
 
 	def forward(self, inputs): # inputs (bs,words/sentence) 10,7
 		bsz = inputs.size(0) # batch size might change
+		if inputs.size(1) < 3: # padding issues on really short sentences
+			pads = Variable(torch.zeros(bsz,3-inputs.size(1)))
+			inputs = torch.cat([inputs,pads],dim=1)
 		embeds = self.embeddings(inputs) # 10,7,300
 		out = embeds.unsqueeze(1) # 10,1,7,300
 		out = F.relu(self.conv(out)) # 10,100,6,1
@@ -92,6 +95,7 @@ for epoch in range(num_epochs):
 				%(epoch+1, num_epochs, ctr, len(train)//bs, loss.data[0]))
 
 		losses.append(loss)
+
 
 model.eval() # lets dropout layer know that this is the test set
 correct = 0
