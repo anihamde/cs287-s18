@@ -64,7 +64,6 @@ class CNN(nn.Module):
 		out = self.linear(out) # 10,2
 		out = self.dropout(out) # 10,2
 		return out
-# TODO: what about weight constraints?
 
 model = CNN()
 criterion = nn.CrossEntropyLoss() # accounts for the softmax component?
