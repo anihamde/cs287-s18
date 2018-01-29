@@ -64,7 +64,6 @@ class CNN(nn.Module):
 		out = self.linear(out) # 10,2
 		out = self.dropout(out) # 10,2
 		return out
-# TODO: what about weight constraints?
 
 model = CNN()
 criterion = nn.CrossEntropyLoss() # accounts for the softmax component?
@@ -81,6 +80,7 @@ for epoch in range(num_epochs):
 		loss = criterion(outputs, labels)
 		loss.backward()
 		optimizer.step()
+		nn.utils.clip_grad_norm(model.parameters(), 3)
 		ctr += 1
 		if ctr % 100 == 0:
 			print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
