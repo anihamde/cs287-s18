@@ -27,7 +27,7 @@ train_iter, val_iter, test_iter = torchtext.data.BucketIterator.splits(
 ############################################
 
 # Hyperparams
-alpha = 0 # smoothing
+alpha = 1 # smoothing
 
 p = np.zeros(len(TEXT.vocab)) + alpha
 q = np.zeros(len(TEXT.vocab)) + alpha
@@ -51,7 +51,6 @@ for batch in train_iter:
 			pass
 
 r = np.log((p/np.linalg.norm(p))/(q/np.linalg.norm(q)))
-# TODO: how to handle divide by zeros?
 b = np.log(ngood/nbad)
 
 # model takes in a batch.text and return a bs*2 tensor of probs
@@ -69,5 +68,32 @@ def predict(text):
 			ys[i,0] = 1
 	return ys
 
-# TODO: write something to calculate the accuracy in-house
+def inhousepredict(batch):
+	ys = torch.zeros(batch.text.size()[1])
+	labs = batch.label
+	for i in range(batch.text.size()[1]):
+		x = batch.text.data.numpy()[:,i]
+		sparse_x = np.zeros(len(TEXT.vocab))
+		for word in x:
+			sparse_x[word] = 1
+		y = np.dot(r,sparse_x) + b
+		if y > 0:
+			ys[i] = 1
+
+	check = (ys.numpy() - labs.data.numpy())%2
+
+	correct = sum(check)
+
+	return correct, len(check)
+
+correct = 0
+total = 0
+
+for batch in val_iter:
+	inter_vec = inhousepredict(batch)
+	correct += inter_vec[0]
+	total += inter_vec[1]
+
+print(correct/total*100)
+
 # realizing that TEXT.label uses 2 and 1, not 0 and 1
