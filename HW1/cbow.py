@@ -90,6 +90,6 @@ for batch in val_iter:
 	total += labels.size(0)
 	correct += (predicted == labels).sum()
 
-print('test accuracy', correct/total)
+print('val accuracy', correct/total)
 
 torch.save(model.state_dict(), 'cbow.pkl')

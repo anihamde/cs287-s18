@@ -82,18 +82,18 @@ def inhousepredict(batch):
 
 	check = (ys.numpy() - labs.data.numpy())%2
 
-	correct = sum(check)
+	incorrect = sum(check)
 
-	return correct, len(check)
+	return incorrect, len(check)
 
-correct = 0
-total = 0
+# incorrect = 0
+# total = 0
 
-for batch in val_iter:
-	inter_vec = inhousepredict(batch)
-	correct += inter_vec[0]
-	total += inter_vec[1]
+# for batch in val_iter:
+# 	inter_vec = inhousepredict(batch)
+# 	incorrect += inter_vec[0]
+# 	total += inter_vec[1]
 
-print(correct/total*100)
+# print((1-incorrect/total)*100)
 
 # realizing that TEXT.label uses 2 and 1, not 0 and 1
