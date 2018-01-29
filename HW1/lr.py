@@ -57,7 +57,7 @@ for epoch in range(num_epochs):
 	for batch in train_iter:
 		# TODO: is there a better way to sparsify?
 		sentences = Variable(torch.zeros(bs,input_size))
-		for i in range(batch.text.size()[1]):
+		for i in range(batch.text.size(1)):
 			x = batch.text.data.numpy()[:,i]
 			for word in x:
 				sentences[i,word] = 1 # += 1
@@ -76,7 +76,7 @@ for epoch in range(num_epochs):
 correct = 0
 total = 0
 for batch in val_iter:
-	bsz = batch.text.size()[1] # batch size might change
+	bsz = batch.text.size(1) # batch size might change
 	sentences = Variable(torch.zeros(bsz,input_size))
 	for i in range(bsz):
 		x = batch.text.data.numpy()[:,i]
@@ -90,3 +90,5 @@ for batch in val_iter:
 	correct += (predicted == labels).sum()
 
 print('test accuracy', correct/total)
+
+torch.save(model.state_dict(), 'lr.pkl')

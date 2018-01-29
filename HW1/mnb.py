@@ -27,7 +27,7 @@ train_iter, val_iter, test_iter = torchtext.data.BucketIterator.splits(
 ############################################
 
 # Hyperparams
-alpha = 0 # smoothing
+alpha = 1 # smoothing
 
 p = np.zeros(len(TEXT.vocab)) + alpha
 q = np.zeros(len(TEXT.vocab)) + alpha
@@ -35,7 +35,7 @@ ngood = 0
 nbad = 0
 
 for batch in train_iter:
-	for i in range(batch.text.size()[1]):
+	for i in range(batch.text.size(1)):
 		x = batch.text.data.numpy()[:,i]
 		y = batch.label.data.numpy()[i]
 		sparse_x = np.zeros(len(TEXT.vocab))
@@ -51,13 +51,12 @@ for batch in train_iter:
 			pass
 
 r = np.log((p/np.linalg.norm(p))/(q/np.linalg.norm(q)))
-# TODO: how to handle divide by zeros?
 b = np.log(ngood/nbad)
 
 # model takes in a batch.text and return a bs*2 tensor of probs
 def predict(text):
-	ys = torch.zeros(text.size()[1],2)
-	for i in range(text.size()[1]):
+	ys = torch.zeros(text.size(1),2)
+	for i in range(text.size(1)):
 		x = text.data.numpy()[:,i]
 		sparse_x = np.zeros(len(TEXT.vocab))
 		for word in x:
