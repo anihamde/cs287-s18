@@ -5,6 +5,7 @@ from torch.autograd import Variable
 import torch.nn as nn
 import numpy as np
 from torchtext.vocab import Vectors, GloVe
+import csv
 
 # Hyperparams
 learning_rate = 0.001

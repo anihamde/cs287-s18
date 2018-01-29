@@ -3,15 +3,17 @@ import torchtext
 import torch
 from torch.autograd import Variable
 import torch.nn as nn
+import torch.nn.functional as F
 import numpy as np
 from torchtext.vocab import Vectors, GloVe
+import csv
 
 # Hyperparams
 filter_window = 3
 n_featmaps = 100
 bs = 10
 dropout_rate = 0.5
-num_epochs = 1
+num_epochs = 10
 learning_rate = 0.001
 constraint = 3
 
@@ -102,3 +104,29 @@ for batch in val_iter:
 print('test accuracy', correct/total)
 
 torch.save(model.state_dict(), 'cnn.pkl')
+
+def test(model):
+	"All models should be able to be run with following command."
+	upload = []
+	# Update: for kaggle the bucket iterator needs to have batch_size 10
+	# test_iter = torchtext.data.BucketIterator(test, train=False, batch_size=10)
+	for batch in test_iter:
+		# Your prediction data here (don't cheat!)
+		probs = model(batch.text)
+		_, argmax = probs.max(1)
+		upload += list(argmax.data)
+
+	with open("cnn_predictions.csv", "w") as f:
+		writer = csv.writer(f)
+		writer.writerow(['Id','Cat'])
+		idcntr = 0
+		for u in upload:
+			if u == 0:
+				u = 2
+			writer.writerow([idcntr,u])
+			idcntr += 1
+			# f.write(str(u) + "\n")
+
+test(model)
+
+

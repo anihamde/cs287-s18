@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from torchtext.vocab import Vectors, GloVe
+import csv
 
 # Hyperparams
 learning_rate = 0.001
@@ -48,14 +49,14 @@ class CBOWLogReg(nn.Module):
 	def __init__(self, input_size):
 		super(CBOWLogReg, self).__init__()
 		self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
-		self.embeddings.weight = TEXT.vocab.vectors
+		self.embeddings.weight.data = TEXT.vocab.vectors
 		self.linear = nn.Linear(TEXT.vocab.vectors.size(1), 2)
 
 	def forward(self, inputs): # inputs (bs,words/sentence) 10,7
 		bsz = inputs.size(0) # batch size might change
 		embeds = self.embeddings(inputs) # 10,7,300
-		out = out.sum(dim=1) # 10,300 (sum together embeddings across sentences)
-		out = self.linear(x) # 300,2
+		out = embeds.sum(dim=1) # 10,300 (sum together embeddings across sentences)
+		out = self.linear(out) # 300,2
 		return out
 
 model = CBOWLogReg(input_size)
