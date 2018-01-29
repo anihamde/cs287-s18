@@ -11,7 +11,7 @@ import csv
 # Hyperparams
 learning_rate = 0.001
 bs = 10
-num_epochs = 10
+num_epochs = 75
 
 # Our input $x$
 TEXT = torchtext.data.Field()
@@ -63,6 +63,8 @@ model = CBOWLogReg(input_size)
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 
+losses = []
+
 for epoch in range(num_epochs):
 	ctr = 0
 	for batch in train_iter:
@@ -78,6 +80,7 @@ for epoch in range(num_epochs):
 		if ctr % 100 == 0:
 			print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
 				%(epoch+1, num_epochs, ctr, len(train)//bs, loss.data[0]))
+		losses.append(loss)
 
 correct = 0
 total = 0
@@ -102,7 +105,8 @@ def test(model):
 	# test_iter = torchtext.data.BucketIterator(test, train=False, batch_size=10)
 	for batch in test_iter:
 		# Your prediction data here (don't cheat!)
-		probs = model(batch.text)
+		sentences = batch.text.transpose(1,0)
+		probs = model(sentences)
 		_, argmax = probs.max(1)
 		upload += list(argmax.data)
 
@@ -119,4 +123,4 @@ def test(model):
 
 test(model)
 
-
+np.save("cbow_losses",np.array(losses))
