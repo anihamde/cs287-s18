@@ -93,7 +93,6 @@ for epoch in range(num_epochs):
 		if ctr % 100 == 0:
 			print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
 				%(epoch+1, num_epochs, ctr, len(train)//bs, loss.data[0]))
-
 		losses.append(loss)
 
 
@@ -140,3 +139,45 @@ test(model)
 
 np.save("cnn_losses",np.array(losses))
 
+
+
+
+
+###############################3
+
+# Multichannel CNN
+class MCNN(nn.Module):
+	def __init__(self):
+		super(CNN, self).__init__()
+		self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
+		self.embeddings.weight.data = TEXT.vocab.vectors
+		self.s_embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
+		self.s_embeddings.weight.data = TEXT.vocab.vectors # make these embeddings something else???
+		self.s_embeddings.weight.requires_grad = False
+		self.conv = nn.Conv2d(2,n_featmaps,kernel_size=(filter_window,300))
+		self.maxpool = nn.AdaptiveMaxPool1d(1)
+		self.linear = nn.Linear(n_featmaps, 2)
+		self.dropout = nn.Dropout(dropout_rate)
+
+	def forward(self, inputs): # inputs (bs,words/sentence) 10,7
+		bsz = inputs.size(0) # batch size might change
+		if inputs.size(1) < 3: # padding issues on really short sentences
+			pads = Variable(torch.zeros(bsz,3-inputs.size(1)))
+			inputs = torch.cat([inputs,pads],dim=1)
+		embeds = self.embeddings(inputs) # 10,7,300
+		embeds = embeds.unsqueeze(1) # 10,1,7,300
+		s_embeds = self.s_embeddings(inputs) # 10,7,300
+		s_embeds = s_embeds.unsqueeze(1) # 10,1,7,300
+		out = torch.cat([embeds,s_embeds],dim=1) # 10,2,7,300
+		out = F.relu(self.conv(out)) # 10,100,6,1
+		out = out.view(bsz,n_featmaps,-1) # 10,100,6
+		out = self.maxpool(out) # 10,100,1
+		out = out.view(bsz,-1) # 10,100
+		out = self.linear(out) # 10,2
+		out = self.dropout(out) # 10,2
+		return out
+
+model = MCNN()
+criterion = nn.CrossEntropyLoss() # accounts for the softmax component?
+params = filter(lambda x: x.requires_grad, models.parameters())
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
