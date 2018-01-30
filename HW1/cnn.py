@@ -13,7 +13,7 @@ filter_window = 3
 n_featmaps = 100
 bs = 10
 dropout_rate = 0.5
-num_epochs = 75
+num_epochs = 15 # from 30
 learning_rate = 0.001
 constraint = 3
 
@@ -95,8 +95,9 @@ for epoch in range(num_epochs):
 				%(epoch+1, num_epochs, ctr, len(train)//bs, loss.data[0]))
 		losses.append(loss.data[0])
 
-np.save("../../models/cnn_losses",np.array(losses))
-torch.save(model.state_dict(), '../../models/cnn.pkl')
+	# normally you'd tab these back a level, but i'm paranoid
+	np.save("../../models/cnn_losses",np.array(losses))
+	torch.save(model.state_dict(), '../../models/cnn.pkl')
 
 # model.load_state_dict(torch.load('../../models/0cnn.pkl'))
 
@@ -180,4 +181,4 @@ class MCNN(nn.Module):
 model = MCNN()
 criterion = nn.CrossEntropyLoss() # accounts for the softmax component?
 params = filter(lambda x: x.requires_grad, model.parameters())
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+optimizer = torch.optim.Adam(params, lr=learning_rate)
