@@ -80,7 +80,12 @@ for epoch in range(num_epochs):
 		if ctr % 100 == 0:
 			print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
 				%(epoch+1, num_epochs, ctr, len(train)//bs, loss.data[0]))
-		losses.append(loss)
+		losses.append(loss.data[0])
+
+np.save("../../models/cbow_losses",np.array(losses))
+torch.save(model.state_dict(), '../../models/cbow.pkl')
+
+# model.load_state_dict(torch.load('../../models/cbow.pkl'))
 
 correct = 0
 total = 0
@@ -95,8 +100,6 @@ for batch in val_iter:
 	correct += (predicted == labels).sum()
 
 print('val accuracy', correct/total)
-
-torch.save(model.state_dict(), '../../models/cbow.pkl')
 
 def test(model):
 	"All models should be able to be run with following command."
@@ -122,5 +125,3 @@ def test(model):
 			# f.write(str(u) + "\n")
 
 test(model)
-
-np.save("cbow_losses",np.array(losses))

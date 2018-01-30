@@ -93,8 +93,12 @@ for epoch in range(num_epochs):
 		if ctr % 100 == 0:
 			print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
 				%(epoch+1, num_epochs, ctr, len(train)//bs, loss.data[0]))
-		losses.append(loss)
+		losses.append(loss.data[0])
 
+np.save("../../models/cnn_losses",np.array(losses))
+torch.save(model.state_dict(), '../../models/cnn.pkl')
+
+# model.load_state_dict(torch.load('../../models/0cnn.pkl'))
 
 model.eval() # lets dropout layer know that this is the test set
 correct = 0
@@ -109,8 +113,6 @@ for batch in val_iter:
 	correct += (predicted == labels).sum()
 
 print('test accuracy', correct/total)
-
-torch.save(model.state_dict(), '../../models/cnn.pkl')
 
 def test(model):
 	"All models should be able to be run with following command."
@@ -137,8 +139,6 @@ def test(model):
 
 test(model)
 
-np.save("cnn_losses",np.array(losses))
-
 
 
 
@@ -148,7 +148,7 @@ np.save("cnn_losses",np.array(losses))
 # Multichannel CNN
 class MCNN(nn.Module):
 	def __init__(self):
-		super(CNN, self).__init__()
+		super(MCNN, self).__init__()
 		self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
 		self.embeddings.weight.data = TEXT.vocab.vectors
 		self.s_embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
@@ -179,5 +179,5 @@ class MCNN(nn.Module):
 
 model = MCNN()
 criterion = nn.CrossEntropyLoss() # accounts for the softmax component?
-params = filter(lambda x: x.requires_grad, models.parameters())
+params = filter(lambda x: x.requires_grad, model.parameters())
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)

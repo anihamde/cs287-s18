@@ -10,7 +10,7 @@ import csv
 # Hyperparams
 learning_rate = 0.001
 bs = 10
-num_epochs = 200
+num_epochs = 250
 
 # Our input $x$
 TEXT = torchtext.data.Field()
@@ -73,7 +73,12 @@ for epoch in range(num_epochs):
 		if ctr % 100 == 0:
 			print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
 				%(epoch+1, num_epochs, ctr, len(train)//bs, loss.data[0]))
-		losses.append(loss)
+		losses.append(loss.data[0])
+
+np.save("../../models/lr_losses",np.array(losses))
+torch.save(model.state_dict(), '../../models/lr.pkl')
+
+# model.load_state_dict(torch.load('../../models/lr.pkl'))
 
 correct = 0
 total = 0
@@ -93,8 +98,6 @@ for batch in val_iter:
 
 print('val accuracy', correct/total)
 
-torch.save(model.state_dict(), '../../models/lr.pkl')
-
 def test(model):
 	"All models should be able to be run with following command."
 	upload = []
@@ -102,7 +105,13 @@ def test(model):
 	# test_iter = torchtext.data.BucketIterator(test, train=False, batch_size=10)
 	for batch in test_iter:
 		# Your prediction data here (don't cheat!)
-		probs = model(batch.text)
+		bsz = batch.text.size(1) # batch size might change
+		sentences = Variable(torch.zeros(bsz,input_size))
+		for i in range(bsz):
+			x = batch.text.data.numpy()[:,i]
+			for word in x:
+				sentences[i,word] = 1 # += 1
+		probs = model(sentences)
 		_, argmax = probs.max(1)
 		upload += list(argmax.data)
 
@@ -118,6 +127,3 @@ def test(model):
 			# f.write(str(u) + "\n")
 
 test(model)
-
-np.save("lr_losses",np.array(losses))
-
