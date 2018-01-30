@@ -54,6 +54,7 @@ optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 losses = []
 
 for epoch in range(num_epochs):
+	train_iter.init_epoch()
 	ctr = 0
 	for batch in train_iter:
 		# TODO: is there a better way to sparsify?

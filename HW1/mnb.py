@@ -83,10 +83,16 @@ def inhousepredict(batch):
 			ys[i] = 1
 
 	check = (ys.numpy() - labs.data.numpy())%2
-
 	incorrect = sum(check)
-
 	return incorrect, len(check)
+
+incorrect = 0
+total = 0
+for batch in val_iter:
+	inter_vec = inhousepredict(batch)
+	incorrect += inter_vec[0]
+	total += inter_vec[1]
+print('val accuracy', 1-incorrect/total)
 
 def test(model):
 	"All models should be able to be run with following command."
@@ -110,15 +116,4 @@ def test(model):
 			idcntr += 1
 			# f.write(str(u) + "\n")
 
-test(predict)
-# incorrect = 0
-# total = 0
-
-# for batch in val_iter:
-# 	inter_vec = inhousepredict(batch)
-# 	incorrect += inter_vec[0]
-# 	total += inter_vec[1]
-
-# print((1-incorrect/total)*100)
-
-# realizing that TEXT.label uses 2 and 1, not 0 and 1
+# test(predict)

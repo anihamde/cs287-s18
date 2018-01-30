@@ -78,6 +78,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 losses = []
 
 for epoch in range(num_epochs):
+	train_iter.init_epoch()
 	ctr = 0
 	for batch in train_iter:
 		sentences = batch.text.transpose(1,0)
