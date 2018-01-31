@@ -146,8 +146,9 @@ for epoch in range(num_epochs):
     ctr = 0
     for batch in train_iter:
         sentences = batch.text.transpose(1,0)
-        sentences.cuda()
+        sentences = sentences.cuda()
         labels = (batch.label==1).type(torch.LongTensor)
+        labels = labels.cuda()
         # change labels from 1,2 to 1,0
         optimizer.zero_grad()
         outputs = model(sentences)
@@ -172,8 +173,9 @@ correct = 0
 total = 0
 for batch in val_iter:
     sentences = batch.text.transpose(1,0)
-    sentences.cuda()
+    sentences = sentences.cuda()
     labels = (batch.label==1).type(torch.LongTensor).data
+    labels = labels.cuda()
     # change labels from 1,2 to 1,0
     outputs = model(sentences)
     _, predicted = torch.max(outputs.data, 1)
@@ -190,7 +192,7 @@ def test(model):
     for batch in test_iter:
         # Your prediction data here (don't cheat!)
         sentences = batch.text.transpose(1,0)
-        sentences.cuda()
+        sentences = sentences.cuda()
         probs = model(sentences)
         _, argmax = probs.max(1)
         upload += list(argmax.data)
