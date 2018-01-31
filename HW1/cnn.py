@@ -64,8 +64,8 @@ class CNN(nn.Module):
   def forward(self, inputs): # inputs (bs,words/sentence) 10,7
       bsz = inputs.size(0) # batch size might change
       if inputs.size(1) < 3: # padding issues on really short sentences
-          pads = Variable(torch.zeros(bsz,3-inputs.size(1)))
-          inputs = torch.cat([inputs,pads],dim=1)
+          pads = Variable(torch.zeros(bsz,3-inputs.size(1))).type(torch.LongTensor)
+          inputs = torch.cat([inputs,pads.cuda()],dim=1)
       embeds = self.embeddings(inputs) # 10,7,300
       out = embeds.unsqueeze(1) # 10,1,7,300
       out = F.relu(self.conv(out)) # 10,100,6,1
@@ -106,7 +106,7 @@ model = CNN()
 #     def forward(self, inputs): # inputs (bs,words/sentence) 10,7
 #         bsz = inputs.size(0) # batch size might change
 #         if inputs.size(1) < 3: # padding issues on really short sentences
-#             pads = Variable(torch.zeros(bsz,3-inputs.size(1)))
+#             pads = Variable(torch.zeros(bsz,3-inputs.size(1))).type(torch.LongTensor)
 #             inputs = torch.cat([inputs,pads],dim=1)
 #         embeds = self.embeddings(inputs) # 10,7,300
 #         embeds = embeds.unsqueeze(1) # 10,1,7,300
