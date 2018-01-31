@@ -41,12 +41,12 @@ orig = TEXT.vocab.vectors
 sd = torch.load('../../models/cnn_standard.pkl')
 new = sd['embeddings.weight']
 
-# sim = F.cosine_similarity(orig,new,dim=1)
+# simcos = F.cosine_similarity(orig,new,dim=1)
 sim = torch.abs(orig-new).sum(1) # l1 distance
 # sim = ((orig-new)**2).sum(1).sqrt() # l2 distance
 sim = sim.numpy() # vector of 16286 similarity scores
 
-keywords = ['direct','directs','produce','produces','vision','spirit','capture','captures',
+keywords = ['direct','directs','director','produce','produces','producer','vision','spirit','capture','captures',
     'character','actor','role','plot','style']
 keysim = []
 for i in range(len(keywords)):
@@ -61,3 +61,19 @@ plt.legend(['true vocab','keywords (not2scale)'])
 plt.show()
 
 # If we have time, we could add a couple more keywords and do a hypothesis test
+
+keylist = keywords
+
+for i in range(len(keywords)):
+	keylist[i] = TEXT.vocab.stoi[keywords[i]]
+
+print F.cosine.similarity(orig[keylist[0]],orig[keylist[3]],dim=1), F.cosine.similarity(new[keylist[0]],new[keylist[3]],dim=1)
+print F.cosine.similarity(orig[keylist[2]],orig[keylist[5]],dim=1), F.cosine.similarity(new[keylist[2]],new[keylist[5]],dim=1)
+print F.cosine.similarity(orig[keylist[6]],orig[keylist[7]],dim=1), F.cosine.similarity(new[keylist[6]],new[keylist[7]],dim=1)
+print F.cosine.similarity(orig[keylist[10]],orig[keylist[11]],dim=1), F.cosine.similarity(new[keylist[10]],new[keylist[11]],dim=1)
+print F.cosine.similarity(orig[keylist[7]],orig[keylist[9]],dim=1), F.cosine.similarity(new[keylist[7]],new[keylist[9]],dim=1)
+
+
+
+
+
