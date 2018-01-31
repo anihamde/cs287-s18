@@ -52,11 +52,12 @@ word2vec = TEXT.vocab.vectors
 ############################################
 # With help from Yunjey Pytorch Tutorial on Github
 
-assert sys.argv[1] in ['normal','multi','extralayer','dialated','']
-if sys.argv[1] == '':
+if sys.argv[1] == None:
     net_flag = 'normal'
 else:
     net_flag = sys.argv[1]
+
+assert net_flag in ['normal','multi','extralayer','dialated','']
 
 if net_flag == 'normal':
     class CNN(nn.Module):
@@ -231,15 +232,6 @@ criterion = nn.CrossEntropyLoss() # accounts for the softmax component?
 params = filter(lambda x: x.requires_grad, model.parameters())
 optimizer = torch.optim.Adam(params, lr=learning_rate)
 
-
-     
-
-
-
-
-
-
-
 losses = []
 
 for epoch in range(num_epochs):
@@ -312,8 +304,5 @@ def test(model):
 test(model)
 
 
-
-
-
-###############################3
+###############################
 
