@@ -58,11 +58,12 @@ for epoch in range(num_epochs):
 	ctr = 0
 	for batch in train_iter:
 		# TODO: is there a better way to sparsify?
-		sentences = Variable(torch.zeros(bs,input_size))
+		sentences = torch.zeros(bs,input_size)
 		for i in range(batch.text.size(1)):
 			x = batch.text.data.numpy()[:,i]
 			for word in x:
 				sentences[i,word] = 1 # += 1
+		sentences = Variable(sentences)
 		labels = (batch.label==1).type(torch.LongTensor)
 		# change labels from 1,2 to 1,0
 		optimizer.zero_grad()
@@ -85,11 +86,12 @@ correct = 0
 total = 0
 for batch in val_iter:
 	bsz = batch.text.size(1) # batch size might change
-	sentences = Variable(torch.zeros(bsz,input_size))
+	sentences = torch.zeros(bsz,input_size)
 	for i in range(bsz):
 		x = batch.text.data.numpy()[:,i]
 		for word in x:
 			sentences[i,word] = 1 # += 1
+	sentences = Variable(sentences)
 	labels = (batch.label==1).type(torch.LongTensor).data
 	# change labels from 1,2 to 1,0
 	outputs = model(sentences)
@@ -107,11 +109,12 @@ def test(model):
 	for batch in test_iter:
 		# Your prediction data here (don't cheat!)
 		bsz = batch.text.size(1) # batch size might change
-		sentences = Variable(torch.zeros(bsz,input_size))
+		sentences = torch.zeros(bsz,input_size)
 		for i in range(bsz):
 			x = batch.text.data.numpy()[:,i]
 			for word in x:
 				sentences[i,word] = 1 # += 1
+		sentences = Variable(sentences)
 		probs = model(sentences)
 		_, argmax = probs.max(1)
 		upload += list(argmax.data)
