@@ -163,8 +163,8 @@ for epoch in range(num_epochs):
         losses.append(loss.data[0])
 
     # normally you'd tab these back a level, but i'm paranoid
-    np.save("../../models/cnn_multi_losses",np.array(losses))
-    torch.save(model.state_dict(), '../../models/cnn.pkl')
+    np.save("../data/cnn_losses",np.array(losses))
+    torch.save(model.state_dict(), '../data/cnn.pkl')
 
 # model.load_state_dict(torch.load('../../models/0cnn.pkl'))
 
@@ -197,7 +197,7 @@ def test(model):
         _, argmax = probs.max(1)
         upload += list(argmax.data)
 
-    with open("cnn_predictions.csv", "w") as f:
+    with open("../data/cnn_predictions.csv", "w") as f:
         writer = csv.writer(f)
         writer.writerow(['Id','Cat'])
         idcntr = 0
