@@ -131,7 +131,9 @@ for epoch in range(num_epochs):
         sentences = batch.text.transpose(1,0)
         labels = (batch.label==1).type(torch.LongTensor)
         # change labels from 1,2 to 1,0
-        sentences.cuda(); ys.cuda(); labels.cuda()
+        sentences = sentences.cuda()
+        ys = ys.cuda()
+        labels = labels.cuda()
         optimizer.zero_grad()
         outputs = model(sentences, ys)
         loss = criterion(outputs, labels)
@@ -163,7 +165,9 @@ for batch in val_iter:
             sparse_x[word] = 1 # += 1
         ys[i] = (np.dot(r,sparse_x) + b)>0
     sentences = batch.text.transpose(1,0)
-    sentences.cuda(); ys.cuda(); labels.cuda()
+    sentences = sentences.cuda()
+    ys = ys.cuda()
+    labels = labels.cuda()
     labels = (batch.label==1).type(torch.LongTensor).data
     # change labels from 1,2 to 1,0
     outputs = model(sentences)
@@ -189,7 +193,9 @@ def test(model):
                 sparse_x[word] = 1 # += 1
             ys[i] = (np.dot(r,sparse_x) + b)>0
         sentences = batch.text.transpose(1,0)
-        sentences.cuda(); ys.cuda(); labels.cuda()
+        sentences = sentences.cuda()
+        ys = ys.cuda()
+        labels = labels.cuda()
         probs = model(sentences)
         _, argmax = probs.max(1)
         upload += list(argmax.data)
