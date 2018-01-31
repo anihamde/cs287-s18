@@ -120,7 +120,7 @@ for epoch in range(num_epochs):
     train_iter.init_epoch()
     ctr = 0
     for batch in train_iter:
-        ys = torch.zeros(text.size(1),2) # mnb outputs
+        ys = torch.zeros(text.size(1)) # mnb outputs
         for i in range(batch.text.size(1)):
             x = batch.text.data.numpy()[:,i]
             y = batch.label.data.numpy()[i]
@@ -154,7 +154,7 @@ model.eval() # lets dropout layer know that this is the test set
 correct = 0
 total = 0
 for batch in val_iter:
-    ys = torch.zeros(text.size(1),2) # mnb outputs
+    ys = torch.zeros(text.size(1)) # mnb outputs
     for i in range(batch.text.size(1)):
         x = batch.text.data.numpy()[:,i]
         y = batch.label.data.numpy()[i]
@@ -180,7 +180,7 @@ def test(model):
     # test_iter = torchtext.data.BucketIterator(test, train=False, batch_size=10)
     for batch in test_iter:
         # Your prediction data here (don't cheat!)
-        ys = torch.zeros(text.size(1),2) # mnb outputs
+        ys = torch.zeros(text.size(1)) # mnb outputs
         for i in range(batch.text.size(1)):
             x = batch.text.data.numpy()[:,i]
             y = batch.label.data.numpy()[i]
