@@ -38,7 +38,7 @@ print("Word embeddings size ", TEXT.vocab.vectors.size())
 #########################################
 
 orig = TEXT.vocab.vectors
-sd = torch.load('../../models/cnn.pkl')
+sd = torch.load('../../models/cnn_standard.pkl')
 new = sd['embeddings.weight']
 
 # sim = F.cosine_similarity(orig,new,dim=1)
