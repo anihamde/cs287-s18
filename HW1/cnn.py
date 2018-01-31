@@ -37,21 +37,68 @@ print('len(LABEL.vocab)', len(LABEL.vocab))
 train_iter, val_iter, test_iter = torchtext.data.BucketIterator.splits(
 	(train, val, test), batch_size=bs, device=-1, repeat=False)
 
+# glove = GloVe(name='6B',dim=300)
+TEXT.vocab.load_vectors(vectors=Vectors('glove.6B.300d.txt'))
+glove = TEXT.vocab.vectors
+
 # Build the vocabulary with word embeddings
 url = 'https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.simple.vec'
 TEXT.vocab.load_vectors(vectors=Vectors('wiki.simple.vec', url=url))
 
 print("Word embeddings size ", TEXT.vocab.vectors.size())
+word2vec = TEXT.vocab.vectors
 
 ############################################
 # With help from Yunjey Pytorch Tutorial on Github
 
-class CNN(nn.Module):
+# class CNN(nn.Module):
+# 	def __init__(self):
+# 		super(CNN, self).__init__()
+# 		self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
+# 		self.embeddings.weight.data = TEXT.vocab.vectors
+# 		self.conv = nn.Conv2d(1,n_featmaps,kernel_size=(filter_window,300))
+# 		self.maxpool = nn.AdaptiveMaxPool1d(1)
+# 		self.linear = nn.Linear(n_featmaps, 2)
+# 		self.dropout = nn.Dropout(dropout_rate)
+
+# 	def forward(self, inputs): # inputs (bs,words/sentence) 10,7
+# 		bsz = inputs.size(0) # batch size might change
+# 		if inputs.size(1) < 3: # padding issues on really short sentences
+# 			pads = Variable(torch.zeros(bsz,3-inputs.size(1)))
+# 			inputs = torch.cat([inputs,pads],dim=1)
+# 		embeds = self.embeddings(inputs) # 10,7,300
+# 		out = embeds.unsqueeze(1) # 10,1,7,300
+# 		out = F.relu(self.conv(out)) # 10,100,6,1
+# 		out = out.view(bsz,n_featmaps,-1) # 10,100,6
+# 		out = self.maxpool(out) # 10,100,1
+# 		out = out.view(bsz,-1) # 10,100
+# 		out = self.linear(out) # 10,2
+# 		out = self.dropout(out) # 10,2
+# 		return out
+
+# model = CNN()
+# criterion = nn.CrossEntropyLoss() # accounts for the softmax component?
+# optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+
+
+
+
+
+
+
+
+
+
+# Multichannel CNN
+class MCNN(nn.Module):
 	def __init__(self):
-		super(CNN, self).__init__()
+		super(MCNN, self).__init__()
 		self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
-		self.embeddings.weight.data = TEXT.vocab.vectors
-		self.conv = nn.Conv2d(1,n_featmaps,kernel_size=(filter_window,300))
+		self.embeddings.weight.data.copy_(word2vec)
+		self.s_embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
+		self.s_embeddings.weight.data.copy_(glove) # sasha uses the copy_
+		# self.s_embeddings.weight.requires_grad = False
+		self.conv = nn.Conv2d(2,n_featmaps,kernel_size=(filter_window,300))
 		self.maxpool = nn.AdaptiveMaxPool1d(1)
 		self.linear = nn.Linear(n_featmaps, 2)
 		self.dropout = nn.Dropout(dropout_rate)
@@ -62,7 +109,10 @@ class CNN(nn.Module):
 			pads = Variable(torch.zeros(bsz,3-inputs.size(1)))
 			inputs = torch.cat([inputs,pads],dim=1)
 		embeds = self.embeddings(inputs) # 10,7,300
-		out = embeds.unsqueeze(1) # 10,1,7,300
+		embeds = embeds.unsqueeze(1) # 10,1,7,300
+		s_embeds = self.s_embeddings(inputs) # 10,7,300
+		s_embeds = s_embeds.unsqueeze(1) # 10,1,7,300
+		out = torch.cat([embeds,s_embeds],dim=1) # 10,2,7,300
 		out = F.relu(self.conv(out)) # 10,100,6,1
 		out = out.view(bsz,n_featmaps,-1) # 10,100,6
 		out = self.maxpool(out) # 10,100,1
@@ -71,9 +121,17 @@ class CNN(nn.Module):
 		out = self.dropout(out) # 10,2
 		return out
 
-model = CNN()
+model = MCNN()
 criterion = nn.CrossEntropyLoss() # accounts for the softmax component?
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+params = filter(lambda x: x.requires_grad, model.parameters())
+optimizer = torch.optim.Adam(params, lr=learning_rate)
+
+
+
+
+
+
+
 
 losses = []
 
@@ -147,39 +205,3 @@ test(model)
 
 ###############################3
 
-# Multichannel CNN
-class MCNN(nn.Module):
-	def __init__(self):
-		super(MCNN, self).__init__()
-		self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
-		self.embeddings.weight.data = TEXT.vocab.vectors
-		self.s_embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
-		self.s_embeddings.weight.data = TEXT.vocab.vectors # make these embeddings something else???
-		self.s_embeddings.weight.requires_grad = False
-		self.conv = nn.Conv2d(2,n_featmaps,kernel_size=(filter_window,300))
-		self.maxpool = nn.AdaptiveMaxPool1d(1)
-		self.linear = nn.Linear(n_featmaps, 2)
-		self.dropout = nn.Dropout(dropout_rate)
-
-	def forward(self, inputs): # inputs (bs,words/sentence) 10,7
-		bsz = inputs.size(0) # batch size might change
-		if inputs.size(1) < 3: # padding issues on really short sentences
-			pads = Variable(torch.zeros(bsz,3-inputs.size(1)))
-			inputs = torch.cat([inputs,pads],dim=1)
-		embeds = self.embeddings(inputs) # 10,7,300
-		embeds = embeds.unsqueeze(1) # 10,1,7,300
-		s_embeds = self.s_embeddings(inputs) # 10,7,300
-		s_embeds = s_embeds.unsqueeze(1) # 10,1,7,300
-		out = torch.cat([embeds,s_embeds],dim=1) # 10,2,7,300
-		out = F.relu(self.conv(out)) # 10,100,6,1
-		out = out.view(bsz,n_featmaps,-1) # 10,100,6
-		out = self.maxpool(out) # 10,100,1
-		out = out.view(bsz,-1) # 10,100
-		out = self.linear(out) # 10,2
-		out = self.dropout(out) # 10,2
-		return out
-
-model = MCNN()
-criterion = nn.CrossEntropyLoss() # accounts for the softmax component?
-params = filter(lambda x: x.requires_grad, model.parameters())
-optimizer = torch.optim.Adam(params, lr=learning_rate)
