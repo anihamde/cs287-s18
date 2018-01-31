@@ -120,7 +120,7 @@ for epoch in range(num_epochs):
     train_iter.init_epoch()
     ctr = 0
     for batch in train_iter:
-        ys = torch.zeros(text.size(1)) # mnb outputs
+        ys = torch.zeros(batch.text.size(1)) # mnb outputs
         for i in range(batch.text.size(1)):
             x = batch.text.data.numpy()[:,i]
             y = batch.label.data.numpy()[i]
@@ -156,7 +156,7 @@ model.eval() # lets dropout layer know that this is the test set
 correct = 0
 total = 0
 for batch in val_iter:
-    ys = torch.zeros(text.size(1)) # mnb outputs
+    ys = torch.zeros(batch.text.size(1)) # mnb outputs
     for i in range(batch.text.size(1)):
         x = batch.text.data.numpy()[:,i]
         y = batch.label.data.numpy()[i]
@@ -170,7 +170,7 @@ for batch in val_iter:
     labels = labels.cuda()
     labels = (batch.label==1).type(torch.LongTensor).data
     # change labels from 1,2 to 1,0
-    outputs = model(sentences)
+    outputs = model(sentences,ys)
     _, predicted = torch.max(outputs.data, 1)
     total += labels.size(0)
     correct += (predicted == labels).sum()
@@ -184,7 +184,7 @@ def test(model):
     # test_iter = torchtext.data.BucketIterator(test, train=False, batch_size=10)
     for batch in test_iter:
         # Your prediction data here (don't cheat!)
-        ys = torch.zeros(text.size(1)) # mnb outputs
+        ys = torch.zeros(batch.text.size(1)) # mnb outputs
         for i in range(batch.text.size(1)):
             x = batch.text.data.numpy()[:,i]
             y = batch.label.data.numpy()[i]
@@ -196,7 +196,7 @@ def test(model):
         sentences = sentences.cuda()
         ys = ys.cuda()
         labels = labels.cuda()
-        probs = model(sentences)
+        probs = model(sentences,ys)
         _, argmax = probs.max(1)
         upload += list(argmax.data)
 
