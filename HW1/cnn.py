@@ -61,28 +61,28 @@ else:
 if net_flag == 'normal':
     class CNN(nn.Module):
         def __init__(self):
-        super(CNN, self).__init__()
-        self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
-        self.embeddings.weight.data = TEXT.vocab.vectors
-        self.conv = nn.Conv2d(1,n_featmaps,kernel_size=(filter_window,300))
-        self.maxpool = nn.AdaptiveMaxPool1d(1)
-        self.linear = nn.Linear(n_featmaps, 2)
-        self.dropout = nn.Dropout(dropout_rate)
+            super(CNN, self).__init__()
+            self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
+            self.embeddings.weight.data = TEXT.vocab.vectors
+            self.conv = nn.Conv2d(1,n_featmaps,kernel_size=(filter_window,300))
+            self.maxpool = nn.AdaptiveMaxPool1d(1)
+            self.linear = nn.Linear(n_featmaps, 2)
+            self.dropout = nn.Dropout(dropout_rate)
     #
-    def forward(self, inputs): # inputs (bs,words/sentence) 10,7
-        bsz = inputs.size(0) # batch size might change
-        if inputs.size(1) < 3: # padding issues on really short sentences
-            pads = Variable(torch.zeros(bsz,3-inputs.size(1))).type(torch.LongTensor)
-            inputs = torch.cat([inputs,pads.cuda()],dim=1)
-        embeds = self.embeddings(inputs) # 10,7,300
-        out = embeds.unsqueeze(1) # 10,1,7,300
-        out = F.relu(self.conv(out)) # 10,100,6,1
-        out = out.view(bsz,n_featmaps,-1) # 10,100,6
-        out = self.maxpool(out) # 10,100,1
-        out = out.view(bsz,-1) # 10,100
-        out = self.linear(out) # 10,2
-        out = self.dropout(out) # 10,2
-        return out
+        def forward(self, inputs): # inputs (bs,words/sentence) 10,7
+            bsz = inputs.size(0) # batch size might change
+            if inputs.size(1) < 3: # padding issues on really short sentences
+                pads = Variable(torch.zeros(bsz,3-inputs.size(1))).type(torch.LongTensor)
+                inputs = torch.cat([inputs,pads.cuda()],dim=1)
+            embeds = self.embeddings(inputs) # 10,7,300
+            out = embeds.unsqueeze(1) # 10,1,7,300
+            out = F.relu(self.conv(out)) # 10,100,6,1
+            out = out.view(bsz,n_featmaps,-1) # 10,100,6
+            out = self.maxpool(out) # 10,100,1
+            out = out.view(bsz,-1) # 10,100
+            out = self.linear(out) # 10,2
+            out = self.dropout(out) # 10,2
+            return out
 
     model = CNN()
 # criterion = nn.CrossEntropyLoss() # accounts for the softmax component?
