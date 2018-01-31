@@ -58,7 +58,7 @@ if sys.argv[1] == '':
 else:
     net_flag = sys.argv[1]
 
-if net_flag == 'normal'
+if net_flag == 'normal':
     class CNN(nn.Module):
         def __init__(self):
         super(CNN, self).__init__()
