@@ -11,6 +11,7 @@ import csv
 # Hyperparams
 filter_window = 3
 n_featmaps = 100
+n_featmaps2 = 200
 bs = 10
 dropout_rate = 0.5
 num_epochs = 15 # from 30
@@ -57,6 +58,7 @@ class CNN(nn.Module):
       self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
       self.embeddings.weight.data = TEXT.vocab.vectors
       self.conv = nn.Conv2d(1,n_featmaps,kernel_size=(filter_window,300))
+      self.conv2 = nn.Conv1d(n_featmaps,n_featmaps2,kernel_size=(filter_window),stride=2)
       self.maxpool = nn.AdaptiveMaxPool1d(1)
       self.linear = nn.Linear(n_featmaps, 2)
       self.dropout = nn.Dropout(dropout_rate)
@@ -70,6 +72,7 @@ class CNN(nn.Module):
       out = embeds.unsqueeze(1) # 10,1,7,300
       out = F.relu(self.conv(out)) # 10,100,6,1
       out = out.view(bsz,n_featmaps,-1) # 10,100,6
+      out = F.tanh(self.conv2(out)) # 10,200,somethin
       out = self.maxpool(out) # 10,100,1
       out = out.view(bsz,-1) # 10,100
       out = self.linear(out) # 10,2
@@ -163,7 +166,7 @@ for epoch in range(num_epochs):
 
     # normally you'd tab these back a level, but i'm paranoid
     np.save("../../models/cnn_multi_losses",np.array(losses))
-    torch.save(model.state_dict(), '../../models/cnn.pkl')
+    torch.save(model.state_dict(), '../../models/cnn_multi_extralayer.pkl')
 
 # model.load_state_dict(torch.load('../../models/0cnn.pkl'))
 
@@ -195,7 +198,7 @@ def test(model):
         _, argmax = probs.max(1)
         upload += list(argmax.data)
 
-    with open("cnn_predictions.csv", "w") as f:
+    with open("cnn_predictions_extralayer.csv", "w") as f:
         writer = csv.writer(f)
         writer.writerow(['Id','Cat'])
         idcntr = 0
