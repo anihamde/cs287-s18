@@ -127,7 +127,7 @@ for epoch in range(num_epochs):
             sparse_x = np.zeros(len(TEXT.vocab))
             for word in x:
                 sparse_x[word] = 1 # += 1
-            ys[i,0] = ((np.dot(r,sparse_x) + b)>0).astype(float)
+            ys[i,0] = ((np.dot(r,sparse_x) + b))#>0).astype(float)
         sentences = batch.text.transpose(1,0)
         labels = (batch.label==1).type(torch.LongTensor)
         # change labels from 1,2 to 1,0
@@ -163,7 +163,7 @@ for batch in val_iter:
         sparse_x = np.zeros(len(TEXT.vocab))
         for word in x:
             sparse_x[word] = 1 # += 1
-        ys[i,0] = ((np.dot(r,sparse_x) + b)>0).astype(float)
+        ys[i,0] = ((np.dot(r,sparse_x) + b))#>0).astype(float)
     sentences = batch.text.transpose(1,0)
     sentences = sentences.cuda()
     labels = (batch.label==1).type(torch.LongTensor).data
@@ -191,7 +191,7 @@ def test(model):
             sparse_x = np.zeros(len(TEXT.vocab))
             for word in x:
                 sparse_x[word] = 1 # += 1
-            ys[i,0] = ((np.dot(r,sparse_x) + b)>0).astype(float)
+            ys[i,0] = ((np.dot(r,sparse_x) + b))#>0).astype(float)
         sentences = batch.text.transpose(1,0)
         sentences = sentences.cuda()
         ys = ys.cuda()
