@@ -147,8 +147,8 @@ elif net_flag == 'multi':
             #print(out.size())
             out = self.maxpool(out) # 10,300,2
             out = out.view(bsz,-1) # 10,600   
-            out = self.linear(out) # 10,2
             out = self.dropout(out) # 10,2
+            out = self.linear(out) # 10,2
             return out
 
     is_glove = True
@@ -188,8 +188,8 @@ elif net_flag == 'extralayer':
             out = out.view(bsz,n_featmaps2,-1) # 10,200,7
             out = self.maxpool(out) # 10,200,1
             out = out.view(bsz,-1) # 10,200   
-            out = self.linear(out) # 10,2
             out = self.dropout(out) # 10,2
+            out = self.linear(out) # 10,2
             return out
 
     model = CNN()
@@ -227,8 +227,8 @@ elif net_flag == 'dialated':
             out = out.view(bsz,n_featmaps2,-1) # 10,200,7
             out = self.maxpool(out) # 10,200,1
             out = out.view(bsz,-1) # 10,200   
-            out = self.linear(out) # 10,2
             out = self.dropout(out) # 10,2
+            out = self.linear(out) # 10,2
             return out
 
     model = CNN()
