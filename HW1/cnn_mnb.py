@@ -11,10 +11,11 @@ import csv
 # Hyperparams
 filter_window = 3
 n_featmaps = 100
-bs = 10
+bs = 50
 dropout_rate = 0.5
-num_epochs = 15 # from 30
+num_epochs = 30 # from 30
 learning_rate = 0.001
+weight_decay = 3
 constraint = 3
 
 # Our input $x$
@@ -88,8 +89,12 @@ class CNN(nn.Module):
       self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
       self.embeddings.weight.data.copy_(word2vec)
       self.conv = nn.Conv2d(1,n_featmaps,kernel_size=(filter_window,300))
+      self.conv3 = nn.Conv2d(300,n_featmaps,kernel_size=(3,1),padding=(1,0))
+      self.conv5 = nn.Conv2d(300,n_featmaps,kernel_size=(7,1),padding=(3,0))
+      self.conv7 = nn.Conv2d(300,n_featmaps,kernel_size=(11,1),padding=(5,0))
       self.maxpool = nn.AdaptiveMaxPool1d(1)
-      self.linear = nn.Linear(n_featmaps, 2)
+      self.linear1 = nn.Linear((n_featmaps*3)+1, 2)
+      #self.linear2 = nn.Linear(11,2)
       self.dropout = nn.Dropout(dropout_rate)
 
   def forward(self, inputs, ys): # inputs (bs,words/sentence) 10,7
@@ -99,20 +104,26 @@ class CNN(nn.Module):
           inputs = torch.cat([inputs,pads],dim=1)
       embeds = self.embeddings(inputs) # 10,7,300
       out = embeds.unsqueeze(1) # 10,1,7,300
-      out = F.relu(self.conv(out)) # 10,100,6,1
-      out = out.view(bsz,n_featmaps,-1) # 10,100,6
+      out = out.permute(0,3,2,1) # 10,300,h,1
+      fw3 = self.conv3(out) # 10,100,h,1
+      fw5 = self.conv5(out) # 10,100,h,1
+      fw7 = self.conv7(out) # 10,100,h,1
+      out = torch.cat([fw3,fw5,fw7],dim=1)
+      out = F.relu(out) # 10,100,h,1
+      out = out.view(bsz,n_featmaps*3,-1) # 10,100,h
       out = self.maxpool(out) # 10,100,1
       out = out.view(bsz,-1) # 10,100
+      #out = self.linear1(out)
       out = torch.cat([out,ys],dim=1) # 10,101
-      out = self.linear(out) # 10,2
-      out = self.dropout(out) # 10,2
+      out = self.dropout(out) # 10,101
+      out = self.linear1(out) # 10,2
       return out
 
 model = CNN()
 if torch.cuda.is_available():
     model.cuda()
 criterion = nn.CrossEntropyLoss() # accounts for the softmax component?
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
 losses = []
 
@@ -139,7 +150,7 @@ for epoch in range(num_epochs):
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
-        nn.utils.clip_grad_norm(model.parameters(), constraint)
+        #nn.utils.clip_grad_norm(model.parameters(), constraint)
         ctr += 1
         if ctr % 100 == 0:
             print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f'
@@ -152,37 +163,38 @@ for epoch in range(num_epochs):
 
 # model.load_state_dict(torch.load('../../models/0cnn.pkl'))
 
-model.eval() # lets dropout layer know that this is the test set
-correct = 0
-total = 0
-for batch in val_iter:
-    ys = torch.zeros(batch.text.size(1),1) # mnb outputs
-    for i in range(batch.text.size(1)):
-        x = batch.text.data.numpy()[:,i]
-        y = batch.label.data.numpy()[i]
-        sparse_x = np.zeros(len(TEXT.vocab))
-        for word in x:
-            sparse_x[word] = 1 # += 1
-        ys[i,0] = ((np.dot(r,sparse_x) + b))#>0).astype(float)
-    sentences = batch.text.transpose(1,0)
-    sentences = sentences.cuda()
-    labels = (batch.label==1).type(torch.LongTensor).data
-    labels = labels.cuda()
-    ys = ys.cuda()
-    # change labels from 1,2 to 1,0
-    outputs = model(sentences,Variable(ys))
-    _, predicted = torch.max(outputs.data, 1)
-    total += labels.size(0)
-    correct += (predicted == labels).sum()
+    model.eval() # lets dropout layer know that this is the test set
+    correct = 0
+    total = 0
+    for batch in val_iter:
+        ys = torch.zeros(batch.text.size(1),1) # mnb outputs
+        for i in range(batch.text.size(1)):
+            x = batch.text.data.numpy()[:,i]
+            y = batch.label.data.numpy()[i]
+            sparse_x = np.zeros(len(TEXT.vocab))
+            for word in x:
+                sparse_x[word] = 1 # += 1
+            ys[i,0] = ((np.dot(r,sparse_x) + b))#>0).astype(float)
+        sentences = batch.text.transpose(1,0)
+        sentences = sentences.cuda()
+        labels = (batch.label==1).type(torch.LongTensor).data
+        labels = labels.cuda()
+        ys = ys.cuda()
+        # change labels from 1,2 to 1,0
+        outputs = model(sentences,Variable(ys))
+        _, predicted = torch.max(outputs.data, 1)
+        total += labels.size(0)
+        correct += (predicted == labels).sum()
 
-print('test accuracy', correct/total)
+    print('test accuracy', correct/total)
 
+model.eval()
 def test(model):
     "All models should be able to be run with following command."
     upload = []
     # Update: for kaggle the bucket iterator needs to have batch_size 10
     # test_iter = torchtext.data.BucketIterator(test, train=False, batch_size=10)
-    for batch in test_iter:
+    for batch in val_iter:
         # Your prediction data here (don't cheat!)
         ys = torch.zeros(batch.text.size(1),1) # mnb outputs
         for i in range(batch.text.size(1)):
@@ -211,3 +223,4 @@ def test(model):
             # f.write(str(u) + "\n")
 
 test(model)
+
