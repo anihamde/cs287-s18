@@ -66,7 +66,6 @@ if net_flag == 'normal':
             super(CNN, self).__init__()
             self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
             self.embeddings.weight.data = TEXT.vocab.vectors
-            self.embeddings.weight.
             self.conv = nn.Conv2d(n_featmaps*3,n_featmaps2,kernel_size=(filter_window,1),padding=(1,0))
             self.conv3 = nn.Conv2d(300,n_featmaps,kernel_size=(3,1),padding=(1,0))
             self.conv5 = nn.Conv2d(300,n_featmaps,kernel_size=(5,1),padding=(2,0))
