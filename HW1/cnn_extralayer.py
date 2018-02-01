@@ -149,8 +149,9 @@ for epoch in range(num_epochs):
     ctr = 0
     for batch in train_iter:
         sentences = batch.text.transpose(1,0)
-        sentences.cuda()
+        sentences = sentences.cuda()
         labels = (batch.label==1).type(torch.LongTensor)
+        labels = labels.cuda()
         # change labels from 1,2 to 1,0
         optimizer.zero_grad()
         outputs = model(sentences)
@@ -165,8 +166,8 @@ for epoch in range(num_epochs):
         losses.append(loss.data[0])
 
     # normally you'd tab these back a level, but i'm paranoid
-    np.save("../../models/cnn_multi_losses",np.array(losses))
-    torch.save(model.state_dict(), '../../models/cnn_multi_extralayer.pkl')
+    np.save("../data/cnn_multi_losses",np.array(losses))
+    torch.save(model.state_dict(), '../data/cnn_multi_extralayer.pkl')
 
 # model.load_state_dict(torch.load('../../models/0cnn.pkl'))
 
@@ -175,8 +176,9 @@ correct = 0
 total = 0
 for batch in val_iter:
     sentences = batch.text.transpose(1,0)
-    sentences.cuda()
+    sentences = sentences.cuda()
     labels = (batch.label==1).type(torch.LongTensor).data
+    labels = labels.cuda()
     # change labels from 1,2 to 1,0
     outputs = model(sentences)
     _, predicted = torch.max(outputs.data, 1)
@@ -193,12 +195,12 @@ def test(model):
     for batch in test_iter:
         # Your prediction data here (don't cheat!)
         sentences = batch.text.transpose(1,0)
-        sentences.cuda()
+        sentences = sentences.cuda()
         probs = model(sentences)
         _, argmax = probs.max(1)
         upload += list(argmax.data)
 
-    with open("cnn_predictions_extralayer.csv", "w") as f:
+    with open("../data/cnn_predictions_extralayer.csv", "w") as f:
         writer = csv.writer(f)
         writer.writerow(['Id','Cat'])
         idcntr = 0
