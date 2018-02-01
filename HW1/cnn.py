@@ -12,11 +12,12 @@ import sys
 # Hyperparams
 filter_window = 3
 n_featmaps = 100
-n_featmaps2= 200
-bs = 10
+n_featmaps2= 300
+bs = 75
 dropout_rate = 0.5
-num_epochs = 15 # from 30
-learning_rate = 0.001
+num_epochs = 25 # from 30
+learning_rate = 0.0001
+weight_decay = 0
 constraint = 3
 
 # Our input $x$
@@ -58,21 +59,22 @@ if sys.argv[1] == None:
 else:
     net_flag = sys.argv[1]
 
-assert net_flag in ['normal','multi','extralayer','dialated','']
+assert net_flag in ['normal','multi','extralayer','dilated','']
 
 if net_flag == 'normal':
+    n_featmaps = 150
     class CNN(nn.Module):
         def __init__(self):
             super(CNN, self).__init__()
             self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
             self.embeddings.weight.data = TEXT.vocab.vectors
             self.conv = nn.Conv2d(n_featmaps*3,n_featmaps2,kernel_size=(filter_window,1),padding=(1,0))
-            self.conv3 = nn.Conv2d(300,n_featmaps,kernel_size=(3,1),padding=(1,0))
-            self.conv5 = nn.Conv2d(300,n_featmaps,kernel_size=(5,1),padding=(2,0))
+            self.conv3 = nn.Conv2d(300,100,kernel_size=(3,1),padding=(1,0))
+            self.conv5 = nn.Conv2d(300,200,kernel_size=(5,1),padding=(2,0))
             self.conv7 = nn.Conv2d(300,n_featmaps,kernel_size=(7,1),padding=(3,0))
             self.avgpool = nn.AvgPool2d(kernel_size=(5,1),stride=(3,1),padding=(2,0))
             self.maxpool = nn.AdaptiveMaxPool1d(1)
-            self.linear = nn.Linear(n_featmaps*3, 2)
+            self.linear = nn.Linear(n_featmaps*2, 2)
             self.dropout = nn.Dropout(dropout_rate)
     #
         def forward(self, inputs): # inputs (bs,words/sentence) 10,7
@@ -85,12 +87,12 @@ if net_flag == 'normal':
             out = out.permute(0,3,2,1) # 10,300,h,1
             fw3 = self.conv3(out) # 10,100,h,1
             fw5 = self.conv5(out) # 10,100,h,1
-            fw7 = self.conv7(out) # 10,100,h,1
-            out = torch.cat([fw3,fw5,fw7],dim=1)
+            #fw7 = self.conv7(out) # 10,100,h,1
+            out = torch.cat([fw3,fw5],dim=1)
             out = F.relu(out) # 10,300,h/3,1
             #out = self.avgpool(out)
             #out = F.relu(self.conv(out))
-            out = out.view(bsz,n_featmaps*3,-1) # 10,300,7
+            out = out.view(bsz,n_featmaps*2,-1) # 10,300,7
             out = self.maxpool(out) # 10,300,1
             out = out.view(bsz,-1) # 10,300   
             out = self.dropout(out) # 10,2
@@ -103,10 +105,13 @@ if net_flag == 'normal':
 
 elif net_flag == 'multi':
     class MCNN(nn.Module):
-        def __init__(self,second_glove):
+        def __init__(self,first_glove,second_glove):
             super(MCNN, self).__init__()
             self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
-            self.embeddings.weight.data.copy_(word2vec)
+            if first_glove == True:
+                self.embeddings.weight.data.copy_(glove)
+            else:
+                self.embeddings.weight.data.copy_(word2vec)
             self.s_embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
             if second_glove == True:
                 self.s_embeddings.weight.data.copy_(glove) # sasha uses the copy_
@@ -145,15 +150,17 @@ elif net_flag == 'multi':
             #print(out.size())
             #out = out.view(bsz,n_featmaps*3,-1,2) # 10,300,7
             #print(out.size())
-            out = self.maxpool(out) # 10,300,2
-            out = out.view(bsz,-1) # 10,600   
+            out = self.maxpool(out) # 10,300,1,1
+            out = out.view(bsz,-1) # 10,600
             out = self.dropout(out) # 10,2
             out = self.linear(out) # 10,2
             return out
 
-    is_glove = True
+    fst_glove = sys.argv[2]
+    snd_glove = sys.argv[3]
 
-    model = MCNN(is_glove)
+    model = MCNN(fst_glove,snd_glove)
+    net_flag = "{}_{}_{}".format(net_flag,fst_glove,snd_glove)
 
 elif net_flag == 'extralayer':
     class CNN(nn.Module):
@@ -167,7 +174,7 @@ elif net_flag == 'extralayer':
             self.conv7 = nn.Conv2d(300,n_featmaps,kernel_size=(7,1),padding=(3,0))
             self.avgpool = nn.AvgPool2d(kernel_size=(5,1),stride=(3,1),padding=(2,0))
             self.maxpool = nn.AdaptiveMaxPool1d(1)
-            self.linear = nn.Linear(n_featmaps*2, 2)
+            self.linear = nn.Linear(n_featmaps2, 2)
             self.dropout = nn.Dropout(dropout_rate)
     #
         def forward(self, inputs): # inputs (bs,words/sentence) 10,7
@@ -194,19 +201,19 @@ elif net_flag == 'extralayer':
 
     model = CNN()
 
-elif net_flag == 'dialated':
+elif net_flag == 'dilated':
     class CNN(nn.Module):
         def __init__(self):
             super(CNN, self).__init__()
             self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
             self.embeddings.weight.data = TEXT.vocab.vectors
-            self.conv = nn.Conv2d(n_featmaps*3,n_featmaps2,kernel_size=(filter_window,1),padding=(1,0),dialated=2)
+            self.conv = nn.Conv2d(n_featmaps*3,n_featmaps2,kernel_size=(filter_window,1),padding=(2,0),dilation=(2,1))
             self.conv3 = nn.Conv2d(300,n_featmaps,kernel_size=(3,1),padding=(1,0))
             self.conv5 = nn.Conv2d(300,n_featmaps,kernel_size=(5,1),padding=(2,0))
             self.conv7 = nn.Conv2d(300,n_featmaps,kernel_size=(7,1),padding=(3,0))
             self.avgpool = nn.AvgPool2d(kernel_size=(5,1),stride=(3,1),padding=(2,0))
             self.maxpool = nn.AdaptiveMaxPool1d(1)
-            self.linear = nn.Linear(n_featmaps*2, 2)
+            self.linear = nn.Linear(n_featmaps2, 2)
             self.dropout = nn.Dropout(dropout_rate)
     #
         def forward(self, inputs): # inputs (bs,words/sentence) 10,7
@@ -276,13 +283,15 @@ if torch.cuda.is_available():
     model.cuda()
 criterion = nn.CrossEntropyLoss() # accounts for the softmax component?
 params = filter(lambda x: x.requires_grad, model.parameters())
-optimizer = torch.optim.Adam(params, lr=learning_rate)
+optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay)
+#optimizer = torch.optim.Adadelta(params, lr=learning_rate,weight_decay=weight_decay)
 
 losses = []
 
 for epoch in range(num_epochs):
     train_iter.init_epoch()
     ctr = 0
+    model.train()
     for batch in train_iter:
         sentences = batch.text.transpose(1,0)
         sentences = sentences.cuda()
@@ -307,22 +316,23 @@ for epoch in range(num_epochs):
 
 # model.load_state_dict(torch.load('../../models/0cnn.pkl'))
 
-model.eval() # lets dropout layer know that this is the test set
-correct = 0
-total = 0
-for batch in val_iter:
-    sentences = batch.text.transpose(1,0)
-    sentences = sentences.cuda()
-    labels = (batch.label==1).type(torch.LongTensor).data
-    labels = labels.cuda()
-    # change labels from 1,2 to 1,0
-    outputs = model(sentences)
-    _, predicted = torch.max(outputs.data, 1)
-    total += labels.size(0)
-    correct += (predicted == labels).sum()
+    model.eval() # lets dropout layer know that this is the test set
+    correct = 0
+    total = 0
+    for batch in val_iter:
+        sentences = batch.text.transpose(1,0)
+        sentences = sentences.cuda()
+        labels = (batch.label==1).type(torch.LongTensor).data
+        labels = labels.cuda()
+        # change labels from 1,2 to 1,0
+        outputs = model(sentences)
+        _, predicted = torch.max(outputs.data, 1)
+        total += labels.size(0)
+        correct += (predicted == labels).sum()
 
-print('test accuracy', correct/total)
+    print('test accuracy', correct/total)
 
+model.eval()
 def test(model):
     "All models should be able to be run with following command."
     upload = []
@@ -348,7 +358,3 @@ def test(model):
             # f.write(str(u) + "\n")
 
 test(model)
-
-
-###############################
-
