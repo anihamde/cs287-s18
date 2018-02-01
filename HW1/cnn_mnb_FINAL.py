@@ -101,8 +101,8 @@ class CNN(nn.Module):
 		out = out.view(bsz,n_featmaps,-1) # 10,100,6
 		out = self.maxpool(out) # 10,100,1
 		out = out.view(bsz,-1) # 10,100
-		out = self.linear(out) # 10,2
 		out = self.dropout(out) # 10,2
+		out = self.linear(out) # 10,2
 		return out
 
 model = CNN()
@@ -160,49 +160,41 @@ params = filter(lambda x: x.requires_grad, model.parameters())
 optimizer = torch.optim.Adam(params, lr=learning_rate)
 
 
-		 
-
-
-
-
-
-
-
 losses = []
 
 for epoch in range(num_epochs):
-		train_iter.init_epoch()
-		ctr = 0
-		for batch in train_iter:
-			ys = torch.zeros(batch.text.size(1),1) # mnb outputs
-			for i in range(batch.text.size(1)):
-				x = batch.text.data.numpy()[:,i]
-				y = batch.label.data.numpy()[i]
-				sparse_x = np.zeros(len(TEXT.vocab))
-				for word in x:
-					sparse_x[word] = 1 # += 1
-				ys[i,0] = ((np.dot(r,sparse_x) + b))#>0).astype(float)
-			sentences = batch.text.transpose(1,0)
-			sentences = sentences.cuda()
-			labels = (batch.label==1).type(torch.LongTensor)
-			ys = ys.cuda()
-			labels = labels.cuda()
-			# change labels from 1,2 to 1,0
-			optimizer.zero_grad()
-        	outputs = model(sentences, Variable(ys))
-			loss = criterion(outputs, labels)
-			loss.backward()
-			optimizer.step()
-			nn.utils.clip_grad_norm(model.parameters(), constraint)
-			ctr += 1
-			if ctr % 100 == 0:
-					print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
-							%(epoch+1, num_epochs, ctr, len(train)//bs, loss.data[0]))
-			losses.append(loss.data[0])
+	train_iter.init_epoch()
+	ctr = 0
+	for batch in train_iter:
+		ys = torch.zeros(batch.text.size(1),1) # mnb outputs
+		for i in range(batch.text.size(1)):
+			x = batch.text.data.numpy()[:,i]
+			y = batch.label.data.numpy()[i]
+			sparse_x = np.zeros(len(TEXT.vocab))
+			for word in x:
+				sparse_x[word] = 1 # += 1
+			ys[i,0] = ((np.dot(r,sparse_x) + b))#>0).astype(float)
+		sentences = batch.text.transpose(1,0)
+		sentences = sentences.cuda()
+		labels = (batch.label==1).type(torch.LongTensor)
+		ys = ys.cuda()
+		labels = labels.cuda()
+		# change labels from 1,2 to 1,0
+		optimizer.zero_grad()
+		outputs = model(sentences, Variable(ys))
+		loss = criterion(outputs, labels)
+		loss.backward()
+		optimizer.step()
+		nn.utils.clip_grad_norm(model.parameters(), constraint)
+		ctr += 1
+		if ctr % 100 == 0:
+				print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
+						%(epoch+1, num_epochs, ctr, len(train)//bs, loss.data[0]))
+		losses.append(loss.data[0])
 
 	# normally you'd tab these back a level, but i'm paranoid
-	np.save("../../models/cnn_mnb_losses",np.array(losses))
-	torch.save(model.state_dict(), '../../models/cnn_mnb.pkl')
+	np.save("../data/cnn_mnb_losses",np.array(losses))
+	torch.save(model.state_dict(), '../data/cnn_mnb.pkl')
 
 # model.load_state_dict(torch.load('../../models/0cnn.pkl'))
 
@@ -210,59 +202,59 @@ model.eval() # lets dropout layer know that this is the test set
 correct = 0
 total = 0
 for batch in val_iter:
-    ys = torch.zeros(batch.text.size(1),1) # mnb outputs
-    for i in range(batch.text.size(1)):
-        x = batch.text.data.numpy()[:,i]
-        y = batch.label.data.numpy()[i]
-        sparse_x = np.zeros(len(TEXT.vocab))
-        for word in x:
-            sparse_x[word] = 1 # += 1
-        ys[i,0] = ((np.dot(r,sparse_x) + b))#>0).astype(float)
-    sentences = batch.text.transpose(1,0)
-    sentences = sentences.cuda()
-    labels = (batch.label==1).type(torch.LongTensor).data
-    labels = labels.cuda()
-    ys = ys.cuda()
-    # change labels from 1,2 to 1,0
-    outputs = model(sentences,Variable(ys))
-    _, predicted = torch.max(outputs.data, 1)
-    total += labels.size(0)
-    correct += (predicted == labels).sum()
+	ys = torch.zeros(batch.text.size(1),1) # mnb outputs
+	for i in range(batch.text.size(1)):
+		x = batch.text.data.numpy()[:,i]
+		y = batch.label.data.numpy()[i]
+		sparse_x = np.zeros(len(TEXT.vocab))
+		for word in x:
+			sparse_x[word] = 1 # += 1
+		ys[i,0] = ((np.dot(r,sparse_x) + b))#>0).astype(float)
+	sentences = batch.text.transpose(1,0)
+	sentences = sentences.cuda()
+	labels = (batch.label==1).type(torch.LongTensor).data
+	labels = labels.cuda()
+	ys = ys.cuda()
+	# change labels from 1,2 to 1,0
+	outputs = model(sentences,Variable(ys))
+	_, predicted = torch.max(outputs.data, 1)
+	total += labels.size(0)
+	correct += (predicted == labels).sum()
 
 print('test accuracy', correct/total)
 
 def test(model):
-    "All models should be able to be run with following command."
-    upload = []
-    # Update: for kaggle the bucket iterator needs to have batch_size 10
-    # test_iter = torchtext.data.BucketIterator(test, train=False, batch_size=10)
-    for batch in test_iter:
-        # Your prediction data here (don't cheat!)
-        ys = torch.zeros(batch.text.size(1),1) # mnb outputs
-        for i in range(batch.text.size(1)):
-            x = batch.text.data.numpy()[:,i]
-            y = batch.label.data.numpy()[i]
-            sparse_x = np.zeros(len(TEXT.vocab))
-            for word in x:
-                sparse_x[word] = 1 # += 1
-            ys[i,0] = ((np.dot(r,sparse_x) + b))#>0).astype(float)
-        sentences = batch.text.transpose(1,0)
-        sentences = sentences.cuda()
-        ys = ys.cuda()
-        probs = model(sentences,Variable(ys))
-        _, argmax = probs.max(1)
-        upload += list(argmax.data)
+	"All models should be able to be run with following command."
+	upload = []
+	# Update: for kaggle the bucket iterator needs to have batch_size 10
+	# test_iter = torchtext.data.BucketIterator(test, train=False, batch_size=10)
+	for batch in test_iter:
+		# Your prediction data here (don't cheat!)
+		ys = torch.zeros(batch.text.size(1),1) # mnb outputs
+		for i in range(batch.text.size(1)):
+			x = batch.text.data.numpy()[:,i]
+			y = batch.label.data.numpy()[i]
+			sparse_x = np.zeros(len(TEXT.vocab))
+			for word in x:
+				sparse_x[word] = 1 # += 1
+			ys[i,0] = ((np.dot(r,sparse_x) + b))#>0).astype(float)
+		sentences = batch.text.transpose(1,0)
+		sentences = sentences.cuda()
+		ys = ys.cuda()
+		probs = model(sentences,Variable(ys))
+		_, argmax = probs.max(1)
+		upload += list(argmax.data)
 
-    with open("../data/cnn_mnb_predictions.csv", "w") as f:
-    	writer = csv.writer(f)
-        writer.writerow(['Id','Cat'])
-        idcntr = 0
-        for u in upload:
-            if u == 0:
-                u = 2
-            writer.writerow([idcntr,u])
-            idcntr += 1
-            # f.write(str(u) + "\n")
+	with open("../data/cnn_mnb_predictions.csv", "w") as f:
+		writer = csv.writer(f)
+		writer.writerow(['Id','Cat'])
+		idcntr = 0
+		for u in upload:
+			if u == 0:
+				u = 2
+			writer.writerow([idcntr,u])
+			idcntr += 1
+			# f.write(str(u) + "\n")
 
 test(model)
 

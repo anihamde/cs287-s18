@@ -112,13 +112,13 @@ elif net_flag == 'multi':
                 self.s_embeddings.weight.data.copy_(glove) # sasha uses the copy_
             else:
                 self.s_embeddings.weight.data.copy_(word2vec)
-                self.s_embeddings.weight.requires_grad = False
+            self.s_embeddings.weight.requires_grad = False
             self.conv = nn.Conv2d(n_featmaps*3,n_featmaps2,kernel_size=(filter_window,1),padding=(1,0))
-            self.conv3 = nn.Conv2d(300,n_featmaps,kernel_size=(3,2),stride=(1,2),padding=(1,0))
-            self.conv5 = nn.Conv2d(300,n_featmaps,kernel_size=(5,2),stride=(1,2),padding=(2,0))
-            self.conv7 = nn.Conv2d(300,n_featmaps,kernel_size=(7,2),stride=(1,2),padding=(3,0))
+            self.conv3 = nn.Conv2d(300,n_featmaps,kernel_size=(3,1),stride=(1,1),padding=(1,0))
+            self.conv5 = nn.Conv2d(300,n_featmaps,kernel_size=(5,1),stride=(1,1),padding=(2,0))
+            self.conv7 = nn.Conv2d(300,n_featmaps,kernel_size=(7,1),stride=(1,1),padding=(3,0))
             self.avgpool = nn.AvgPool2d(kernel_size=(5,2),stride=(3,2),padding=(2,0))
-            self.maxpool = nn.AdaptiveMaxPool2d(1,2)
+            self.maxpool = nn.AdaptiveMaxPool2d((1,2))
             self.linear = nn.Linear(n_featmaps*3*2, 2)
             self.dropout = nn.Dropout(dropout_rate)
     #
@@ -134,6 +134,7 @@ elif net_flag == 'multi':
             s_embeds = s_embeds.unsqueeze(3)
             s_embeds = s_embeds.permute(0,2,1,3)
             out = torch.cat([embeds,s_embeds],dim=3)
+            #print(out.size())
             fw3 = self.conv3(out) # 10,100,h,1
             fw5 = self.conv5(out) # 10,100,h,1
             fw7 = self.conv7(out) # 10,100,h,1
@@ -141,11 +142,13 @@ elif net_flag == 'multi':
             out = F.relu(out) # 10,300,h/3,1
             #out = self.avgpool(out)
             #out = F.relu(self.conv(out))
-            out = out.view(bsz,n_featmaps*3,-1) # 10,300,7
+            #print(out.size())
+            #out = out.view(bsz,n_featmaps*3,-1,2) # 10,300,7
+            #print(out.size())
             out = self.maxpool(out) # 10,300,2
             out = out.view(bsz,-1) # 10,600   
-            out = self.linear(out) # 10,2
             out = self.dropout(out) # 10,2
+            out = self.linear(out) # 10,2
             return out
 
     is_glove = True
@@ -185,8 +188,8 @@ elif net_flag == 'extralayer':
             out = out.view(bsz,n_featmaps2,-1) # 10,200,7
             out = self.maxpool(out) # 10,200,1
             out = out.view(bsz,-1) # 10,200   
-            out = self.linear(out) # 10,2
             out = self.dropout(out) # 10,2
+            out = self.linear(out) # 10,2
             return out
 
     model = CNN()
@@ -224,8 +227,8 @@ elif net_flag == 'dialated':
             out = out.view(bsz,n_featmaps2,-1) # 10,200,7
             out = self.maxpool(out) # 10,200,1
             out = out.view(bsz,-1) # 10,200   
-            out = self.linear(out) # 10,2
             out = self.dropout(out) # 10,2
+            out = self.linear(out) # 10,2
             return out
 
     model = CNN()
