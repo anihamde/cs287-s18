@@ -5,4 +5,4 @@ for file in sys.argv[1:]:
 
 pred = pd.concat(df_set,axis=1).mode(axis=1)
 pred.columns = ["Cat"]
-pred.to_csv("cnn_ensemble1_predictions.csv",header=True)
+pred.to_csv("../data/cnn_ensemble1_predictions.csv",header=True)
