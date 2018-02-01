@@ -145,24 +145,33 @@ elif net_flag == 'extralayer':
             super(CNN, self).__init__()
             self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
             self.embeddings.weight.data = TEXT.vocab.vectors
-            self.conv = nn.Conv2d(1,n_featmaps,kernel_size=(filter_window,300))
-            self.conv2 = nn.Conv1d(n_featmaps,n_featmaps2,kernel_size=(filter_window),stride=2)
+            self.conv = nn.Conv2d(n_featmaps*3,n_featmaps2,kernel_size=(filter_window,1),padding=(1,0))
+            self.conv3 = nn.Conv2d(300,n_featmaps,kernel_size=(3,1),padding=(1,0))
+            self.conv5 = nn.Conv2d(300,n_featmaps,kernel_size=(5,1),padding=(2,0))
+            self.conv7 = nn.Conv2d(300,n_featmaps,kernel_size=(7,1),padding=(3,0))
+            self.avgpool = nn.AvgPool2d(kernel_size=(5,1),stride=(3,1),padding=(2,0))
             self.maxpool = nn.AdaptiveMaxPool1d(1)
-            self.linear = nn.Linear(n_featmaps2, 2)
+            self.linear = nn.Linear(n_featmaps*2, 2)
             self.dropout = nn.Dropout(dropout_rate)
-        #
+    #
         def forward(self, inputs): # inputs (bs,words/sentence) 10,7
             bsz = inputs.size(0) # batch size might change
             if inputs.size(1) < 3: # padding issues on really short sentences
-                pads = Variable(torch.zeros(bsz,3-inputs.size(1)))
-                inputs = torch.cat([inputs,pads],dim=1)
-            embeds = self.embeddings(inputs) # 10,7,300
-            out = embeds.unsqueeze(1) # 10,1,7,300
-            out = F.relu(self.conv(out)) # 10,100,6,1
-            out = out.view(bsz,n_featmaps2,-1) # 10,100,6
-            out = F.tanh(self.conv2(out)) # 10,200,somethin
-            out = self.maxpool(out) # 10,100,1
-            out = out.view(bsz,-1) # 10,100
+                pads = Variable(torch.zeros(bsz,3-inputs.size(1))).type(torch.LongTensor)
+                inputs = torch.cat([inputs,pads.cuda()],dim=1)
+            embeds = self.embeddings(inputs) # 10,h,300
+            out = embeds.unsqueeze(1) # 10,1,h,300
+            out = out.permute(0,3,2,1) # 10,300,h,1
+            fw3 = self.conv3(out) # 10,100,h,1
+            fw5 = self.conv5(out) # 10,100,h,1
+            fw7 = self.conv7(out) # 10,100,h,1
+            out = torch.cat([fw3,fw5,fw7],dim=1)
+            out = F.relu(out) # 10,300,h/3,1
+            out = self.avgpool(out)
+            out = F.relu(self.conv(out))
+            out = out.view(bsz,n_featmaps2,-1) # 10,200,7
+            out = self.maxpool(out) # 10,200,1
+            out = out.view(bsz,-1) # 10,200   
             out = self.linear(out) # 10,2
             out = self.dropout(out) # 10,2
             return out
@@ -175,24 +184,33 @@ elif net_flag == 'dialated':
             super(CNN, self).__init__()
             self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
             self.embeddings.weight.data = TEXT.vocab.vectors
-            self.conv = nn.Conv2d(1,n_featmaps,kernel_size=(filter_window,300))
-            self.conv2 = nn.Conv1d(n_featmaps,n_featmaps2,kernel_size=(filter_window),dilated=2)
+            self.conv = nn.Conv2d(n_featmaps*3,n_featmaps2,kernel_size=(filter_window,1),padding=(1,0),dialated=2)
+            self.conv3 = nn.Conv2d(300,n_featmaps,kernel_size=(3,1),padding=(1,0))
+            self.conv5 = nn.Conv2d(300,n_featmaps,kernel_size=(5,1),padding=(2,0))
+            self.conv7 = nn.Conv2d(300,n_featmaps,kernel_size=(7,1),padding=(3,0))
+            self.avgpool = nn.AvgPool2d(kernel_size=(5,1),stride=(3,1),padding=(2,0))
             self.maxpool = nn.AdaptiveMaxPool1d(1)
-            self.linear = nn.Linear(n_featmaps2, 2)
+            self.linear = nn.Linear(n_featmaps*2, 2)
             self.dropout = nn.Dropout(dropout_rate)
-        #
+    #
         def forward(self, inputs): # inputs (bs,words/sentence) 10,7
             bsz = inputs.size(0) # batch size might change
             if inputs.size(1) < 3: # padding issues on really short sentences
-                pads = Variable(torch.zeros(bsz,3-inputs.size(1)))
-                inputs = torch.cat([inputs,pads],dim=1)
-            embeds = self.embeddings(inputs) # 10,7,300
-            out = embeds.unsqueeze(1) # 10,1,7,300
-            out = F.relu(self.conv(out)) # 10,100,6,1
-            out = out.view(bsz,n_featmaps2,-1) # 10,100,6
-            out = F.tanh(self.conv2(out)) # 10,200,somethin
-            out = self.maxpool(out) # 10,100,1
-            out = out.view(bsz,-1) # 10,100
+                pads = Variable(torch.zeros(bsz,3-inputs.size(1))).type(torch.LongTensor)
+                inputs = torch.cat([inputs,pads.cuda()],dim=1)
+            embeds = self.embeddings(inputs) # 10,h,300
+            out = embeds.unsqueeze(1) # 10,1,h,300
+            out = out.permute(0,3,2,1) # 10,300,h,1
+            fw3 = self.conv3(out) # 10,100,h,1
+            fw5 = self.conv5(out) # 10,100,h,1
+            fw7 = self.conv7(out) # 10,100,h,1
+            out = torch.cat([fw3,fw5,fw7],dim=1)
+            out = F.relu(out) # 10,300,h/3,1
+            out = self.avgpool(out)
+            out = F.relu(self.conv(out))
+            out = out.view(bsz,n_featmaps2,-1) # 10,200,7
+            out = self.maxpool(out) # 10,200,1
+            out = out.view(bsz,-1) # 10,200   
             out = self.linear(out) # 10,2
             out = self.dropout(out) # 10,2
             return out
