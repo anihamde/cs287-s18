@@ -171,34 +171,34 @@ optimizer = torch.optim.Adam(params, lr=learning_rate)
 losses = []
 
 for epoch in range(num_epochs):
-		train_iter.init_epoch()
-		ctr = 0
-		for batch in train_iter:
-			ys = torch.zeros(batch.text.size(1),1) # mnb outputs
-			for i in range(batch.text.size(1)):
-				x = batch.text.data.numpy()[:,i]
-				y = batch.label.data.numpy()[i]
-				sparse_x = np.zeros(len(TEXT.vocab))
-				for word in x:
-					sparse_x[word] = 1 # += 1
-				ys[i,0] = ((np.dot(r,sparse_x) + b))#>0).astype(float)
-			sentences = batch.text.transpose(1,0)
-			sentences = sentences.cuda()
-			labels = (batch.label==1).type(torch.LongTensor)
-			ys = ys.cuda()
-			labels = labels.cuda()
-			# change labels from 1,2 to 1,0
-			optimizer.zero_grad()
-        	outputs = model(sentences, Variable(ys))
-			loss = criterion(outputs, labels)
-			loss.backward()
-			optimizer.step()
-			nn.utils.clip_grad_norm(model.parameters(), constraint)
-			ctr += 1
-			if ctr % 100 == 0:
-					print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
-							%(epoch+1, num_epochs, ctr, len(train)//bs, loss.data[0]))
-			losses.append(loss.data[0])
+	train_iter.init_epoch()
+	ctr = 0
+	for batch in train_iter:
+		ys = torch.zeros(batch.text.size(1),1) # mnb outputs
+		for i in range(batch.text.size(1)):
+			x = batch.text.data.numpy()[:,i]
+			y = batch.label.data.numpy()[i]
+			sparse_x = np.zeros(len(TEXT.vocab))
+			for word in x:
+				sparse_x[word] = 1 # += 1
+			ys[i,0] = ((np.dot(r,sparse_x) + b))#>0).astype(float)
+		sentences = batch.text.transpose(1,0)
+		sentences = sentences.cuda()
+		labels = (batch.label==1).type(torch.LongTensor)
+		ys = ys.cuda()
+		labels = labels.cuda()
+		# change labels from 1,2 to 1,0
+		optimizer.zero_grad()
+		outputs = model(sentences, Variable(ys))
+		loss = criterion(outputs, labels)
+		loss.backward()
+		optimizer.step()
+		nn.utils.clip_grad_norm(model.parameters(), constraint)
+		ctr += 1
+		if ctr % 100 == 0:
+				print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
+						%(epoch+1, num_epochs, ctr, len(train)//bs, loss.data[0]))
+		losses.append(loss.data[0])
 
 	# normally you'd tab these back a level, but i'm paranoid
 	np.save("../data/cnn_mnb_losses",np.array(losses))
