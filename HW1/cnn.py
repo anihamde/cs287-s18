@@ -12,6 +12,7 @@ import sys
 # Hyperparams
 filter_window = 3
 n_featmaps = 100
+n_featmaps2= 200
 bs = 10
 dropout_rate = 0.5
 num_epochs = 15 # from 30
@@ -52,37 +53,38 @@ word2vec = TEXT.vocab.vectors
 ############################################
 # With help from Yunjey Pytorch Tutorial on Github
 
-assert sys.argv[1] in ['normal','multi','extralayer','dialated','']
-if sys.argv[1] == '':
+if sys.argv[1] == None:
     net_flag = 'normal'
 else:
     net_flag = sys.argv[1]
 
+assert net_flag in ['normal','multi','extralayer','dialated','']
+
 if net_flag == 'normal':
     class CNN(nn.Module):
         def __init__(self):
-        super(CNN, self).__init__()
-        self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
-        self.embeddings.weight.data = TEXT.vocab.vectors
-        self.conv = nn.Conv2d(1,n_featmaps,kernel_size=(filter_window,300))
-        self.maxpool = nn.AdaptiveMaxPool1d(1)
-        self.linear = nn.Linear(n_featmaps, 2)
-        self.dropout = nn.Dropout(dropout_rate)
+            super(CNN, self).__init__()
+            self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
+            self.embeddings.weight.data = TEXT.vocab.vectors
+            self.conv = nn.Conv2d(1,n_featmaps,kernel_size=(filter_window,300))
+            self.maxpool = nn.AdaptiveMaxPool1d(1)
+            self.linear = nn.Linear(n_featmaps, 2)
+            self.dropout = nn.Dropout(dropout_rate)
     #
-    def forward(self, inputs): # inputs (bs,words/sentence) 10,7
-        bsz = inputs.size(0) # batch size might change
-        if inputs.size(1) < 3: # padding issues on really short sentences
-            pads = Variable(torch.zeros(bsz,3-inputs.size(1))).type(torch.LongTensor)
-            inputs = torch.cat([inputs,pads.cuda()],dim=1)
-        embeds = self.embeddings(inputs) # 10,7,300
-        out = embeds.unsqueeze(1) # 10,1,7,300
-        out = F.relu(self.conv(out)) # 10,100,6,1
-        out = out.view(bsz,n_featmaps,-1) # 10,100,6
-        out = self.maxpool(out) # 10,100,1
-        out = out.view(bsz,-1) # 10,100
-        out = self.linear(out) # 10,2
-        out = self.dropout(out) # 10,2
-        return out
+        def forward(self, inputs): # inputs (bs,words/sentence) 10,7
+            bsz = inputs.size(0) # batch size might change
+            if inputs.size(1) < 3: # padding issues on really short sentences
+                pads = Variable(torch.zeros(bsz,3-inputs.size(1))).type(torch.LongTensor)
+                inputs = torch.cat([inputs,pads.cuda()],dim=1)
+            embeds = self.embeddings(inputs) # 10,7,300
+            out = embeds.unsqueeze(1) # 10,1,7,300
+            out = F.relu(self.conv(out)) # 10,100,6,1
+            out = out.view(bsz,n_featmaps,-1) # 10,100,6
+            out = self.maxpool(out) # 10,100,1
+            out = out.view(bsz,-1) # 10,100
+            out = self.linear(out) # 10,2
+            out = self.dropout(out) # 10,2
+            return out
 
     model = CNN()
 # criterion = nn.CrossEntropyLoss() # accounts for the softmax component?
@@ -135,7 +137,7 @@ elif net_flag == 'extralayer':
             self.conv = nn.Conv2d(1,n_featmaps,kernel_size=(filter_window,300))
             self.conv2 = nn.Conv1d(n_featmaps,n_featmaps2,kernel_size=(filter_window),stride=2)
             self.maxpool = nn.AdaptiveMaxPool1d(1)
-            self.linear = nn.Linear(n_featmaps, 2)
+            self.linear = nn.Linear(n_featmaps2, 2)
             self.dropout = nn.Dropout(dropout_rate)
         #
         def forward(self, inputs): # inputs (bs,words/sentence) 10,7
@@ -146,7 +148,7 @@ elif net_flag == 'extralayer':
             embeds = self.embeddings(inputs) # 10,7,300
             out = embeds.unsqueeze(1) # 10,1,7,300
             out = F.relu(self.conv(out)) # 10,100,6,1
-            out = out.view(bsz,n_featmaps,-1) # 10,100,6
+            out = out.view(bsz,n_featmaps2,-1) # 10,100,6
             out = F.tanh(self.conv2(out)) # 10,200,somethin
             out = self.maxpool(out) # 10,100,1
             out = out.view(bsz,-1) # 10,100
@@ -165,7 +167,7 @@ elif net_flag == 'dialated':
             self.conv = nn.Conv2d(1,n_featmaps,kernel_size=(filter_window,300))
             self.conv2 = nn.Conv1d(n_featmaps,n_featmaps2,kernel_size=(filter_window),dilated=2)
             self.maxpool = nn.AdaptiveMaxPool1d(1)
-            self.linear = nn.Linear(n_featmaps, 2)
+            self.linear = nn.Linear(n_featmaps2, 2)
             self.dropout = nn.Dropout(dropout_rate)
         #
         def forward(self, inputs): # inputs (bs,words/sentence) 10,7
@@ -176,7 +178,7 @@ elif net_flag == 'dialated':
             embeds = self.embeddings(inputs) # 10,7,300
             out = embeds.unsqueeze(1) # 10,1,7,300
             out = F.relu(self.conv(out)) # 10,100,6,1
-            out = out.view(bsz,n_featmaps,-1) # 10,100,6
+            out = out.view(bsz,n_featmaps2,-1) # 10,100,6
             out = F.tanh(self.conv2(out)) # 10,200,somethin
             out = self.maxpool(out) # 10,100,1
             out = out.view(bsz,-1) # 10,100
@@ -230,15 +232,6 @@ if torch.cuda.is_available():
 criterion = nn.CrossEntropyLoss() # accounts for the softmax component?
 params = filter(lambda x: x.requires_grad, model.parameters())
 optimizer = torch.optim.Adam(params, lr=learning_rate)
-
-
-     
-
-
-
-
-
-
 
 losses = []
 
@@ -312,8 +305,5 @@ def test(model):
 test(model)
 
 
-
-
-
-###############################3
+###############################
 
