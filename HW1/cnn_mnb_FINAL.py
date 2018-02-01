@@ -101,8 +101,8 @@ class CNN(nn.Module):
 		out = out.view(bsz,n_featmaps,-1) # 10,100,6
 		out = self.maxpool(out) # 10,100,1
 		out = out.view(bsz,-1) # 10,100
-		out = self.linear(out) # 10,2
 		out = self.dropout(out) # 10,2
+		out = self.linear(out) # 10,2
 		return out
 
 model = CNN()
@@ -201,8 +201,8 @@ for epoch in range(num_epochs):
 			losses.append(loss.data[0])
 
 	# normally you'd tab these back a level, but i'm paranoid
-	np.save("../../models/cnn_mnb_losses",np.array(losses))
-	torch.save(model.state_dict(), '../../models/cnn_mnb.pkl')
+	np.save("../data/cnn_mnb_losses",np.array(losses))
+	torch.save(model.state_dict(), '../data/cnn_mnb.pkl')
 
 # model.load_state_dict(torch.load('../../models/0cnn.pkl'))
 
