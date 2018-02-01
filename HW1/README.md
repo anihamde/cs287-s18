@@ -39,7 +39,7 @@ To evaluate a trained model, use `cnn_eval.py` in place of `cnn.py` with the sam
 python cnn_eval.py [normal, extralayers, dilated, multi] [True, False] [True, False]
 ```
 After evaluating models, and getting lackluster results, we decided to use a simple ensemble to improve accuracy. We collected predictions from the one `normal` and 4 `multi` models and used a majority vote to decide category assignment.
-This can be reproduced with the following widget:
+This can be reproduced with the following widget, and `cnn_ensemble1_predictions.csv` will be generated in `data`:
 ```
 python voting_ensemble.py ../data/cnn_multi_False_False_predictions.csv \
   ../data/cnn_multi_False_True_predictions.csv \
