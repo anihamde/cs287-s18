@@ -160,14 +160,6 @@ params = filter(lambda x: x.requires_grad, model.parameters())
 optimizer = torch.optim.Adam(params, lr=learning_rate)
 
 
-		 
-
-
-
-
-
-
-
 losses = []
 
 for epoch in range(num_epochs):
