@@ -93,8 +93,8 @@ if net_flag == 'normal':
             out = out.view(bsz,n_featmaps*3,-1) # 10,300,7
             out = self.maxpool(out) # 10,300,1
             out = out.view(bsz,-1) # 10,300   
-            out = self.linear(out) # 10,2
             out = self.dropout(out) # 10,2
+            out = self.linear(out) # 10,2
             return out
 
     model = CNN()
