@@ -14,7 +14,7 @@ mkdir ./src
 ```
 and place `cnn.py` and `cnn_eval.py` in `src` dir. Predictions and models are saved to `data`.
 ## Running the code
-To initialize the agent with our trained model and run greedily, with no further learning:
+To initialize training, use:
 ```
 python cnn.py [normal, extralayers, dilated, multi] [True, False] [True, False]
 ```
