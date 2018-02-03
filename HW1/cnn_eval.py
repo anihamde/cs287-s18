@@ -13,11 +13,10 @@ import sys
 filter_window = 3
 n_featmaps = 100
 n_featmaps2= 300
-bs = 75
+bs = 10
 dropout_rate = 0.5
-num_epochs = 25 # from 30
-learning_rate = 0.0001
-weight_decay = 0
+num_epochs = 30 # from 30
+learning_rate = 0.001
 constraint = 3
 
 # Our input $x$
@@ -207,13 +206,13 @@ elif net_flag == 'dilated':
             super(CNN, self).__init__()
             self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
             self.embeddings.weight.data = TEXT.vocab.vectors
-            self.conv = nn.Conv2d(n_featmaps*3,n_featmaps2,kernel_size=(filter_window,1),padding=(2,0),dilation=(2,1))
+            self.conv = nn.Conv2d(n_featmaps*3,n_featmaps2,kernel_size=(filter_window,1),padding=(1,0),dilation=(2,1))
             self.conv3 = nn.Conv2d(300,n_featmaps,kernel_size=(3,1),padding=(1,0))
             self.conv5 = nn.Conv2d(300,n_featmaps,kernel_size=(5,1),padding=(2,0))
             self.conv7 = nn.Conv2d(300,n_featmaps,kernel_size=(7,1),padding=(3,0))
             self.avgpool = nn.AvgPool2d(kernel_size=(5,1),stride=(3,1),padding=(2,0))
             self.maxpool = nn.AdaptiveMaxPool1d(1)
-            self.linear = nn.Linear(n_featmaps2, 2)
+            self.linear = nn.Linear(n_featmaps*2, 2)
             self.dropout = nn.Dropout(dropout_rate)
     #
         def forward(self, inputs): # inputs (bs,words/sentence) 10,7
@@ -279,60 +278,60 @@ elif net_flag == 'dilated':
 # is_glove = True
 
 # model = MCNN(is_glove)
+model.load_state_dict(torch.load('../data/cnn_{}.pkl'.format(net_flag)))
 if torch.cuda.is_available():
     model.cuda()
-criterion = nn.CrossEntropyLoss() # accounts for the softmax component?
-params = filter(lambda x: x.requires_grad, model.parameters())
-optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay)
-#optimizer = torch.optim.Adadelta(params, lr=learning_rate,weight_decay=weight_decay)
+#criterion = nn.CrossEntropyLoss() # accounts for the softmax component?
+#params = filter(lambda x: x.requires_grad, model.parameters())
+#optimizer = torch.optim.Adam(params, lr=learning_rate, amsgrad=True)
 
-losses = []
+#losses = []
 
-for epoch in range(num_epochs):
-    train_iter.init_epoch()
-    ctr = 0
-    model.train()
-    for batch in train_iter:
-        sentences = batch.text.transpose(1,0)
-        sentences = sentences.cuda()
-        labels = (batch.label==1).type(torch.LongTensor)
-        labels = labels.cuda()
-        # change labels from 1,2 to 1,0
-        optimizer.zero_grad()
-        outputs = model(sentences)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
-        nn.utils.clip_grad_norm(model.parameters(), constraint)
-        ctr += 1
-        if ctr % 100 == 0:
-            print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
-                %(epoch+1, num_epochs, ctr, len(train)//bs, loss.data[0]))
-        losses.append(loss.data[0])
+# for epoch in range(num_epochs):
+#     train_iter.init_epoch()
+#     ctr = 0
+#     model.train()
+#     for batch in train_iter:
+#         sentences = batch.text.transpose(1,0)
+#         sentences = sentences.cuda()
+#         labels = (batch.label==1).type(torch.LongTensor)
+#         labels = labels.cuda()
+#         # change labels from 1,2 to 1,0
+#         optimizer.zero_grad()
+#         outputs = model(sentences)
+#         loss = criterion(outputs, labels)
+#         loss.backward()
+#         optimizer.step()
+#         nn.utils.clip_grad_norm(model.parameters(), constraint)
+#         ctr += 1
+#         if ctr % 100 == 0:
+#             print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
+#                 %(epoch+1, num_epochs, ctr, len(train)//bs, loss.data[0]))
+#         losses.append(loss.data[0])
 
-    # normally you'd tab these back a level, but i'm paranoid
-    np.save("../data/cnn_{}_losses".format(net_flag),np.array(losses))
-    torch.save(model.state_dict(), '../data/cnn_{}.pkl'.format(net_flag))
+#     # normally you'd tab these back a level, but i'm paranoid
+#     np.save("../data/cnn_{}_losses".format(net_flag),np.array(losses))
+#     torch.save(model.state_dict(), '../data/cnn_{}.pkl'.format(net_flag))
 
-# model.load_state_dict(torch.load('../../models/0cnn.pkl'))
+# # model.load_state_dict(torch.load('../../models/0cnn.pkl'))
 
-    model.eval() # lets dropout layer know that this is the test set
-    correct = 0
-    total = 0
-    for batch in val_iter:
-        sentences = batch.text.transpose(1,0)
-        sentences = sentences.cuda()
-        labels = (batch.label==1).type(torch.LongTensor).data
-        labels = labels.cuda()
-        # change labels from 1,2 to 1,0
-        outputs = model(sentences)
-        _, predicted = torch.max(outputs.data, 1)
-        total += labels.size(0)
-        correct += (predicted == labels).sum()
+model.eval() # lets dropout layer know that this is the test set
+correct = 0
+total = 0
+for batch in val_iter:
+    sentences = batch.text.transpose(1,0)
+    sentences = sentences.cuda()
+    labels = (batch.label==1).type(torch.LongTensor).data
+    labels = labels.cuda()
+    # change labels from 1,2 to 1,0
+    outputs = model(sentences)
+    _, predicted = torch.max(outputs.data, 1)
+    total += labels.size(0)
+    correct += (predicted == labels).sum()
 
-    print('test accuracy', correct/total)
+print('val accuracy', correct/total)
 
-model.eval()
+#model.eval()
 def test(model):
     "All models should be able to be run with following command."
     upload = []
