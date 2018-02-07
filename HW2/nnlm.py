@@ -7,7 +7,7 @@ import torch.nn.functional as F
 
 # Hyperparameters
 bs = 10 # batch size
-n = 3 # number of words
+n = 5 # receptive field
 
 # Text processing library
 import torchtext
@@ -62,7 +62,7 @@ class NNLM(nn.Module):
         self.u = nn.Linear(100,len(TEXT.vocab))
         self.w = nn.Linear(n*300,len(TEXT.vocab))
 
-    def forward(self, inputs): # inputs (bs,words/sentence) 10,32
+    def forward(self, inputs): # inputs (bs,sentence length) 10,32
         bsz = inputs.size(0) # batch size might change
         if inputs.size(1) < n: # padding issues on really short sentences
             pads = Variable(torch.zeros(bsz,n-inputs.size(1))).type(torch.LongTensor)

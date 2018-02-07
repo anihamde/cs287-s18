@@ -21,7 +21,7 @@ print('len(train)', len(train))
 TEXT.build_vocab(train)
 print('len(TEXT.vocab)', len(TEXT.vocab))
 
-# TODO: use argparse
+# TODO: use argparse. and have an option to use train.5k
 if False:
     TEXT.build_vocab(train, max_size=1000)
     len(TEXT.vocab)
