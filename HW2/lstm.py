@@ -4,6 +4,7 @@ import torch
 from torch.autograd import Variable
 import torch.nn as nn
 import torch.nn.functional as F
+import csv
 
 # Hyperparameters
 bs = 10 # batch size
@@ -50,16 +51,15 @@ TEXT.vocab.load_vectors(vectors=Vectors('../HW1/wiki.simple.vec', url=url)) # fe
 print("Word embeddings size ", TEXT.vocab.vectors.size())
 word2vec = TEXT.vocab.vectors()
 
-
-# TODO: dropout, and model.train()/eval()
-# TODO: learning rate decay? (zaremba has specific instructions for this)
-
+# TODO: dropout, learning rate decay? (zaremba has specific instructions for this)
+# TODO: multichannel tests (with glove and stuff)
 
 hidden_size = 3
 class RNN(nn.Module):
     def __init__(self):
         super(RNN, self).__init__()
         self.embedding = nn.Embedding(word2vec.size(0), word2vec.size(1))
+        self.embeddings.weight.data.copy_(word2vec)
         self.i2h = nn.Linear(word2vec.size(1)+hidden_size, hidden_size)
         self.i2o = nn.Linear(word2vec.size(1)+hidden_size, len(TEXT.vocab))
         self.softmax = nn.LogSoftmax(dim=1) # TODO: does this line still throw an error?
@@ -85,38 +85,53 @@ for i in range(num_epochs):
     # initialize hidden vector
     hidden = Variable(torch.zeros(bs, hidden_size))
     for batch in iter(train_iter):
-        model.zero_grad() # TODO: will this kill my saved hidden from prev batch?
+        sentences = batch.text.transpose(1,0)
         # calculate forward pass, except for very last word
-        for i in range(batch.size(1)-1):
-            out, hidden = model(batch.text[:, i], hidden)
-        loss = criterion(out, batch.text[:,-1])
+        for i in range(sentences.size(1)-1):
+            out, hidden = model(sentences[:,i], hidden)
+        loss = criterion(out, sentences[:,-1])
+        model.zero_grad()
         loss.backward()
         optimizer.step()
         # TODO: weight clippings nn.utils.clip_grad_norm(params, constraint) is this right?
         # update hidden vector
-        _, hidden = model(batch.text[:, -1], hidden)
+        # TODO: this passing hidden stuff might break if batch size is ever not 10
+        _, hidden = model(sentences[:,-1], hidden)
         ctr += 1
         if ctr % 100 == 0:
             print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
-                %(epoch+1, num_epochs, ctr, len(train)//bs, loss.data[0]))
+                %(epoch+1, num_epochs, ctr, len(train_iter), loss.data[0]))
         losses.append(loss.data[0])
 
-# TODO: code to save numpy losses, model pkl, or load model
+    # can add a net_flag to these file names. and feel free to change the paths
+    np.save("../../models/lstm_losses",np.array(losses))
+    torch.save(model.state_dict(), '../../models/lstm.pkl')
+
+# model.load_state_dict(torch.load('../../models/lstm.pkl'))
 
 model.eval()
 correct = total = 0
 hidden = Variable(torch.zeros(bs, hidden_size))
 for batch in iter(val_iter):
+    sentences = batch.text.transpose(1,0)
     # calculate forward pass, except for very last word
-    for i in range(batch.size(1)-1):
-        out, hidden = model(batch.text[:,i], hidden)
+    for i in range(sentences.size(1)-1):
+        out, hidden = model(sentences[:,i], hidden)
     _, predicted = torch.max(out.data, 1)
-    labels = batch.text[:,-1]
+    labels = sentences[:,-1]
     total += labels.size(0)
     correct += (predicted == labels).sum()
-    _, hidden = model(batch.text[:,-1], hidden)
-
+    _, hidden = model(sentences[:,-1], hidden)
 print('Test Accuracy', correct/total)
 
 # TODO: better loss measurements (top 20 precision, perplexity)
-# TODO: write results to csv
+
+with open("lstm_predictions.csv", "w") as f:
+    writer = csv.writer(f)
+    writer.writerow(['id','word'])
+    for i, l in enumerate(open("input.txt"),1):
+        words = [TEXT.vocab.stoi[word] for word in l.split(' ')]
+        words = Variable(torch.Tensor(words))
+        out = model(words)
+        predicted = out.numpy().argmax()
+        writer.writerow([i,predicted])

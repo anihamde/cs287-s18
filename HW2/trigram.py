@@ -40,7 +40,7 @@ print("Converted back to string: ", " ".join([TEXT.vocab.itos[i] for i in batch.
 uni = Counter()
 bi = Counter()
 tri = Counter()
-biprev = [1] * bs # this uses padding- is there a more elegant way?
+biprev = [1] * bs # this uses padding
 triprev = [1] * bs * 2
 
 for b in iter(train_iter):
@@ -79,10 +79,11 @@ def predict(l):
     # select top results
     return [TEXT.vocab.itos[i] for i,c in total.most_common(20)]
 
+# TODO: write an in-house evaluator, with perplexity or precision metric
+
 with open("sample.txt", "w") as fout: 
     print("id,word", file=fout)
     for i, l in enumerate(open("input.txt"), 1):
         words = l.split(' ')[:-1]
         words = [TEXT.vocab.stoi[word] for word in words]
         print("%d,%s"%(i, " ".join(predict(words))), file=fout)
-# TODO: write an in-house evaluator, with perplexity or precision metric
