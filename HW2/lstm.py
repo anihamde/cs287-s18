@@ -11,6 +11,7 @@ bs = 10 # batch size
 learning_rate = .001
 weight_decay = 0
 num_epochs = 20 # idk!
+dropout_rate = 0.5
 
 # Text processing library
 import torchtext
@@ -135,3 +136,45 @@ with open("lstm_predictions.csv", "w") as f:
         out = model(words)
         predicted = out.numpy().argmax()
         writer.writerow([i,predicted])
+
+
+
+#####################
+# HIGHLY IN PROGRESS
+hidden_size = 20
+class kLSTM(nn.Module):# 128, 128, 20, 20, 2
+    def __init__(self, embedding_size, hidden_size, output_size, vocab_size, n_layers):
+        super(kLSTM, self).__init__()
+        self.embedding = nn.Embedding(word2vec.size(0),word2vec.size(1))
+        self.embeddings.weight.data.copy_(word2vec)
+        self.drop0 = nn.Dropout(dropout_rate)
+        self.lstm1 = nn.LSTM(word2vec.size(1), hidden_size, 1) # 3rd argument is n_layers
+        self.drop1 = nn.Dropout(dropout_rate)
+        self.lstm2 = nn.LSTM(hidden_size, hidden_size, 1)
+        self.drop2 = nn.Dropout(dropout_rate)
+        self.linear = nn.Linear(hidden_size, len(TEXT.vocab))
+        self.softmax = nn.LogSoftmax(dim=1)
+        
+    def forward(self, input, hidden1, hidden2): 
+        # input is (batch size, sentence length) bs,n
+        # hidden1 is ((n_layers,bs,hidden_size),(n_layers,bs,hidden_size))
+        # embed the input integers
+        embeds = self.embedding(input) # bs,n,300
+        # put the batch along the second dimension
+        embeds = embeds.transpose(0, 1) # n,bs,300
+        out = self.drop0(embeds)
+        out, hidden1 = self.lstm1(out, hidden1)
+        out = self.drop1(out)
+        out, hidden2 = self.lstm2(out, hidden2)
+        out = self.drop2(out)
+        # apply the linear and the softmax
+        out = self.softmax(self.linear(out)) # n,bs,|V|
+        return out, hidden1, hidden2
+
+# Requires a different way of handling hidden
+# There's a hidden for every vertical layer.
+# I manually use multiple layers for the sake of dropout
+# Maybe just be lazy and let LSTM do 2 layers for me
+# Hmm... can torch.nn.LSTM really do dropout like we want?
+# https://discuss.pytorch.org/t/lstm-dropout-clarification-of-last-layer/5588/3
+# also, replace the dropouts with functional dropouts
