@@ -35,8 +35,6 @@ if False:
 
 train_iter, val_iter, test_iter = torchtext.data.BPTTIterator.splits(
     (train, val, test), batch_size=bs, device=-1, bptt_len=32, repeat=False)
-# TODO: can we try bptt_len as 10? (it would give us more data)
-# or make it n, actually?
 
 it = iter(train_iter)
 batch = next(it) 
@@ -166,6 +164,7 @@ print('Test Accuracy', correct/total)
 print('Precision',precisioncalc/(20*precisioncntr))
 print('Perplexity',torch.exp(crossentropy/precisioncntr))
 
+model.eval()
 with open("nnlm_predictions.csv", "w") as f:
     writer = csv.writer(f)
     writer.writerow(['id','word'])
