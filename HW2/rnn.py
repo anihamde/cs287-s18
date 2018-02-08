@@ -50,39 +50,28 @@ TEXT.vocab.load_vectors(vectors=Vectors('../HW1/wiki.simple.vec', url=url)) # fe
 print("Word embeddings size ", TEXT.vocab.vectors.size())
 word2vec = TEXT.vocab.vectors()
 
-# TODO: learning rate decay? (zaremba has specific instructions for this)
+# TODO: dropout, learning rate decay?
 # TODO: multichannel tests (with glove and stuff)
-# TODO: bidirectional
-# TODO: replace dropouts with functional dropouts
 
-hidden_size = 20
-n_layers = 2
-class dLSTM(nn.Module):
+hidden_size = 3
+class RNN(nn.Module):
     def __init__(self):
-        super(dLSTM, self).__init__()
-        self.embedding = nn.Embedding(word2vec.size(0),word2vec.size(1))
+        super(RNN, self).__init__()
+        self.embedding = nn.Embedding(word2vec.size(0), word2vec.size(1))
         self.embeddings.weight.data.copy_(word2vec)
-        self.dropbottom = nn.Dropout(dropout_rate)
-        self.lstm = nn.LSTM(word2vec.size(1), hidden_size, n_layers, dropout=dropout_rate)
-        self.droptop = nn.Dropout(dropout_rate)
-        self.linear = nn.Linear(hidden_size, len(TEXT.vocab))
-        self.softmax = nn.LogSoftmax(dim=1)
-        
-    def forward(self, input, hidden): 
-        # input is (batch size, sentence length) bs,n
-        # hidden is ((n_layers,bs,hidden_size),(n_layers,bs,hidden_size))
-        # embed the input integers
-        embeds = self.embedding(input) # bs,n,300
-        # put the batch along the second dimension
-        embeds = embeds.transpose(0, 1) # n,bs,300
-        out = self.dropbottom(embeds)
-        out, hidden = self.lstm(out, hidden)
-        out = self.droptop(out)
-        # apply the linear and the softmax
-        out = self.softmax(self.linear(out)) # n,bs,|V|
+        self.i2h = nn.Linear(word2vec.size(1)+hidden_size, hidden_size)
+        self.i2o = nn.Linear(word2vec.size(1)+hidden_size, len(TEXT.vocab))
+        self.softmax = nn.LogSoftmax(dim=1) # TODO: does this line still throw an error?
+
+    def forward(self, inputs, hidden):
+        embedded = self.embedding(inputs)
+        combined = torch.cat((embedded, hidden), 1)
+        hidden = self.i2h(combined)
+        out = self.i2o(combined)
+        out = self.softmax(out)
         return out, hidden
 
-model = dLSTM()
+model = RNN()
 criterion = nn.NLLLoss()
 params = filter(lambda x: x.requires_grad, model.parameters())
 optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay)
@@ -93,20 +82,21 @@ for i in range(num_epochs):
     train_iter.init_epoch()
     ctr = 0
     # initialize hidden vector
-    hidden = (Variable(torch.zeros(n_layers, bs, hidden_size)), 
-        Variable(torch.zeros(n_layers, bs, hidden_size)))
+    hidden = Variable(torch.zeros(bs, hidden_size))
     for batch in iter(train_iter):
-        # I have 2 transposes (and could eliminate them), but the docs for nn.Embedding make me wary
         sentences = batch.text.transpose(1,0)
-        out, hidden = model(sentences, hidden)
+        # calculate forward pass, except for very last word
         loss = 0
         for i in range(sentences.size(1)-1):
-            loss += criterion(out[i], sentences[:,i+1])
+            out, hidden = model(sentences[:,i], hidden)
+            loss += criterion(out, sentences[:,i+1])
         model.zero_grad()
         loss.backward()
         optimizer.step()
         # TODO: weight clippings nn.utils.clip_grad_norm(params, constraint) is this right?
-        # hidden vector is automatically saved for next batch
+        # update hidden vector
+        # TODO: this passing hidden stuff might break if batch size is ever not 10
+        _, hidden = model(sentences[:,-1], hidden)
         ctr += 1
         if ctr % 100 == 0:
             print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
@@ -121,21 +111,21 @@ for i in range(num_epochs):
 
 model.eval()
 correct = total = 0
-hidden = (Variable(torch.zeros(n_layers, bs, hidden_size)), 
-        Variable(torch.zeros(n_layers, bs, hidden_size)))
+hidden = Variable(torch.zeros(bs, hidden_size))
 for batch in iter(val_iter):
     sentences = batch.text.transpose(1,0)
-    out, hidden = model(sentences, hidden)
-    _, predicted = torch.max(out.data, 2)
-    predicted = predicted.transpose(1,0)[:,:-1]
-    labels = sentences[:,1:]
-    total += labels.size(0) * labels.size(1)
+    # calculate forward pass, except for very last word
+    for i in range(sentences.size(1)-1):
+        out, hidden = model(sentences[:,i], hidden)
+    _, predicted = torch.max(out.data, 1)
+    labels = sentences[:,-1]
+    total += labels.size(0)
     correct += (predicted == labels).sum()
+    _, hidden = model(sentences[:,-1], hidden)
 print('Test Accuracy', correct/total)
 
 # TODO: better loss measurements (top 20 precision, perplexity)
 
-model.eval()
 with open("lstm_predictions.csv", "w") as f:
     writer = csv.writer(f)
     writer.writerow(['id','word'])
@@ -145,40 +135,3 @@ with open("lstm_predictions.csv", "w") as f:
         out = model(words)
         predicted = out.numpy().argmax()
         writer.writerow([i,predicted])
-
-
-
-#####################
-# HIGHLY IN PROGRESS
-hidden_size = 20
-class kLSTM(nn.Module):# 128, 128, 20, 20, 2
-    def __init__(self):
-        super(kLSTM, self).__init__()
-        self.embedding = nn.Embedding(word2vec.size(0),word2vec.size(1))
-        self.embeddings.weight.data.copy_(word2vec)
-        self.drop0 = nn.Dropout(dropout_rate)
-        self.lstm1 = nn.LSTM(word2vec.size(1), hidden_size, 1) # 3rd argument is n_layers
-        self.drop1 = nn.Dropout(dropout_rate)
-        self.lstm2 = nn.LSTM(hidden_size, hidden_size, 1)
-        self.drop2 = nn.Dropout(dropout_rate)
-        self.linear = nn.Linear(hidden_size, len(TEXT.vocab))
-        self.softmax = nn.LogSoftmax(dim=1)
-        
-    def forward(self, input, hidden1, hidden2): 
-        # input is (batch size, sentence length) bs,n
-        # hidden1 is ((n_layers,bs,hidden_size),(n_layers,bs,hidden_size))
-        # embed the input integers
-        embeds = self.embedding(input) # bs,n,300
-        # put the batch along the second dimension
-        embeds = embeds.transpose(0, 1) # n,bs,300
-        out = self.drop0(embeds)
-        out, hidden1 = self.lstm1(out, hidden1)
-        out = self.drop1(out)
-        out, hidden2 = self.lstm2(out, hidden2)
-        out = self.drop2(out)
-        # apply the linear and the softmax
-        out = self.softmax(self.linear(out)) # n,bs,|V|
-        return out, hidden1, hidden2
-
-# Requires a different way of handling hidden, because there's a hidden for every vertical layer.
-# I manually use multiple layers for the sake of dropout
