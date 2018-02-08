@@ -77,21 +77,28 @@ def predict(l):
     for k in trifilt:
         total[k[-1]] += trifilt[k] * alpha_t / trisum
     # select top results
-    return [TEXT.vocab.itos[i] for i,c in total.most_common(20)]
+    return total
+    # return [TEXT.vocab.itos[i] for i,c in total.most_common(20)]
 
-def evaluate(txt):
-	correct = total = 0
-	precisionmat = 1/(range(1,21))
+# def evaluate(txt):
+# 	correct = total = 0
+# 	precisionmat = 1/(range(1,21))
 
-	for i in range(0,20):
-	    precisionmat[i] = sum(precisionmat[i:20])
+# 	for i in range(0,20):
+# 	    precisionmat[i] = sum(precisionmat[i:20])
 
-	precisioncalc = 0
-	precisioncntr = 0
-	crossentropy = 0
+# 	precisioncalc = 0
+# 	precisioncntr = 0
+# 	crossentropy = 0
 
-	for i, l in enumerate(open("input.txt"),1):
-		
+# 	for i, l in enumerate(open("input.txt"),1):
+# 		words = l.split(' ')[:-1]
+# 		words = [TEXT.vocab.stoi[word] for word in words]
+# 		total = predict(words)
+
+# 		top20 = [i for i,c in total.most_common(20)]
+
+# 		crossentropy += F.cross_entropy(total,labels)
 
 
 
@@ -101,44 +108,55 @@ with open("sample.txt", "w") as fout:
     for i, l in enumerate(open("input.txt"), 1):
         words = l.split(' ')[:-1]
         words = [TEXT.vocab.stoi[word] for word in words]
-        print("%d,%s"%(i, " ".join(predict(words))), file=fout)
+        total = predict(words)
+        print("%d,%s"%(i, " ".join([TEXT.vocab.itos[i] for i,c in total.most_common(20)])), file=fout)
 
 
 
+# Evaluator
 
+n = 2
+correct = total = 0
+precisionmat = 1/(range(1,21))
 
+for i in range(0,20):
+	precisionmat[i] = sum(precisionmat[i:20])
 
-
+precisioncalc = 0
+precisioncntr = 0
+crossentropy = 0
 
 for batch in iter(val_iter):
     sentences = batch.text.transpose(1,0)
     if sentences.size(1) < n+1: # make sure sentence length is long enough
         pads = Variable(torch.zeros(sentences.size(0),n+1-sentences.size(1))).type(torch.LongTensor)
         sentences = torch.cat([pads,sentences],dim=1)
-    for j in range(n,sentences.size(1)):
-        # precision
-        out = model(sentences[:,j-n:j])
-        sorte,indices = torch.sort(out,desc=True)
-        indices20 = indices[:,0:20]
-        # _, predicted = torch.max(out.data, 1)
-        labels = sentences[:,j]
-        
-        indicmat = np.where(indices20 - labels == 0)
+    for sentence in sentences:
+	    for j in range(n,sentence.size()):
+	        # precision
+	        words = l.split(' ')[:-1]
+			sentence = [TEXT.vocab.stoi[word] for word in words]
 
-        for k in range(0,len(indicmat[0])):
-            colm = indicmat[1][k]
+	        out = predict(sentence) # TODO: Fix this
+	        # out = model(sentence[j-n:j])
+	        sorte,indices = torch.sort(out,desc=True)
+	        indices20 = indices[0:20]
+	        # _, predicted = torch.max(out.data, 1)
+	        label = sentence[j]
+	        
+	        indic = np.where(indices20 - label == 0)
 
-            precisioncalc += precisionmat[colm]
+	        precisioncalc += precisionmat[indic]
 
-        precisioncntr += len(labels)
+	        precisioncntr += 1
 
-        # cross entropy
-        crossentropy += F.cross_entropy(out,labels)
+	        # cross entropy
+	        crossentropy += F.cross_entropy(out,label)
 
-        # plain ol accuracy
-        _, predicted = torch.max(out.data, 1)
-        total += labels.size(0)
-        correct += (predicted == labels).sum()
+	        # plain ol accuracy
+	        _, predicted = torch.max(out.data, 1)
+	        total += label.size(0)
+	        correct += (predicted == label).sum()
 
     # out = model(sentences[:,-1-n:-1])
     # _, predicted = torch.max(out.data, 1)
