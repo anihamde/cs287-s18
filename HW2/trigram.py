@@ -2,6 +2,7 @@ import time
 import numpy as np
 from collections import Counter
 import csv
+import copy
 
 timenow = time.time()
 
@@ -41,14 +42,15 @@ print("Converted back to string: ", " ".join([TEXT.vocab.itos[i] for i in batch.
 batch = next(it)
 print("Converted back to string: ", " ".join([TEXT.vocab.itos[i] for i in batch.text[:, 2].data]))
 
+# Maybe I can come up with something more efficient than a counter?
 uni = Counter()
 bi = Counter()
 tri = Counter()
 biprev = [1] * bs # "1" is <pad>
 triprev = [1] * bs * 2
 
-for b in iter(train_iter):
-    txt = b.text.data
+for batch in iter(train_iter):
+    txt = batch.text.data
     uni.update(txt.view(-1).tolist()) # throw all words into bag
     bi0 = biprev + txt[:-1,:].view(-1).tolist()
     bi1 = txt.view(-1).tolist()
@@ -77,7 +79,7 @@ def predict(l):
     bisum = sum(bifilt.values())
     trisum = sum(trifilt.values())
     # combine
-    total = uni
+    total = copy.copy(uni) # shallow copy
     for k in bifilt:
         total[k[-1]] += bifilt[k] * alpha_b / bisum
     for k in trifilt:
@@ -102,14 +104,14 @@ print("Done writing kaggle text!")
 
 # Evaluator
 correct = total = 0
-precisionmat = np.arange(1,21)[::-1].cumsum()[::-1]
+precisionmat = (1/np.arange(1,21))[::-1].cumsum()[::-1]
 precision = 0
 crossentropy = 0
 
 for batch in iter(val_iter):
-    sentences = batch.text.transpose(1,0) # bs,n
+    sentences = batch.text.data.transpose(1,0) # bs,n
     if sentences.size(1) < 3: # make sure sentence length is long enough
-        pads = Variable(torch.zeros(sentences.size(0),3-sentences.size(1))).type(torch.LongTensor)
+        pads = torch.zeros(sentences.size(0),3-sentences.size(1)).type(torch.LongTensor)
         sentences = torch.cat([pads,sentences],dim=1)
     for sentence in sentences:
         for j in range(2,sentence.size(0)):
