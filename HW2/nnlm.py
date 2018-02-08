@@ -83,6 +83,7 @@ optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay
 losses = []
 model.train()
 for i in range(num_epochs):
+    print(i)
     train_iter.init_epoch()
     ctr = 0
     for batch in iter(train_iter):
@@ -103,15 +104,14 @@ for i in range(num_epochs):
         losses.append(loss.data[0])
 
     # can add a net_flag to these file names. and feel free to change the paths
-    np.save("../../models/HW2/nnlm_losses",np.array(losses))
+    np.save("../../models/HW2/nnlm_losses.npy",np.array(losses))
     torch.save(model.state_dict(), '../../models/HW2/nnlm.pkl')
-
-    break
 
 # model.load_state_dict(torch.load('../../models/HW2/nnlm.pkl'))
 
 model.eval()
 correct = total = 0
+precisionmat = []
 
 for i in range(0,20):
     precisionmat.append(1.0/(1.0+i))
@@ -131,10 +131,12 @@ for batch in iter(val_iter):
     for j in range(n,sentences.size(1)):
         # precision
         out = model(sentences[:,j-n:j])
-        _,indices = torch.sort(out,desc=True)
+        _,indices = torch.sort(out,descending=True)
         indices20 = indices[:,0:20]
         labels = sentences[:,j]
-        indicmat = np.where(indices20 - labels == 0)
+        labels2 = labels.unsqueeze(0)
+        labels2 = labels2.permute(1,0)
+        indicmat = np.where((indices20 - labels2.expand(labels2.size()[0],20)).data.numpy() == 0)
         for k in range(0,len(indicmat[0])):
             colm = indicmat[1][k]
             precisioncalc += precisionmat[colm]
@@ -144,13 +146,11 @@ for batch in iter(val_iter):
         # plain ol accuracy
         _, predicted = torch.max(out.data, 1)
         total += labels.size(0)
-        correct += (predicted == labels).sum()
-
-    break
+        correct += (predicted.numpy() == labels.data.numpy()).sum()
 
 print('Test Accuracy', correct/total)
 print('Precision',precisioncalc/(20*precisioncntr))
-print('Perplexity',torch.exp(crossentropy/precisioncntr))
+print('Perplexity',torch.exp(crossentropy/precisioncntr).data.numpy())
 
 model.eval()
 with open("nnlm_predictions.csv", "w") as f:
@@ -158,7 +158,7 @@ with open("nnlm_predictions.csv", "w") as f:
     writer.writerow(['id','word'])
     for i, l in enumerate(open("input.txt"),1):
         words = [TEXT.vocab.stoi[word] for word in l.split(' ')]
-        words = Variable(torch.Tensor(words[-1-n:-1]))
+        words = Variable(torch.LongTensor(words[-1-n:-1]))
         out = model(words)
-        predicted = out.numpy().argmax()
+        predicted = out.data.numpy().argmax()
         writer.writerow([i,predicted])
