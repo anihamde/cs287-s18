@@ -55,7 +55,7 @@ print("Word embeddings size ", TEXT.vocab.vectors.size())
 # TODO: weight decay penalty (excluding bias terms) (want to try weight clippings too?)
 # TODO: bengio extensions
 # TODO: parallel computation (make everything cuda)
-# TODO: our own extensions (multichannel with glove, static/dynamic, etc?) (conv layers) (dropout) (recurrence)
+# TODO: our own extensions (multichannel with glove, static/dynamic, etc?) (conv layers) (dropout) (recurrence) (pad at the beginning?)
 
 hidden_size = 100
 class NNLM(nn.Module):
@@ -117,29 +117,54 @@ for i in range(num_epochs):
 
 model.eval()
 correct = total = 0
+
+precisionmat = 1/(range(1,21))
+
+for i in range(0,20):
+    precisionmat[i] = sum(precisionmat[i:20])
+
+precisioncalc = 0
+precisioncntr = 0
+crossentropy = 0
+
 for batch in iter(val_iter):
     sentences = batch.text.transpose(1,0)
     if sentences.size(1) < n+1: # make sure sentence length is long enough
         pads = Variable(torch.zeros(sentences.size(0),n+1-sentences.size(1))).type(torch.LongTensor)
         sentences = torch.cat([pads,sentences],dim=1)
     for j in range(n,sentences.size(1)):
+        # precision
         out = model(sentences[:,j-n:j])
-        _, predicted = torch.max(out.data, 1)
+        sorte,indices = torch.sort(out,desc=True)
+        indices20 = indices[:,0:20]
+        # _, predicted = torch.max(out.data, 1)
         labels = sentences[:,j]
-        out = 
+        
+        indicmat = np.where(indices20 - labels == 0)
+
+        for k in range(0,len(indicmat[0])):
+            colm = indicmat[1][k]
+
+            precisioncalc += precisionmat[colm]
+
+        precisioncntr += len(labels)
+
+        # cross entropy
+        crossentropy += F.cross_entropy(out,labels)
 
         # plain ol accuracy
+        _, predicted = torch.max(out.data, 1)
         total += labels.size(0)
         correct += (predicted == labels).sum()
 
     # out = model(sentences[:,-1-n:-1])
     # _, predicted = torch.max(out.data, 1)
     # labels = sentences[:,-1]
-    total += labels.size(0)
-    correct += (predicted == labels).sum()
+    # total += labels.size(0)
+    # correct += (predicted == labels).sum()
 print('Test Accuracy', correct/total)
-
-# TODO: better loss measurements (top 20 precision, perplexity)
+print('Precision',precisioncalc/(20*precisioncntr))
+print('Perplexity',torch.exp(crossentropy/precisioncntr))
 
 with open("nnlm_predictions.csv", "w") as f:
     writer = csv.writer(f)
