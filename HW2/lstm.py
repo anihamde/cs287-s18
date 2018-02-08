@@ -119,16 +119,42 @@ for i in range(num_epochs):
 
 model.eval()
 correct = total = 0
+precisionmat = 1/(range(1,21))
+
+for i in range(0,20):
+    precisionmat[i] = sum(precisionmat[i:20])
+
+precisioncalc = 0
+precisioncntr = 0
+crossentropy = 0
+
 hidden = (Variable(torch.zeros(n_layers, bs, hidden_size)), 
         Variable(torch.zeros(n_layers, bs, hidden_size)))
 for batch in iter(val_iter):
     sentences = batch.text
     out, hidden = model(sentences, hidden)
-    _, predicted = torch.max(out.data, 2)
-    labels = sentences[1:]
-    total += labels.size(0) * labels.size(1)
-    correct += (predicted[:-1] == labels).sum()
+    for j in range(n,sentences.size(1)):
+        # precision
+        out = out[j]
+        _,indices = torch.sort(out,desc=True)
+        indices20 = indices[:,0:20]
+        labels = sentences[j] # bs
+        indicmat = np.where(indices20 - labels == 0)
+        for k in range(0,len(indicmat[0])):
+            colm = indicmat[1][k]
+            precisioncalc += precisionmat[colm]
+        precisioncntr += len(labels)
+        # cross entropy
+        crossentropy += F.cross_entropy(out,labels)
+        # plain ol accuracy
+        _, predicted = torch.max(out.data, 1)
+        total += labels.size(0)
+        correct += (predicted == labels).sum()
+
 print('Test Accuracy', correct/total)
+print('Precision',precisioncalc/(20*precisioncntr))
+print('Perplexity',torch.exp(crossentropy/precisioncntr))
+
 
 # TODO: print out some samples to make sure they make sense
 # TODO: better loss measurements (top 20 precision, perplexity)

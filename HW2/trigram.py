@@ -59,7 +59,7 @@ for b in iter(train_iter):
 # TODO: experiment with ignoring EOS for unigrams, like this
 # uni[TEXT.vocab.stoi["<eos>"]] = 0
 
-unisum = sum(uni) # just normalize once for unigrams
+unisum = sum(uni.values()) # just normalize once for unigrams
 for k in uni:
     uni[k] *= (1 - alpha_b - alpha_t) / unisum
 
@@ -79,29 +79,6 @@ def predict(l):
     # select top results
     return total
     # return [TEXT.vocab.itos[i] for i,c in total.most_common(20)]
-
-# def evaluate(txt):
-# 	correct = total = 0
-# 	precisionmat = 1/(range(1,21))
-
-# 	for i in range(0,20):
-# 	    precisionmat[i] = sum(precisionmat[i:20])
-
-# 	precisioncalc = 0
-# 	precisioncntr = 0
-# 	crossentropy = 0
-
-# 	for i, l in enumerate(open("input.txt"),1):
-# 		words = l.split(' ')[:-1]
-# 		words = [TEXT.vocab.stoi[word] for word in words]
-# 		total = predict(words)
-
-# 		top20 = [i for i,c in total.most_common(20)]
-
-# 		crossentropy += F.cross_entropy(total,labels)
-
-
-
 
 with open("sample.txt", "w") as fout: 
     print("id,word", file=fout)
@@ -158,11 +135,6 @@ for batch in iter(val_iter):
 	        total += label.size(0)
 	        correct += (predicted == label).sum()
 
-    # out = model(sentences[:,-1-n:-1])
-    # _, predicted = torch.max(out.data, 1)
-    # labels = sentences[:,-1]
-    # total += labels.size(0)
-    # correct += (predicted == labels).sum()
 print('Test Accuracy', correct/total)
 print('Precision',precisioncalc/(20*precisioncntr))
 print('Perplexity',torch.exp(crossentropy/precisioncntr))
