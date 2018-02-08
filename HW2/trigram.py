@@ -1,6 +1,7 @@
 import time
 import numpy as np
 from collections import Counter
+import csv
 
 timenow = time.time()
 
@@ -43,7 +44,7 @@ print("Converted back to string: ", " ".join([TEXT.vocab.itos[i] for i in batch.
 uni = Counter()
 bi = Counter()
 tri = Counter()
-biprev = [1] * bs # this uses padding
+biprev = [1] * bs # "1" is <pad>
 triprev = [1] * bs * 2
 
 for b in iter(train_iter):
@@ -59,15 +60,14 @@ for b in iter(train_iter):
     triprev = txt[-2:,:].view(-1).tolist()
     tri.update(zip(tri0,tri1,tri2))
 
-print("Training done!")
+print("Done training!")
 # TODO: experiment with ignoring EOS for unigrams, like this
 # uni[TEXT.vocab.stoi["<eos>"]] = 0
 
 unisum = sum(uni.values()) # just normalize once for unigrams
 for k in uni:
     uni[k] *= (1 - alpha_b - alpha_t) / unisum
-
-print("Done with normalizing!")
+print("Done normalizing unigram counter!")
 
 def predict(l):
     # filter
@@ -86,11 +86,9 @@ def predict(l):
     return total
     # return [TEXT.vocab.itos[i] for i,c in total.most_common(20)]
 
-print("Defined predict")
-
-
 enum_cntr = 0
 
+# TODO: shouldn't this be writing to a csv?
 with open("sample.txt", "w") as fout: 
     print("id,word", file=fout)
     for i, l in enumerate(open("input.txt"), 1):
@@ -102,26 +100,20 @@ with open("sample.txt", "w") as fout:
 
         if enum_cntr % 100 == 0:
             print(enum_cntr)
-
-print("Done with making predictions!")
+print("Done writing kaggle text!")
 
 # Evaluator
 
 n = 2
 correct = total = 0
-precisionmat = 1/(range(1,21))
-
-for i in range(0,20):
-    precisionmat[i] = sum(precisionmat[i:20])
+precisionmat = np.arange(1,21)[::-1].cumsum()[::-1]
 
 precisioncalc = 0
 precisioncntr = 0
 crossentropy = 0
 
-print("Beginning validation!")
-
 for batch in iter(val_iter):
-    sentences = batch.text.transpose(1,0)
+    sentences = batch.text.transpose(1,0) # bs,n
     if sentences.size(1) < n+1: # make sure sentence length is long enough
         pads = Variable(torch.zeros(sentences.size(0),n+1-sentences.size(1))).type(torch.LongTensor)
         sentences = torch.cat([pads,sentences],dim=1)
