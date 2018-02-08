@@ -88,9 +88,10 @@ for i in range(num_epochs):
     for batch in iter(train_iter):
         sentences = batch.text.transpose(1,0)
         # calculate forward pass, except for very last word
+        loss = 0
         for i in range(sentences.size(1)-1):
             out, hidden = model(sentences[:,i], hidden)
-        loss = criterion(out, sentences[:,-1])
+            loss += criterion(out, sentences[:,i+1])
         model.zero_grad()
         loss.backward()
         optimizer.step()
@@ -143,7 +144,7 @@ with open("lstm_predictions.csv", "w") as f:
 # HIGHLY IN PROGRESS
 hidden_size = 20
 class kLSTM(nn.Module):# 128, 128, 20, 20, 2
-    def __init__(self, embedding_size, hidden_size, output_size, vocab_size, n_layers):
+    def __init__(self):
         super(kLSTM, self).__init__()
         self.embedding = nn.Embedding(word2vec.size(0),word2vec.size(1))
         self.embeddings.weight.data.copy_(word2vec)
@@ -178,3 +179,29 @@ class kLSTM(nn.Module):# 128, 128, 20, 20, 2
 # Hmm... can torch.nn.LSTM really do dropout like we want?
 # https://discuss.pytorch.org/t/lstm-dropout-clarification-of-last-layer/5588/3
 # also, replace the dropouts with functional dropouts
+
+hidden_size = 20
+class dLSTM(nn.Module):
+    def __init__(self):
+        super(dLSTM, self).__init__()
+        self.embedding = nn.Embedding(word2vec.size(0),word2vec.size(1))
+        self.embeddings.weight.data.copy_(word2vec)
+        self.dropbottom = nn.Dropout(dropout_rate)
+        self.lstm = nn.LSTM(word2vec.size(1), hidden_size, 2, dropout=dropout_rate) # 3rd argument is n_layers
+        self.droptop = nn.Dropout(dropout_rate)
+        self.linear = nn.Linear(hidden_size, len(TEXT.vocab))
+        self.softmax = nn.LogSoftmax(dim=1)
+        
+    def forward(self, input, hidden): 
+        # input is (batch size, sentence length) bs,n
+        # hidden is ((n_layers,bs,hidden_size),(n_layers,bs,hidden_size))
+        # embed the input integers
+        embeds = self.embedding(input) # bs,n,300
+        # put the batch along the second dimension
+        embeds = embeds.transpose(0, 1) # n,bs,300
+        out = self.dropbottom(embeds)
+        out, hidden = self.lstm(out, hidden)
+        out = self.droptop(out)
+        # apply the linear and the softmax
+        out = self.softmax(self.linear(out)) # n,bs,|V|
+        return out, hidden

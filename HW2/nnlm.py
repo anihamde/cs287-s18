@@ -8,7 +8,7 @@ import csv
 
 # Hyperparameters
 bs = 10 # batch size
-n = 5 # receptive field
+n = 10 # receptive field
 learning_rate = .001
 weight_decay = 0
 num_epochs = 20 # idk!
@@ -92,11 +92,17 @@ for i in range(num_epochs):
         if sentences.size(1) < n+1: # make sure sentence length is long enough
             pads = Variable(torch.zeros(sentences.size(0),n+1-sentences.size(1))).type(torch.LongTensor)
             sentences = torch.cat([pads,sentences],dim=1)
-        out = model(sentences[:,-1-n:-1])
-        loss = criterion(out, sentences[:,-1])
-        model.zero_grad()
-        loss.backward()
-        optimizer.step()
+        for j in range(n,sentences.size(1)):
+            out = model(sentences[:,j-n:j])
+            loss = criterion(out,sentences[:,j])
+            model.zero_grad()
+            loss.backward()
+            optimizer.step()
+        # out = model(sentences[:,-1-n:-1])
+        # loss = criterion(out, sentences[:,-1])
+        # model.zero_grad()
+        # loss.backward()
+        # optimizer.step()
         ctr += 1
         if ctr % 100 == 0:
             print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
@@ -107,7 +113,7 @@ for i in range(num_epochs):
     np.save("../../models/HW2/nnlm_losses",np.array(losses))
     torch.save(model.state_dict(), '../../models/HW2/nnlm.pkl')
 
-# model.load_state_dict(torch.load('../../models/nnlm.pkl'))
+# model.load_state_dict(torch.load('../../models/HW2/nnlm.pkl'))
 
 model.eval()
 correct = total = 0
@@ -116,9 +122,19 @@ for batch in iter(val_iter):
     if sentences.size(1) < n+1: # make sure sentence length is long enough
         pads = Variable(torch.zeros(sentences.size(0),n+1-sentences.size(1))).type(torch.LongTensor)
         sentences = torch.cat([pads,sentences],dim=1)
-    out = model(sentences[:,-1-n:-1])
-    _, predicted = torch.max(out.data, 1)
-    labels = sentences[:,-1]
+    for j in range(n,sentences.size(1)):
+        out = model(sentences[:,j-n:j])
+        _, predicted = torch.max(out.data, 1)
+        labels = sentences[:,j]
+        out = 
+
+        # plain ol accuracy
+        total += labels.size(0)
+        correct += (predicted == labels).sum()
+
+    # out = model(sentences[:,-1-n:-1])
+    # _, predicted = torch.max(out.data, 1)
+    # labels = sentences[:,-1]
     total += labels.size(0)
     correct += (predicted == labels).sum()
 print('Test Accuracy', correct/total)
@@ -129,8 +145,8 @@ with open("nnlm_predictions.csv", "w") as f:
     writer = csv.writer(f)
     writer.writerow(['id','word'])
     for i, l in enumerate(open("input.txt"),1):
-        words = [TEXT.vocab.stoi[word] for word in l.split(' ')] 
-        words = Variable(torch.Tensor(words))
+        words = [TEXT.vocab.stoi[word] for word in l.split(' ')]
+        words = Variable(torch.Tensor(words[:-1]))
         out = model(words)
         predicted = out.numpy().argmax()
         writer.writerow([i,predicted])
