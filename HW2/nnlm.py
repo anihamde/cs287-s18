@@ -86,7 +86,7 @@ for i in range(num_epochs):
     train_iter.init_epoch()
     ctr = 0
     for batch in iter(train_iter):
-        sentences = batch.text.transpose(1,0)
+        sentences = batch.text.transpose(1,0) # bs,n
         if sentences.size(1) < n+1: # make sure sentence length is long enough
             pads = Variable(torch.zeros(sentences.size(0),n+1-sentences.size(1))).type(torch.LongTensor)
             sentences = torch.cat([pads,sentences],dim=1)
@@ -96,11 +96,6 @@ for i in range(num_epochs):
             model.zero_grad()
             loss.backward()
             optimizer.step()
-        # out = model(sentences[:,-1-n:-1])
-        # loss = criterion(out, sentences[:,-1])
-        # model.zero_grad()
-        # loss.backward()
-        # optimizer.step()
         ctr += 1
         if ctr % 100 == 0:
             print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
@@ -126,40 +121,28 @@ precisioncntr = 0
 crossentropy = 0
 
 for batch in iter(val_iter):
-    sentences = batch.text.transpose(1,0)
+    sentences = batch.text.transpose(1,0) # bs, n
     if sentences.size(1) < n+1: # make sure sentence length is long enough
         pads = Variable(torch.zeros(sentences.size(0),n+1-sentences.size(1))).type(torch.LongTensor)
         sentences = torch.cat([pads,sentences],dim=1)
     for j in range(n,sentences.size(1)):
         # precision
         out = model(sentences[:,j-n:j])
-        sorte,indices = torch.sort(out,desc=True)
+        _,indices = torch.sort(out,desc=True)
         indices20 = indices[:,0:20]
-        # _, predicted = torch.max(out.data, 1)
         labels = sentences[:,j]
-        
         indicmat = np.where(indices20 - labels == 0)
-
         for k in range(0,len(indicmat[0])):
             colm = indicmat[1][k]
-
             precisioncalc += precisionmat[colm]
-
         precisioncntr += len(labels)
-
         # cross entropy
         crossentropy += F.cross_entropy(out,labels)
-
         # plain ol accuracy
         _, predicted = torch.max(out.data, 1)
         total += labels.size(0)
         correct += (predicted == labels).sum()
 
-    # out = model(sentences[:,-1-n:-1])
-    # _, predicted = torch.max(out.data, 1)
-    # labels = sentences[:,-1]
-    # total += labels.size(0)
-    # correct += (predicted == labels).sum()
 print('Test Accuracy', correct/total)
 print('Precision',precisioncalc/(20*precisioncntr))
 print('Perplexity',torch.exp(crossentropy/precisioncntr))
@@ -170,7 +153,7 @@ with open("nnlm_predictions.csv", "w") as f:
     writer.writerow(['id','word'])
     for i, l in enumerate(open("input.txt"),1):
         words = [TEXT.vocab.stoi[word] for word in l.split(' ')]
-        words = Variable(torch.Tensor(words[:-1]))
+        words = Variable(torch.Tensor(words[-1-n:-1]))
         out = model(words)
         predicted = out.numpy().argmax()
         writer.writerow([i,predicted])
