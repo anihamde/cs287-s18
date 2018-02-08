@@ -47,7 +47,7 @@ print("Converted back to string: ", " ".join([TEXT.vocab.itos[i] for i in batch.
 
 # Build the vocabulary with word embeddings
 url = 'https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.simple.vec'
-TEXT.vocab.load_vectors(vectors=Vectors('../HW1/wiki.simple.vec', url=url)) # feel free to alter path
+TEXT.vocab.load_vectors(vectors=Vectors('wiki.simple.vec', url=url)) # feel free to alter path
 print("Word embeddings size ", TEXT.vocab.vectors.size())
 
 # TODO: mixture of models with interpolated trigram (fixed or learned weights)
@@ -57,7 +57,7 @@ print("Word embeddings size ", TEXT.vocab.vectors.size())
 # TODO: our own extensions (multichannel with glove, static/dynamic, etc?) (conv layers) (dropout) (recurrence) (pad at the beginning?)
 
 class NNLM(nn.Module):
-    def __init__(self, input_size):
+    def __init__(self):
         super(NNLM, self).__init__()
         self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
         self.embeddings.weight.data = TEXT.vocab.vectors
@@ -106,12 +106,15 @@ for i in range(num_epochs):
     np.save("../../models/HW2/nnlm_losses",np.array(losses))
     torch.save(model.state_dict(), '../../models/HW2/nnlm.pkl')
 
+    break
+
 # model.load_state_dict(torch.load('../../models/HW2/nnlm.pkl'))
 
 model.eval()
 correct = total = 0
 
-precisionmat = 1/(range(1,21))
+for i in range(0,20):
+    precisionmat.append(1.0/(1.0+i))
 
 for i in range(0,20):
     precisionmat[i] = sum(precisionmat[i:20])
@@ -142,6 +145,8 @@ for batch in iter(val_iter):
         _, predicted = torch.max(out.data, 1)
         total += labels.size(0)
         correct += (predicted == labels).sum()
+
+    break
 
 print('Test Accuracy', correct/total)
 print('Precision',precisioncalc/(20*precisioncntr))
