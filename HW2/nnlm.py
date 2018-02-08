@@ -148,6 +148,7 @@ for batch in iter(val_iter):
         total += labels.size(0)
         correct += (predicted.numpy() == labels.data.numpy()).sum()
 
+
 print('Test Accuracy', correct/total)
 print('Precision',precisioncalc/(20*precisioncntr))
 print('Perplexity',torch.exp(crossentropy/precisioncntr).data.numpy())
@@ -160,5 +161,7 @@ with open("nnlm_predictions.csv", "w") as f:
         words = [TEXT.vocab.stoi[word] for word in l.split(' ')]
         words = Variable(torch.LongTensor(words[-1-n:-1]))
         out = model(words)
-        predicted = out.data.numpy().argmax()
+        predicted = out.data.numpy()
+        predicted = predicted.argsort()
+        predicted = predicted[:,:20]
         writer.writerow([i,predicted])

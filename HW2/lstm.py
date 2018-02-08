@@ -48,9 +48,9 @@ print("Converted back to string: ", " ".join([TEXT.vocab.itos[i] for i in batch.
 
 # Build the vocabulary with word embeddings
 url = 'https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.simple.vec'
-TEXT.vocab.load_vectors(vectors=Vectors('../HW1/wiki.simple.vec', url=url)) # feel free to alter path
+TEXT.vocab.load_vectors(vectors=Vectors('wiki.simple.vec', url=url)) # feel free to alter path
 print("Word embeddings size ", TEXT.vocab.vectors.size())
-word2vec = TEXT.vocab.vectors()
+word2vec = TEXT.vocab.vectors
 
 # TODO: learning rate decay? (zaremba has specific instructions for this)
 # TODO: multichannel tests (with glove and stuff)
@@ -62,7 +62,7 @@ class dLSTM(nn.Module):
     def __init__(self):
         super(dLSTM, self).__init__()
         self.embedding = nn.Embedding(word2vec.size(0),word2vec.size(1))
-        self.embeddings.weight.data.copy_(word2vec)
+        self.embedding.weight.data.copy_(word2vec)
         self.dropbottom = nn.Dropout(dropout_rate)
         self.lstm = nn.LSTM(word2vec.size(1), hidden_size, n_layers, dropout=dropout_rate)
         self.droptop = nn.Dropout(dropout_rate)
@@ -111,10 +111,10 @@ for i in range(num_epochs):
                 %(epoch+1, num_epochs, ctr, len(train_iter), loss.data[0]))
         losses.append(loss.data[0])
 
+
     # can add a net_flag to these file names. and feel free to change the paths
     np.save("../../models/HW2/lstm_losses",np.array(losses))
     torch.save(model.state_dict(), '../../models/HW2/lstm.pkl')
-
 # model.load_state_dict(torch.load('../../models/lstm.pkl'))
 
 model.eval()
@@ -136,12 +136,12 @@ hidden = (Variable(torch.zeros(n_layers, bs, hidden_size)),
 for batch in iter(val_iter):
     sentences = batch.text
     out, hidden = model(sentences, hidden)
-    for j in range(n,sentences.size(1)):
+    for j in range(sentences.size(1)):
         # precision
         out = out[j]
         _,indices = torch.sort(out,descending=True)
         indices20 = indices[:,0:20]
-        labels = sentences[:,j]
+        labels = sentences[j]
         labels2 = labels.unsqueeze(0)
         labels2 = labels2.permute(1,0)
         indicmat = np.where((indices20 - labels2.expand(labels2.size()[0],20)).data.numpy() == 0)
@@ -155,6 +155,7 @@ for batch in iter(val_iter):
         _, predicted = torch.max(out.data, 1)
         total += labels.size(0)
         correct += (predicted.numpy() == labels.data.numpy()).sum()
+
 
 print('Test Accuracy', correct/total)
 print('Precision',precisioncalc/(20*precisioncntr))
@@ -170,9 +171,12 @@ with open("lstm_predictions.csv", "w") as f:
     writer.writerow(['id','word'])
     for i, l in enumerate(open("input.txt"),1):
         words = [TEXT.vocab.stoi[word] for word in l.split(' ')]
-        words = Variable(torch.Tensor(words).unsqueeze(1))
-        out = model(words)
-        predicted = out.numpy().argmax()
+        words = Variable(torch.LongTensor(words).unsqueeze(1))
+        hidden = (Variable(torch.zeros(n_layers, 1, hidden_size)), Variable(torch.zeros(n_layers, 1, hidden_size)))
+        out, _ = model(words,hidden)
+        predicted = out.data.numpy()
+        predicted.argsort()
+        predicted = predicted[-1,:,:20]
         writer.writerow([i,predicted])
 
 
