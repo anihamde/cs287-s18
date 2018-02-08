@@ -9,6 +9,7 @@ import csv
 # Hyperparameters
 bs = 10 # batch size
 n = 10 # receptive field
+hidden_size = 100
 learning_rate = .001
 weight_decay = 0
 num_epochs = 20 # idk!
@@ -55,7 +56,6 @@ print("Word embeddings size ", TEXT.vocab.vectors.size())
 # TODO: parallel computation (make everything cuda)
 # TODO: our own extensions (multichannel with glove, static/dynamic, etc?) (conv layers) (dropout) (recurrence) (pad at the beginning?)
 
-hidden_size = 100
 class NNLM(nn.Module):
     def __init__(self, input_size):
         super(NNLM, self).__init__()

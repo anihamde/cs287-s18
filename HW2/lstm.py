@@ -8,6 +8,8 @@ import csv
 
 # Hyperparameters
 bs = 10 # batch size
+hidden_size = 20
+n_layers = 2
 learning_rate = .001
 weight_decay = 0
 num_epochs = 20 # idk!
@@ -53,10 +55,9 @@ word2vec = TEXT.vocab.vectors()
 # TODO: learning rate decay? (zaremba has specific instructions for this)
 # TODO: multichannel tests (with glove and stuff)
 # TODO: bidirectional
+# TODO: parallelize
 # TODO: replace dropouts with functional dropouts
 
-hidden_size = 20
-n_layers = 2
 class dLSTM(nn.Module):
     def __init__(self):
         super(dLSTM, self).__init__()
@@ -69,12 +70,10 @@ class dLSTM(nn.Module):
         self.softmax = nn.LogSoftmax(dim=1)
         
     def forward(self, input, hidden): 
-        # input is (batch size, sentence length) bs,n
+        # input is (sentence length, batch size) n,bs
         # hidden is ((n_layers,bs,hidden_size),(n_layers,bs,hidden_size))
-        # embed the input integers
-        embeds = self.embedding(input) # bs,n,300
-        # put the batch along the second dimension
-        embeds = embeds.transpose(0, 1) # n,bs,300
+        embeds = self.embedding(input) # n,bs,300
+        # batch goes along the second dimension
         out = self.dropbottom(embeds)
         out, hidden = self.lstm(out, hidden)
         out = self.droptop(out)
@@ -96,12 +95,11 @@ for i in range(num_epochs):
     hidden = (Variable(torch.zeros(n_layers, bs, hidden_size)), 
         Variable(torch.zeros(n_layers, bs, hidden_size)))
     for batch in iter(train_iter):
-        # I have 2 transposes (and could eliminate them), but the docs for nn.Embedding make me wary
-        sentences = batch.text.transpose(1,0)
+        sentences = batch.text # Variable of LongTensor of size (n,bs)
         out, hidden = model(sentences, hidden)
         loss = 0
         for i in range(sentences.size(1)-1):
-            loss += criterion(out[i], sentences[:,i+1])
+            loss += criterion(out[i], sentences[i+1])
         model.zero_grad()
         loss.backward()
         optimizer.step()
@@ -124,15 +122,15 @@ correct = total = 0
 hidden = (Variable(torch.zeros(n_layers, bs, hidden_size)), 
         Variable(torch.zeros(n_layers, bs, hidden_size)))
 for batch in iter(val_iter):
-    sentences = batch.text.transpose(1,0)
+    sentences = batch.text
     out, hidden = model(sentences, hidden)
     _, predicted = torch.max(out.data, 2)
-    predicted = predicted.transpose(1,0)[:,:-1]
-    labels = sentences[:,1:]
+    labels = sentences[1:]
     total += labels.size(0) * labels.size(1)
-    correct += (predicted == labels).sum()
+    correct += (predicted[:-1] == labels).sum()
 print('Test Accuracy', correct/total)
 
+# TODO: print out some samples to make sure they make sense
 # TODO: better loss measurements (top 20 precision, perplexity)
 
 model.eval()
@@ -141,15 +139,23 @@ with open("lstm_predictions.csv", "w") as f:
     writer.writerow(['id','word'])
     for i, l in enumerate(open("input.txt"),1):
         words = [TEXT.vocab.stoi[word] for word in l.split(' ')]
-        words = Variable(torch.Tensor(words))
+        words = Variable(torch.Tensor(words).unsqueeze(1))
         out = model(words)
         predicted = out.numpy().argmax()
         writer.writerow([i,predicted])
 
 
 
+
+
+
+
+
 #####################
-# HIGHLY IN PROGRESS
+# HIGHLY DUBIOUS
+# Requires a different way of handling hidden, because there's a hidden for every vertical layer.
+# I manually use multiple layers for the sake of dropout
+
 hidden_size = 20
 class kLSTM(nn.Module):# 128, 128, 20, 20, 2
     def __init__(self):
@@ -180,5 +186,3 @@ class kLSTM(nn.Module):# 128, 128, 20, 20, 2
         out = self.softmax(self.linear(out)) # n,bs,|V|
         return out, hidden1, hidden2
 
-# Requires a different way of handling hidden, because there's a hidden for every vertical layer.
-# I manually use multiple layers for the sake of dropout
