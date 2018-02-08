@@ -1,8 +1,6 @@
 import time
 import numpy as np
 from collections import Counter
-import torch.nn.functional as F
-import torch
 
 timenow = time.time()
 
@@ -111,10 +109,7 @@ print("Done with making predictions!")
 
 n = 2
 correct = total = 0
-precisionmat = []
-
-for i in range(0,20):
-    precisionmat.append(1.0/(1.0+i))
+precisionmat = 1/(range(1,21))
 
 for i in range(0,20):
     precisionmat[i] = sum(precisionmat[i:20])
@@ -131,38 +126,37 @@ for batch in iter(val_iter):
         pads = Variable(torch.zeros(sentences.size(0),n+1-sentences.size(1))).type(torch.LongTensor)
         sentences = torch.cat([pads,sentences],dim=1)
     for sentence in sentences:
-        # precision
-        # words = l.split(' ')[:-1]
-        # sentence = [TEXT.vocab.stoi[word] for word in words]
-        sentence = sentence.data.numpy()
-        out = predict(sentence) # TODO: Fix this
-        # out = model(sentence[j-n:j])
-        indices = np.argsort(-out)
-        indices20 = indices[0:20]
-        # _, predicted = torch.max(out.data, 1)
-        for j in range(n,len(sentence)):
+        for j in range(n,sentence.size(0)):
+            # precision
+            words = l.split(' ')[:-1]
+            sentence = [TEXT.vocab.stoi[word] for word in words]
+
+            out = predict(sentence) # TODO: Fix this
+            # out = model(sentence[j-n:j])
+            sorte,indices = torch.sort(out,desc=True)
+            indices20 = indices[0:20]
+            # _, predicted = torch.max(out.data, 1)
             label = sentence[j]
+            
+            indic = np.where(indices20 - label == 0)
 
-            indic = np.where(indices20 - label == 0)[0]
-
-            if len(indic) != 0:
-                precisioncalc += precisionmat[indic[0]]
+            precisioncalc += precisionmat[indic]
 
             precisioncntr += 1
 
             # cross entropy
-            # crossentropy += F.cross_entropy(torch.Tensor(out),torch.Tensor(label))
+            crossentropy += F.cross_entropy(out,label)
 
-            # # plain ol accuracy
-            # _, predicted = torch.max(out.data, 1)
-            # total += label.size(0)
-            # correct += (predicted == label).sum()
+            # plain ol accuracy
+            _, predicted = torch.max(out.data, 1)
+            total += label.size(0)
+            correct += (predicted == label).sum()
 
             if precisioncntr % 1000 == 0:
                 print(precisioncntr)
 
-# print('Test Accuracy', correct/total)
+print('Test Accuracy', correct/total)
 print('Precision',precisioncalc/(20*precisioncntr))
-# print('Perplexity',torch.exp(crossentropy/precisioncntr))
+print('Perplexity',torch.exp(crossentropy/precisioncntr))
 
 print(time.time()-timenow)
