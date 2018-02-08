@@ -126,7 +126,7 @@ for batch in iter(val_iter):
         pads = Variable(torch.zeros(sentences.size(0),n+1-sentences.size(1))).type(torch.LongTensor)
         sentences = torch.cat([pads,sentences],dim=1)
     for sentence in sentences:
-        for j in range(n,sentence.size()):
+        for j in range(n,sentence.size(0)):
             # precision
             words = l.split(' ')[:-1]
             sentence = [TEXT.vocab.stoi[word] for word in words]
