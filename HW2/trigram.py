@@ -82,12 +82,9 @@ def predict(l):
         total[k[-1]] += bifilt[k] * alpha_b / bisum
     for k in trifilt:
         total[k[-1]] += trifilt[k] * alpha_t / trisum
-    # select top results
     return total
-    # return [TEXT.vocab.itos[i] for i,c in total.most_common(20)]
 
 enum_cntr = 0
-
 # TODO: shouldn't this be writing to a csv?
 with open("sample.txt", "w") as fout: 
     print("id,word", file=fout)
@@ -95,7 +92,8 @@ with open("sample.txt", "w") as fout:
         words = l.split(' ')[:-1]
         words = [TEXT.vocab.stoi[word] for word in words]
         total = predict(words)
-        print("%d,%s"%(i, " ".join([TEXT.vocab.itos[i] for i,c in total.most_common(20)])), file=fout)
+        total = [TEXT.vocab.itos[i] for i,c in total.most_common(20)]
+        print("%d,%s"%(i, " ".join(total)), file=fout)
         enum_cntr += 1
 
         if enum_cntr % 100 == 0:
@@ -103,52 +101,37 @@ with open("sample.txt", "w") as fout:
 print("Done writing kaggle text!")
 
 # Evaluator
-
-n = 2
 correct = total = 0
 precisionmat = np.arange(1,21)[::-1].cumsum()[::-1]
-
-precisioncalc = 0
-precisioncntr = 0
+precision = 0
 crossentropy = 0
 
 for batch in iter(val_iter):
     sentences = batch.text.transpose(1,0) # bs,n
-    if sentences.size(1) < n+1: # make sure sentence length is long enough
-        pads = Variable(torch.zeros(sentences.size(0),n+1-sentences.size(1))).type(torch.LongTensor)
+    if sentences.size(1) < 3: # make sure sentence length is long enough
+        pads = Variable(torch.zeros(sentences.size(0),3-sentences.size(1))).type(torch.LongTensor)
         sentences = torch.cat([pads,sentences],dim=1)
     for sentence in sentences:
-        for j in range(n,sentence.size(0)):
+        for j in range(2,sentence.size(0)):
             # precision
-            words = l.split(' ')[:-1]
-            sentence = [TEXT.vocab.stoi[word] for word in words]
-
-            out = predict(sentence) # TODO: Fix this
-            # out = model(sentence[j-n:j])
-            sorte,indices = torch.sort(out,desc=True)
-            indices20 = indices[0:20]
-            # _, predicted = torch.max(out.data, 1)
+            out = predict(sentence[j-2:j])
+            indices = [a for a,b in out.most_common(20)]
             label = sentence[j]
-            
-            indic = np.where(indices20 - label == 0)
-
-            precisioncalc += precisionmat[indic]
-
-            precisioncntr += 1
+            if label in indices:
+                precision += precisionmat[indices.index(label)]
 
             # cross entropy
-            crossentropy += F.cross_entropy(out,label)
+            crossentropy -= np.log(out[label])
 
             # plain ol accuracy
-            _, predicted = torch.max(out.data, 1)
-            total += label.size(0)
-            correct += (predicted == label).sum()
+            total += 1
+            correct += (indices[0] == label)
 
-            if precisioncntr % 1000 == 0:
-                print(precisioncntr)
+            if total % 1000 == 0:
+                print(total)
 
 print('Test Accuracy', correct/total)
-print('Precision',precisioncalc/(20*precisioncntr))
-print('Perplexity',torch.exp(crossentropy/precisioncntr))
+print('Precision',precisioncalc/(20*total))
+print('Perplexity',torch.exp(crossentropy/total))
 
 print(time.time()-timenow)
