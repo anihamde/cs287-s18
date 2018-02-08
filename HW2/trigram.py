@@ -93,6 +93,7 @@ def predict(l):
 
 # 	for i, l in enumerate(open("input.txt"),1):
 # 		words = l.split(' ')[:-1]
+# 		words = [TEXT.vocab.stoi[word] for word in words]
 # 		total = predict(words)
 
 # 		top20 = [i for i,c in total.most_common(20)]
@@ -110,6 +111,9 @@ with open("sample.txt", "w") as fout:
         total = predict(words)
         print("%d,%s"%(i, " ".join([TEXT.vocab.itos[i] for i,c in total.most_common(20)])), file=fout)
 
+
+
+# Evaluator
 
 n = 2
 correct = total = 0
@@ -130,6 +134,9 @@ for batch in iter(val_iter):
     for sentence in sentences:
 	    for j in range(n,sentence.size()):
 	        # precision
+	        words = l.split(' ')[:-1]
+			sentence = [TEXT.vocab.stoi[word] for word in words]
+
 	        out = predict(sentence) # TODO: Fix this
 	        # out = model(sentence[j-n:j])
 	        sorte,indices = torch.sort(out,desc=True)
