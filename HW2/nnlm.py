@@ -104,8 +104,8 @@ for i in range(num_epochs):
         losses.append(loss.data[0])
 
     # can add a net_flag to these file names. and feel free to change the paths
-    np.save("../../models/nnlm_losses",np.array(losses))
-    torch.save(model.state_dict(), '../../models/nnlm.pkl')
+    np.save("../../models/HW2/nnlm_losses",np.array(losses))
+    torch.save(model.state_dict(), '../../models/HW2/nnlm.pkl')
 
 # model.load_state_dict(torch.load('../../models/nnlm.pkl'))
 
@@ -129,7 +129,7 @@ with open("nnlm_predictions.csv", "w") as f:
     writer = csv.writer(f)
     writer.writerow(['id','word'])
     for i, l in enumerate(open("input.txt"),1):
-        words = [TEXT.vocab.stoi[word] for word in l.split(' ')]
+        words = [TEXT.vocab.stoi[word] for word in l.split(' ')] 
         words = Variable(torch.Tensor(words))
         out = model(words)
         predicted = out.numpy().argmax()

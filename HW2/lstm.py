@@ -105,8 +105,8 @@ for i in range(num_epochs):
         losses.append(loss.data[0])
 
     # can add a net_flag to these file names. and feel free to change the paths
-    np.save("../../models/lstm_losses",np.array(losses))
-    torch.save(model.state_dict(), '../../models/lstm.pkl')
+    np.save("../../models/HW2/lstm_losses",np.array(losses))
+    torch.save(model.state_dict(), '../../models/HW2/lstm.pkl')
 
 # model.load_state_dict(torch.load('../../models/lstm.pkl'))
 
