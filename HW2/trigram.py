@@ -1,5 +1,8 @@
+import time
 import numpy as np
 from collections import Counter
+
+timenow = time.time()
 
 # Hyperparameters
 bs = 10 # batch size
@@ -56,12 +59,15 @@ for b in iter(train_iter):
     triprev = txt[-2:,:].view(-1).tolist()
     tri.update(zip(tri0,tri1,tri2))
 
+print("Training done!")
 # TODO: experiment with ignoring EOS for unigrams, like this
 # uni[TEXT.vocab.stoi["<eos>"]] = 0
 
 unisum = sum(uni) # just normalize once for unigrams
 for k in uni:
     uni[k] *= (1 - alpha_b - alpha_t) / unisum
+
+print("Done with normalizing!")
 
 def predict(l):
     # filter
@@ -80,28 +86,30 @@ def predict(l):
     return total
     # return [TEXT.vocab.itos[i] for i,c in total.most_common(20)]
 
+print("Defined predict")
+
 # def evaluate(txt):
-# 	correct = total = 0
-# 	precisionmat = 1/(range(1,21))
+#   correct = total = 0
+#   precisionmat = 1/(range(1,21))
 
-# 	for i in range(0,20):
-# 	    precisionmat[i] = sum(precisionmat[i:20])
+#   for i in range(0,20):
+#       precisionmat[i] = sum(precisionmat[i:20])
 
-# 	precisioncalc = 0
-# 	precisioncntr = 0
-# 	crossentropy = 0
+#   precisioncalc = 0
+#   precisioncntr = 0
+#   crossentropy = 0
 
-# 	for i, l in enumerate(open("input.txt"),1):
-# 		words = l.split(' ')[:-1]
-# 		words = [TEXT.vocab.stoi[word] for word in words]
-# 		total = predict(words)
+#   for i, l in enumerate(open("input.txt"),1):
+#       words = l.split(' ')[:-1]
+#       words = [TEXT.vocab.stoi[word] for word in words]
+#       total = predict(words)
 
-# 		top20 = [i for i,c in total.most_common(20)]
+#       top20 = [i for i,c in total.most_common(20)]
 
-# 		crossentropy += F.cross_entropy(total,labels)
+#       crossentropy += F.cross_entropy(total,labels)
 
 
-
+enum_cntr = 0
 
 with open("sample.txt", "w") as fout: 
     print("id,word", file=fout)
@@ -110,8 +118,12 @@ with open("sample.txt", "w") as fout:
         words = [TEXT.vocab.stoi[word] for word in words]
         total = predict(words)
         print("%d,%s"%(i, " ".join([TEXT.vocab.itos[i] for i,c in total.most_common(20)])), file=fout)
+        enum_cntr += 1
 
+        if enum_cntr % 100 == 0:
+            print(enum_cntr)
 
+print("Done with making predictions!")
 
 # Evaluator
 
@@ -120,11 +132,13 @@ correct = total = 0
 precisionmat = 1/(range(1,21))
 
 for i in range(0,20):
-	precisionmat[i] = sum(precisionmat[i:20])
+    precisionmat[i] = sum(precisionmat[i:20])
 
 precisioncalc = 0
 precisioncntr = 0
 crossentropy = 0
+
+print("Beginning validation!")
 
 for batch in iter(val_iter):
     sentences = batch.text.transpose(1,0)
@@ -132,31 +146,34 @@ for batch in iter(val_iter):
         pads = Variable(torch.zeros(sentences.size(0),n+1-sentences.size(1))).type(torch.LongTensor)
         sentences = torch.cat([pads,sentences],dim=1)
     for sentence in sentences:
-	    for j in range(n,sentence.size()):
-	        # precision
-	        words = l.split(' ')[:-1]
-			sentence = [TEXT.vocab.stoi[word] for word in words]
+        for j in range(n,sentence.size()):
+            # precision
+            words = l.split(' ')[:-1]
+            sentence = [TEXT.vocab.stoi[word] for word in words]
 
-	        out = predict(sentence) # TODO: Fix this
-	        # out = model(sentence[j-n:j])
-	        sorte,indices = torch.sort(out,desc=True)
-	        indices20 = indices[0:20]
-	        # _, predicted = torch.max(out.data, 1)
-	        label = sentence[j]
-	        
-	        indic = np.where(indices20 - label == 0)
+            out = predict(sentence) # TODO: Fix this
+            # out = model(sentence[j-n:j])
+            sorte,indices = torch.sort(out,desc=True)
+            indices20 = indices[0:20]
+            # _, predicted = torch.max(out.data, 1)
+            label = sentence[j]
+            
+            indic = np.where(indices20 - label == 0)
 
-	        precisioncalc += precisionmat[indic]
+            precisioncalc += precisionmat[indic]
 
-	        precisioncntr += 1
+            precisioncntr += 1
 
-	        # cross entropy
-	        crossentropy += F.cross_entropy(out,label)
+            # cross entropy
+            crossentropy += F.cross_entropy(out,label)
 
-	        # plain ol accuracy
-	        _, predicted = torch.max(out.data, 1)
-	        total += label.size(0)
-	        correct += (predicted == label).sum()
+            # plain ol accuracy
+            _, predicted = torch.max(out.data, 1)
+            total += label.size(0)
+            correct += (predicted == label).sum()
+
+            if precisioncntr % 1000 == 0:
+                print(precisioncntr)
 
     # out = model(sentences[:,-1-n:-1])
     # _, predicted = torch.max(out.data, 1)
@@ -166,3 +183,5 @@ for batch in iter(val_iter):
 print('Test Accuracy', correct/total)
 print('Precision',precisioncalc/(20*precisioncntr))
 print('Perplexity',torch.exp(crossentropy/precisioncntr))
+
+print(time.time()-timenow)
