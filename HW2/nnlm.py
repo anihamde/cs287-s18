@@ -137,7 +137,7 @@ for batch in iter(val_iter):
         correct += (predicted.numpy() == labels.data.numpy()).sum()
 
 print('Test Accuracy', correct/total)
-print('Precision',precisioncalc/(20*total))
+print('Precision',precision/(20*total))
 print('Perplexity',torch.exp(crossentropy/total).data.numpy())
 
 model.eval()

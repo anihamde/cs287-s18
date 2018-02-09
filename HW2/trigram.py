@@ -133,7 +133,9 @@ for batch in iter(val_iter):
                 print(total)
 
 print('Test Accuracy', correct/total)
-print('Precision',precisioncalc/(20*total))
+print('Precision',precision/(20*total))
 print('Perplexity',np.exp(crossentropy/total))
+# TODO: F.crossentropy averages losses across a batch, so should divide this ppl by 10 to compensate
+# or, more sensibly, multiply the other ones by 10
 
 print(time.time()-timenow)

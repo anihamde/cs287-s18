@@ -1,0 +1,11 @@
+
+        _,indices = torch.sort(out,descending=True)
+        indices20 = indices[:,0:20]
+        
+        labels2 = labels.unsqueeze(0)
+        labels2 = labels2.permute(1,0)
+        indicmat = np.where((indices20 - labels2.expand(labels2.size()[0],20)).data.numpy() == 0)
+        for k in range(0,len(indicmat[0])):
+            colm = indicmat[1][k]
+            precisioncalc += precisionmat[colm]
+        precisioncntr += len(labels)
