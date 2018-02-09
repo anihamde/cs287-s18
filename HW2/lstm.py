@@ -89,7 +89,6 @@ optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay
 losses = []
 model.train()
 for i in range(num_epochs):
-    train_iter.init_epoch()
     ctr = 0
     # initialize hidden vector
     hidden = (Variable(torch.zeros(n_layers, bs, hidden_size)), 

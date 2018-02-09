@@ -134,6 +134,6 @@ for batch in iter(val_iter):
 
 print('Test Accuracy', correct/total)
 print('Precision',precisioncalc/(20*total))
-print('Perplexity',torch.exp(crossentropy/total))
+print('Perplexity',np.exp(crossentropy/total))
 
 print(time.time()-timenow)

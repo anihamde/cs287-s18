@@ -84,7 +84,6 @@ losses = []
 model.train()
 for i in range(num_epochs):
     print(i)
-    train_iter.init_epoch()
     ctr = 0
     for batch in iter(train_iter):
         sentences = batch.text.transpose(1,0) # bs,n
@@ -111,16 +110,8 @@ for i in range(num_epochs):
 
 model.eval()
 correct = total = 0
-precisionmat = []
-
-for i in range(0,20):
-    precisionmat.append(1.0/(1.0+i))
-
-for i in range(0,20):
-    precisionmat[i] = sum(precisionmat[i:20])
-
-precisioncalc = 0
-precisioncntr = 0
+precisionmat = (1/np.arange(1,21))[::-1].cumsum()[::-1]
+precision = 0
 crossentropy = 0
 
 for batch in iter(val_iter):
@@ -130,17 +121,14 @@ for batch in iter(val_iter):
         sentences = torch.cat([pads,sentences],dim=1)
     for j in range(n,sentences.size(1)):
         # precision
-        out = model(sentences[:,j-n:j])
-        _,indices = torch.sort(out,descending=True)
-        indices20 = indices[:,0:20]
-        labels = sentences[:,j]
-        labels2 = labels.unsqueeze(0)
-        labels2 = labels2.permute(1,0)
-        indicmat = np.where((indices20 - labels2.expand(labels2.size()[0],20)).data.numpy() == 0)
-        for k in range(0,len(indicmat[0])):
-            colm = indicmat[1][k]
-            precisioncalc += precisionmat[colm]
-        precisioncntr += len(labels)
+        out = model(sentences[:,j-n:j]) # bs,|V|
+        labels = sentences[:,j] # bs
+        o = out.data.numpy()
+        l = labels.data.numpy()
+        outsort = np.argsort(o,axis=1)[:,:20]
+        inds = (outsort-np.expand_dims(l,1)==0)
+        precision += np.dot(precisionmat, np.sum(inds,axis=0))
+
         # cross entropy
         crossentropy += F.cross_entropy(out,labels)
         # plain ol accuracy
@@ -148,10 +136,9 @@ for batch in iter(val_iter):
         total += labels.size(0)
         correct += (predicted.numpy() == labels.data.numpy()).sum()
 
-
 print('Test Accuracy', correct/total)
-print('Precision',precisioncalc/(20*precisioncntr))
-print('Perplexity',torch.exp(crossentropy/precisioncntr).data.numpy())
+print('Precision',precisioncalc/(20*total))
+print('Perplexity',torch.exp(crossentropy/total).data.numpy())
 
 model.eval()
 with open("nnlm_predictions.csv", "w") as f:
