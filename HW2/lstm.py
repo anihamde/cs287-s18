@@ -124,6 +124,7 @@ for i in range(num_epochs):
         if ctr % 100 == 0:
             print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
                 %(epoch+1, num_epochs, ctr, len(train_iter), sum(losses[-100:])/100.0  ))
+        hidden = repackage_hidden(hidden)
 
     # can add a net_flag to these file names. and feel free to change the paths
     np.save("../../models/HW2/lstm_losses",np.array(losses))
