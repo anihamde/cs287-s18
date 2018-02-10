@@ -107,10 +107,10 @@ for i in range(num_epochs):
         # TODO: weight clippings nn.utils.clip_grad_norm(params, constraint) is this right?
         # hidden vector is automatically saved for next batch
         ctr += 1
+        losses.append(loss.data[0])
         if ctr % 100 == 0:
             print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
-                %(epoch+1, num_epochs, ctr, len(train_iter), loss.data[0]))
-        losses.append(loss.data[0])
+                %(epoch+1, num_epochs, ctr, len(train_iter), sum(losses[-100:])/100.0  ))
 
 
     # can add a net_flag to these file names. and feel free to change the paths
