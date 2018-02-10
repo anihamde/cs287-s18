@@ -83,7 +83,7 @@ class dLSTM(nn.Module):
     
     def initHidden(self):
         hidden = []
-        for i in n_layers:
+        for i in range(n_layers):
             hold = torch.zeros(n_layers, bs, hidden_size).type(torch.FloatTensor)
             if torch.cuda.is_available():
                 hold = hold.cuda()
