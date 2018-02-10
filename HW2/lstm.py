@@ -110,6 +110,7 @@ losses = []
 model.train()
 epoch = 0
 for i in range(num_epochs):
+    epoch += 1
     ctr = 0
     # initialize hidden vector
     hidden = model.initHidden()
@@ -119,8 +120,8 @@ for i in range(num_epochs):
             sentences = sentences.cuda()
         out, hidden = model(sentences, hidden)
         loss = 0
-        for i in range(sentences.size(1)-1):
-            loss += criterion(out[i], sentences[i+1])
+        for j in range(sentences.size(1)-1):
+            loss += criterion(out[j], sentences[j+1])
         model.zero_grad()
         loss.backward(retain_graph=True)
         optimizer.step()
@@ -130,7 +131,7 @@ for i in range(num_epochs):
         losses.append(loss.data[0])
         if ctr % 100 == 0:
             print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
-                %(epoch+1, num_epochs, ctr, len(train_iter), sum(losses[-100:])/100.0  ))
+                %(epoch, num_epochs, ctr, len(train_iter), sum(losses[-500:])/len(losses[-500:])  ))
         hidden = repackage_hidden(hidden)
 
     # can add a net_flag to these file names. and feel free to change the paths
