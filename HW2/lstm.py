@@ -90,13 +90,17 @@ optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay
 
 losses = []
 model.train()
+epoch = 0
 for i in range(num_epochs):
     ctr = 0
     # initialize hidden vector
-    hidden = (Variable(torch.zeros(n_layers, bs, hidden_size)).cuda(), 
-        Variable(torch.zeros(n_layers, bs, hidden_size)).cuda())
+    hidden = (Variable( torch.zeros(n_layers, bs, hidden_size).type(torch.FloatTensor).cuda() ), 
+              Variable( torch.zeros(n_layers, bs, hidden_size).type(torch.FloatTensor).cuda() )
+             )
     for batch in iter(train_iter):
-        sentences = batch.text.cuda() # Variable of LongTensor of size (n,bs)
+        sentences = batch.text # Variable of LongTensor of size (n,bs)
+        if torch.cuda.is_available():
+            sentences = sentences.cuda()
         out, hidden = model(sentences, hidden)
         loss = 0
         for i in range(sentences.size(1)-1):
@@ -107,10 +111,10 @@ for i in range(num_epochs):
         # TODO: weight clippings nn.utils.clip_grad_norm(params, constraint) is this right?
         # hidden vector is automatically saved for next batch
         ctr += 1
+        losses.append(loss.data[0])
         if ctr % 100 == 0:
             print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
-                %(epoch+1, num_epochs, ctr, len(train_iter), loss.data[0]))
-        losses.append(loss.data[0])
+                %(epoch+1, num_epochs, ctr, len(train_iter), sum(losses[-100:])/100.0  ))
 
     # can add a net_flag to these file names. and feel free to change the paths
     np.save("../../models/HW2/lstm_losses",np.array(losses))
@@ -123,10 +127,14 @@ precisionmat = (1/np.arange(1,21))[::-1].cumsum()[::-1]
 precision = 0
 crossentropy = 0
 
-hidden = (Variable(torch.zeros(n_layers, bs, hidden_size).cuda()), 
-        Variable(torch.zeros(n_layers, bs, hidden_size)).cuda())
+
+hidden = (Variable( torch.zeros(n_layers, bs, hidden_size).type(torch.FloatTensor).cuda() ), 
+          Variable( torch.zeros(n_layers, bs, hidden_size).type(torch.FloatTensor).cuda() )
+         )
 for batch in iter(val_iter):
-    sentences = batch.text.cuda()
+    sentences = batch.text
+    if torch.cuda.is_available():
+        sentences = sentences.cuda()
     out, hidden = model(sentences, hidden)
     for j in range(sentences.size(1)):
         # precision
