@@ -80,6 +80,16 @@ class dLSTM(nn.Module):
         # apply the linear and the softmax
         out = self.softmax(self.linear(out)) # n,bs,|V|
         return out, hidden
+    
+    def initHidden(self):
+        hidden = []
+        for i in n_layers:
+            hold = torch.zeros(n_layers, bs, hidden_size).type(torch.FloatTensor)
+            if torch.cuda.is_available():
+                hold = hold.cuda()
+            hidden.append( Variable(hold) )
+        return hidden
+
 
 model = dLSTM()
 if torch.cuda.is_available():
@@ -94,9 +104,7 @@ epoch = 0
 for i in range(num_epochs):
     ctr = 0
     # initialize hidden vector
-    hidden = (Variable( torch.zeros(n_layers, bs, hidden_size).type(torch.FloatTensor).cuda() ), 
-              Variable( torch.zeros(n_layers, bs, hidden_size).type(torch.FloatTensor).cuda() )
-             )
+    hidden = model.initHidden()
     for batch in iter(train_iter):
         sentences = batch.text # Variable of LongTensor of size (n,bs)
         if torch.cuda.is_available():
@@ -128,9 +136,7 @@ precision = 0
 crossentropy = 0
 
 
-hidden = (Variable( torch.zeros(n_layers, bs, hidden_size).type(torch.FloatTensor).cuda() ), 
-          Variable( torch.zeros(n_layers, bs, hidden_size).type(torch.FloatTensor).cuda() )
-         )
+hidden = model.initHidden()
 for batch in iter(val_iter):
     sentences = batch.text
     if torch.cuda.is_available():
