@@ -3,13 +3,16 @@ import numpy as np
 from collections import Counter
 import csv
 import copy
+import argparse
 
 timenow = time.time()
+parser = argparse.ArgumentParser()
+parser.add_argument('--alphab', type=float, default=0.2)
+parser.add_argument('--alphat', type=float, default=0.4)
+config = parser.parse_args()
 
 # Hyperparameters
 bs = 10 # batch size
-alpha_t = .4 # trigram probability
-alpha_b = .2 # bigram probability
 
 # Text processing library
 import torchtext
@@ -95,7 +98,7 @@ with open("trigram_predictions.csv", "w") as f:
         words = [TEXT.vocab.stoi[word] for word in words]
         out = predict(words)
         out = [TEXT.vocab.itos[i] for i,c in out.most_common(20)]
-        writer.writerow([i]+out)
+        writer.writerow([i,' '.join(out)])
         enum_ctr += 1
         if enum_ctr % 100 == 0:
             print(enum_ctr)
