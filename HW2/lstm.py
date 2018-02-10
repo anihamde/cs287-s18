@@ -58,6 +58,13 @@ word2vec = TEXT.vocab.vectors
 # TODO: parallelize
 # TODO: replace dropouts with functional dropouts
 
+def repackage_hidden(h):
+    """Wraps hidden states in new Variables, to detach them from their history."""
+    if type(h) == Variable:
+        return Variable(h.data)
+    else:
+        return tuple(repackage_hidden(v) for v in h)
+
 class dLSTM(nn.Module):
     def __init__(self):
         super(dLSTM, self).__init__()
