@@ -186,7 +186,7 @@ with open("lstm_predictions.csv", "w") as f:
         predicted = out.data.numpy()
         predicted.argsort()
         predicted = predicted[-1,:,:20]
-        writer.writerow([i,predicted])
+        writer.writerow([i]+predicted)
 
 
 

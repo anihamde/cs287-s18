@@ -95,7 +95,7 @@ with open("trigram_predictions.csv", "w") as f:
         words = [TEXT.vocab.stoi[word] for word in words]
         out = predict(words)
         out = [TEXT.vocab.itos[i] for i,c in out.most_common(20)]
-        writer.writerow([i,out])
+        writer.writerow([i]+out)
         enum_ctr += 1
         if enum_ctr % 100 == 0:
             print(enum_ctr)

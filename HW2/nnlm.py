@@ -158,4 +158,4 @@ with open("nnlm_predictions.csv", "w") as f:
         predicted = out.data.numpy()
         predicted = predicted.argsort()
         predicted = predicted[:,:20]
-        writer.writerow([i,predicted])
+        writer.writerow([i]+predicted)
