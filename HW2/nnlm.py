@@ -76,6 +76,8 @@ class NNLM(nn.Module):
 
 
 model = NNLM()
+if torch.cuda.is_available():
+    model.cuda()
 criterion = nn.CrossEntropyLoss()
 params = filter(lambda x: x.requires_grad, model.parameters())
 optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay)
@@ -86,9 +88,9 @@ for i in range(num_epochs):
     print(i)
     ctr = 0
     for batch in iter(train_iter):
-        sentences = batch.text.transpose(1,0) # bs,n
+        sentences = batch.text.transpose(1,0).cuda() # bs,n
         if sentences.size(1) < n+1: # make sure sentence length is long enough
-            pads = Variable(torch.zeros(sentences.size(0),n+1-sentences.size(1))).type(torch.LongTensor)
+            pads = Variable(torch.zeros(sentences.size(0),n+1-sentences.size(1))).type(torch.cuda.LongTensor)
             sentences = torch.cat([pads,sentences],dim=1)
         for j in range(n,sentences.size(1)):
             out = model(sentences[:,j-n:j])
@@ -115,9 +117,9 @@ precision = 0
 crossentropy = 0
 
 for batch in iter(val_iter):
-    sentences = batch.text.transpose(1,0) # bs, n
+    sentences = batch.text.transpose(1,0).cuda() # bs, n
     if sentences.size(1) < n+1: # make sure sentence length is long enough
-        pads = Variable(torch.zeros(sentences.size(0),n+1-sentences.size(1))).type(torch.LongTensor)
+        pads = Variable(torch.zeros(sentences.size(0),n+1-sentences.size(1))).type(torch.cuda.LongTensor)
         sentences = torch.cat([pads,sentences],dim=1)
     for j in range(n,sentences.size(1)):
         # precision
@@ -128,13 +130,18 @@ for batch in iter(val_iter):
         outsort = np.argsort(o,axis=1)[:,:20]
         inds = (outsort-np.expand_dims(l,1)==0)
         precision += np.dot(precisionmat, np.sum(inds,axis=0))
-
         # cross entropy
         crossentropy += F.cross_entropy(out,labels)
         # plain ol accuracy
         _, predicted = torch.max(out.data, 1)
         total += labels.size(0)
         correct += (predicted.numpy() == labels.data.numpy()).sum()
+        if total % 500 == 0:
+            # DEBUGGING: see the rest in trigram.py
+            print('we are on example', total)
+            print('Test Accuracy', correct/total)
+            print('Precision',precision/(20*total))
+            print('Perplexity',np.exp(crossentropy/total))
 
 print('Test Accuracy', correct/total)
 print('Precision',precision/(20*total))
@@ -146,7 +153,7 @@ with open("nnlm_predictions.csv", "w") as f:
     writer.writerow(['id','word'])
     for i, l in enumerate(open("input.txt"),1):
         words = [TEXT.vocab.stoi[word] for word in l.split(' ')]
-        words = Variable(torch.LongTensor(words[-1-n:-1]))
+        words = Variable(torch.cuda.LongTensor(words[-1-n:-1]))
         out = model(words)
         predicted = out.data.numpy()
         predicted = predicted.argsort()

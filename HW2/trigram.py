@@ -95,10 +95,11 @@ with open("trigram_predictions.csv", "w") as f:
         words = [TEXT.vocab.stoi[word] for word in words]
         out = predict(words)
         out = [TEXT.vocab.itos[i] for i,c in out.most_common(20)]
-        writer.writerow([i,predicted])
+        writer.writerow([i,out])
+        enum_ctr += 1
         if enum_ctr % 100 == 0:
-            print(enum_cntr)
-            
+            print(enum_ctr)
+
 print("Done writing kaggle text!")
 
 # Evaluator
@@ -125,14 +126,17 @@ for batch in iter(val_iter):
             # plain ol accuracy
             total += 1
             correct += (indices[0] == label)
-            # DEBUGGING: print sentence, preds, and 3 metrics
-            # print([TEXT.vocab.itos[w] for w in sentence[j-2:j]])
-            # print([TEXT.vocab.itos[w] for w in indices])
-            # print(-np.log(out[label]))
-            # print(precisionmat[indices.index(label)] if label in indices else 0)
-            # print(indices[0] == label)
-            if total % 1000 == 0:
-                print(total)
+            if total % 500 == 0:
+                # DEBUGGING: print total, sentence, preds, and 3 metrics
+                print('we are on example', total)
+                # print([TEXT.vocab.itos[w] for w in sentence[j-2:j]])
+                # print([TEXT.vocab.itos[w] for w in indices])
+                # print(-np.log(out[label]))
+                # print(precisionmat[indices.index(label)] if label in indices else 0)
+                # print(indices[0] == label)
+                print('Test Accuracy', correct/total)
+                print('Precision',precision/(20*total))
+                print('Perplexity',np.exp(crossentropy/total))
     if total>50000: # that's enough
         break
 
@@ -141,5 +145,6 @@ print('Precision',precision/(20*total))
 print('Perplexity',np.exp(crossentropy/total))
 # TODO: F.crossentropy averages losses across a batch, so should divide this ppl by 10 to compensate
 # or, more sensibly, multiply the other ones by 10
+# ok, it's a little more complicated than that. 
 
 print(time.time()-timenow)

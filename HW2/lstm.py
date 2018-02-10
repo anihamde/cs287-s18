@@ -82,6 +82,8 @@ class dLSTM(nn.Module):
         return out, hidden
 
 model = dLSTM()
+if torch.cuda.is_available():
+    model.cuda()
 criterion = nn.NLLLoss()
 params = filter(lambda x: x.requires_grad, model.parameters())
 optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay)
@@ -91,10 +93,10 @@ model.train()
 for i in range(num_epochs):
     ctr = 0
     # initialize hidden vector
-    hidden = (Variable(torch.zeros(n_layers, bs, hidden_size)), 
-        Variable(torch.zeros(n_layers, bs, hidden_size)))
+    hidden = (Variable(torch.zeros(n_layers, bs, hidden_size)).cuda(), 
+        Variable(torch.zeros(n_layers, bs, hidden_size)).cuda())
     for batch in iter(train_iter):
-        sentences = batch.text # Variable of LongTensor of size (n,bs)
+        sentences = batch.text.cuda() # Variable of LongTensor of size (n,bs)
         out, hidden = model(sentences, hidden)
         loss = 0
         for i in range(sentences.size(1)-1):
@@ -110,7 +112,6 @@ for i in range(num_epochs):
                 %(epoch+1, num_epochs, ctr, len(train_iter), loss.data[0]))
         losses.append(loss.data[0])
 
-
     # can add a net_flag to these file names. and feel free to change the paths
     np.save("../../models/HW2/lstm_losses",np.array(losses))
     torch.save(model.state_dict(), '../../models/HW2/lstm.pkl')
@@ -122,10 +123,10 @@ precisionmat = (1/np.arange(1,21))[::-1].cumsum()[::-1]
 precision = 0
 crossentropy = 0
 
-hidden = (Variable(torch.zeros(n_layers, bs, hidden_size)), 
-        Variable(torch.zeros(n_layers, bs, hidden_size)))
+hidden = (Variable(torch.zeros(n_layers, bs, hidden_size).cuda()), 
+        Variable(torch.zeros(n_layers, bs, hidden_size)).cuda())
 for batch in iter(val_iter):
-    sentences = batch.text
+    sentences = batch.text.cuda()
     out, hidden = model(sentences, hidden)
     for j in range(sentences.size(1)):
         # precision
@@ -143,6 +144,12 @@ for batch in iter(val_iter):
         _, predicted = torch.max(out.data, 1)
         total += labels.size(0)
         correct += (predicted.numpy() == labels.data.numpy()).sum()
+        if total % 500 == 0:
+            # DEBUGGING: see the rest in trigram.py
+            print('we are on example', total)
+            print('Test Accuracy', correct/total)
+            print('Precision',precision/(20*total))
+            print('Perplexity',np.exp(crossentropy/total))
 
 print('Test Accuracy', correct/total)
 print('Precision',precision/(20*total))
@@ -158,8 +165,9 @@ with open("lstm_predictions.csv", "w") as f:
     writer.writerow(['id','word'])
     for i, l in enumerate(open("input.txt"),1):
         words = [TEXT.vocab.stoi[word] for word in l.split(' ')]
-        words = Variable(torch.LongTensor(words).unsqueeze(1))
-        hidden = (Variable(torch.zeros(n_layers, 1, hidden_size)), Variable(torch.zeros(n_layers, 1, hidden_size)))
+        words = Variable(torch.cuda.LongTensor(words).unsqueeze(1))
+        hidden = (Variable(torch.zeros(n_layers, 1, hidden_size)).cuda(),
+            Variable(torch.zeros(n_layers, 1, hidden_size)).cuda())
         out, _ = model(words,hidden)
         predicted = out.data.numpy()
         predicted.argsort()
