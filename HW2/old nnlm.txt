@@ -36,3 +36,13 @@ for batch in iter(val_iter):
         _, predicted = torch.max(out.data, 1)
         total += labels.size(0)
         correct += (predicted.numpy() == labels.data.numpy()).sum()
+
+
+###############################
+
+# Everything is faster on GPUs. Here's an old version that used numpy
+o = out.cpu().data.numpy()
+l = labels.cpu().data.numpy()
+outsort = np.argsort(o,axis=1)[:,:20]
+inds = (outsort-np.expand_dims(l,1)==0)
+precision += np.dot(precisionmat, np.sum(inds,axis=0))

@@ -51,6 +51,7 @@ url = 'https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.simple.vec'
 TEXT.vocab.load_vectors(vectors=Vectors('wiki.simple.vec', url=url)) # feel free to alter path
 print("Word embeddings size ", TEXT.vocab.vectors.size())
 word2vec = TEXT.vocab.vectors
+print("REMINDER!!! Did you create ../../models/HW2?????")
 
 # TODO: learning rate decay? (zaremba has specific instructions for this)
 # TODO: multichannel tests (with glove and stuff)
@@ -139,9 +140,9 @@ for i in range(num_epochs):
 model.eval()
 correct = total = 0
 precisionmat = (1/np.arange(1,21))[::-1].cumsum()[::-1]
+precisionmat = torch.FloatTensor(precisionmat.copy()) # hm
 precision = 0
 crossentropy = 0
-
 
 hidden = model.initHidden()
 for batch in iter(val_iter):
@@ -153,29 +154,27 @@ for batch in iter(val_iter):
         # precision
         out = out[j] # bs,|V|
         labels = sentences[j] # bs
-        o = out.data.numpy()
-        l = labels.data.numpy()
-        outsort = np.argsort(o,axis=1)[:,:20]
-        inds = (outsort-np.expand_dims(l,1)==0)
-        precision += np.dot(precisionmat, np.sum(inds,axis=0))
-
+        _, outsort = torch.sort(out,dim=1)
+        outsort = outsort[:,:20]
+        inds = (outsort-labels.unsqueeze(1)==0)
+        inds = inds.sum(dim=0).data.type(torch.FloatTensor)
+        precision += inds.dot(precisionmat)
         # cross entropy
         crossentropy += F.cross_entropy(out,labels)
         # plain ol accuracy
         _, predicted = torch.max(out.data, 1)
         total += labels.size(0)
-        correct += (predicted.numpy() == labels.data.numpy()).sum()
+        correct += (predicted==labels.data).sum()
         if total % 500 == 0:
             # DEBUGGING: see the rest in trigram.py
             print('we are on example', total)
             print('Test Accuracy', correct/total)
             print('Precision',precision/(20*total))
-            print('Perplexity',np.exp(crossentropy/total))
+            print('Perplexity',torch.exp(crossentropy/total).data[0])
 
 print('Test Accuracy', correct/total)
 print('Precision',precision/(20*total))
-print('Perplexity',torch.exp(crossentropy/total).data.numpy())
-
+print('Perplexity',torch.exp(crossentropy/total).data[0])
 
 # TODO: print out some samples to make sure they make sense
 # TODO: better loss measurements (top 20 precision, perplexity)
@@ -190,9 +189,8 @@ with open("lstm_predictions.csv", "w") as f:
         hidden = (Variable(torch.zeros(n_layers, 1, hidden_size)).cuda(),
             Variable(torch.zeros(n_layers, 1, hidden_size)).cuda())
         out, _ = model(words,hidden)
-        predicted = out.data.numpy()
-        predicted.argsort()
-        predicted = predicted[-1,:,:20]
+        _, predicted = torch.sort(out,dim=1)
+        predicted = predicted[0,:20].data.tolist()
         writer.writerow([i,' '.join(predicted)])
 
 
