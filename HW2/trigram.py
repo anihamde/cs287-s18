@@ -86,9 +86,9 @@ def predict(l):
         total[k[-1]] += trifilt[k] * alpha_t / trisum
     return total
 
-enum_cntr = 0
+enum_ctr = 0
 # TODO: shouldn't this be writing to a csv?
-with open("sample.txt", "w") as fout: 
+with open("trigram_pred.txt", "w") as fout: 
     print("id,word", file=fout)
     for i, l in enumerate(open("input.txt"), 1):
         words = l.split(' ')[:-1]
@@ -96,9 +96,9 @@ with open("sample.txt", "w") as fout:
         total = predict(words)
         total = [TEXT.vocab.itos[i] for i,c in total.most_common(20)]
         print("%d,%s"%(i, " ".join(total)), file=fout)
-        enum_cntr += 1
+        enum_ctr += 1
 
-        if enum_cntr % 100 == 0:
+        if enum_ctr % 100 == 0:
             print(enum_cntr)
 print("Done writing kaggle text!")
 
@@ -121,16 +121,21 @@ for batch in iter(val_iter):
             label = sentence[j]
             if label in indices:
                 precision += precisionmat[indices.index(label)]
-
             # cross entropy
             crossentropy -= np.log(out[label])
-
             # plain ol accuracy
             total += 1
             correct += (indices[0] == label)
-
+            # DEBUGGING: print sentence, preds, and 3 metrics
+            # print([TEXT.vocab.itos[w] for w in sentence[j-2:j]])
+            # print([TEXT.vocab.itos[w] for w in indices])
+            # print(-np.log(out[label]))
+            # print(precisionmat[indices.index(label)] if label in indices else 0)
+            # print(indices[0] == label)
             if total % 1000 == 0:
                 print(total)
+    if total>50000: # that's enough
+        break
 
 print('Test Accuracy', correct/total)
 print('Precision',precision/(20*total))
