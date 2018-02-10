@@ -87,19 +87,18 @@ def predict(l):
     return total
 
 enum_ctr = 0
-# TODO: shouldn't this be writing to a csv?
-with open("trigram_pred.txt", "w") as fout: 
-    print("id,word", file=fout)
-    for i, l in enumerate(open("input.txt"), 1):
+with open("trigram_predictions.csv", "w") as f:
+    writer = csv.writer(f)
+    writer.writerow(['id','word'])
+    for i, l in enumerate(open("input.txt"),1):
         words = l.split(' ')[:-1]
         words = [TEXT.vocab.stoi[word] for word in words]
-        total = predict(words)
-        total = [TEXT.vocab.itos[i] for i,c in total.most_common(20)]
-        print("%d,%s"%(i, " ".join(total)), file=fout)
-        enum_ctr += 1
-
+        out = predict(words)
+        out = [TEXT.vocab.itos[i] for i,c in out.most_common(20)]
+        writer.writerow([i,predicted])
         if enum_ctr % 100 == 0:
             print(enum_cntr)
+            
 print("Done writing kaggle text!")
 
 # Evaluator
