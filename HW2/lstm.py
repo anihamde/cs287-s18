@@ -94,6 +94,7 @@ class dLSTM(nn.Module):
 model = dLSTM()
 if torch.cuda.is_available():
     model.cuda()
+    print("CUDA is available, assigning to GPU.")
 criterion = nn.NLLLoss()
 params = filter(lambda x: x.requires_grad, model.parameters())
 optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay)
