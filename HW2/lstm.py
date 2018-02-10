@@ -82,6 +82,8 @@ class dLSTM(nn.Module):
         return out, hidden
 
 model = dLSTM()
+if torch.cuda.is_available():
+    model.cuda()
 criterion = nn.NLLLoss()
 params = filter(lambda x: x.requires_grad, model.parameters())
 optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay)
@@ -96,6 +98,8 @@ for i in range(num_epochs):
         Variable(torch.zeros(n_layers, bs, hidden_size)))
     for batch in iter(train_iter):
         sentences = batch.text # Variable of LongTensor of size (n,bs)
+        if torch.cuda.is_available():
+            sentences = sentences.cuda()
         out, hidden = model(sentences, hidden)
         loss = 0
         for i in range(sentences.size(1)-1):
@@ -127,6 +131,8 @@ hidden = (Variable(torch.zeros(n_layers, bs, hidden_size)),
         Variable(torch.zeros(n_layers, bs, hidden_size)))
 for batch in iter(val_iter):
     sentences = batch.text
+    if torch.cuda.is_available():
+        sentences = sentences.cuda()
     out, hidden = model(sentences, hidden)
     for j in range(sentences.size(1)):
         # precision
