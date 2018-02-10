@@ -97,7 +97,6 @@ class dLSTM(nn.Module):
             hidden.append( Variable(hold) )
         return hidden
 
-
 model = dLSTM()
 if torch.cuda.is_available():
     model.cuda()
@@ -108,9 +107,7 @@ optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay
 
 losses = []
 model.train()
-epoch = 0
 for i in range(num_epochs):
-    epoch += 1
     ctr = 0
     # initialize hidden vector
     hidden = model.initHidden()
@@ -131,7 +128,7 @@ for i in range(num_epochs):
         losses.append(loss.data[0])
         if ctr % 100 == 0:
             print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
-                %(epoch, num_epochs, ctr, len(train_iter), sum(losses[-500:])/len(losses[-500:])  ))
+                %(i+1, num_epochs, ctr, len(train_iter), sum(losses[-500:])/len(losses[-500:])  ))
         hidden = repackage_hidden(hidden)
 
     # can add a net_flag to these file names. and feel free to change the paths

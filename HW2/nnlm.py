@@ -85,7 +85,6 @@ optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay
 losses = []
 model.train()
 for i in range(num_epochs):
-    print(i)
     ctr = 0
     for batch in iter(train_iter):
         sentences = batch.text.transpose(1,0).cuda() # bs,n
@@ -101,7 +100,7 @@ for i in range(num_epochs):
         ctr += 1
         if ctr % 100 == 0:
             print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
-                %(epoch+1, num_epochs, ctr, len(train_iter), loss.data[0]))
+                %(i+1, num_epochs, ctr, len(train_iter), loss.data[0]))
         losses.append(loss.data[0])
 
     # can add a net_flag to these file names. and feel free to change the paths
