@@ -127,8 +127,9 @@ precisionmat = (1/np.arange(1,21))[::-1].cumsum()[::-1]
 precision = 0
 crossentropy = 0
 
-hidden = (Variable(torch.zeros(n_layers, bs, hidden_size)), 
-        Variable(torch.zeros(n_layers, bs, hidden_size)))
+hidden = (Variable(torch.zeros(n_layers, bs, hidden_size).cuda()), 
+          Variable(torch.zeros(n_layers, bs, hidden_size).cuda())
+         )
 for batch in iter(val_iter):
     sentences = batch.text
     if torch.cuda.is_available():
