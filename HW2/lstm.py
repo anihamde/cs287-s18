@@ -94,8 +94,9 @@ epoch = 0
 for i in range(num_epochs):
     ctr = 0
     # initialize hidden vector
-    hidden = (Variable(torch.zeros(n_layers, bs, hidden_size)), 
-        Variable(torch.zeros(n_layers, bs, hidden_size)))
+    hidden = (Variable( torch.zeros(n_layers, bs, hidden_size).type(torch.FloatTensor).cuda() ), 
+              Variable( torch.zeros(n_layers, bs, hidden_size).type(torch.FloatTensor).cuda() )
+             )
     for batch in iter(train_iter):
         sentences = batch.text # Variable of LongTensor of size (n,bs)
         if torch.cuda.is_available():
@@ -127,8 +128,8 @@ precisionmat = (1/np.arange(1,21))[::-1].cumsum()[::-1]
 precision = 0
 crossentropy = 0
 
-hidden = (Variable(torch.zeros(n_layers, bs, hidden_size).cuda()), 
-          Variable(torch.zeros(n_layers, bs, hidden_size).cuda())
+hidden = (Variable( torch.zeros(n_layers, bs, hidden_size).type(torch.FloatTensor).cuda() ), 
+          Variable( torch.zeros(n_layers, bs, hidden_size).type(torch.FloatTensor).cuda() )
          )
 for batch in iter(val_iter):
     sentences = batch.text
