@@ -90,7 +90,6 @@ losses = []
 model.train()
 epoch = 0
 for i in range(num_epochs):
-    epoch += 1
     ctr = 0
     # initialize hidden vector
     hidden = (Variable(torch.zeros(n_layers, bs, hidden_size)), 
