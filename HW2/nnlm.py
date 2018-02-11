@@ -8,7 +8,7 @@ import csv
 
 # Hyperparameters
 bs = 10 # batch size
-n = 5 # receptive field
+n = 10 # receptive field
 hidden_size = 100
 learning_rate = .001
 weight_decay = 0
@@ -123,29 +123,31 @@ for batch in iter(val_iter):
         pads = Variable(torch.zeros(sentences.size(0),n+1-sentences.size(1))).type(torch.cuda.LongTensor)
         sentences = torch.cat([pads,sentences],dim=1)
     for j in range(n,sentences.size(1)):
-        # precision
         out = model(sentences[:,j-n:j]) # bs,|V|
         labels = sentences[:,j] # bs
-        _, outsort = torch.sort(out,dim=1)
-        outsort = outsort[:,:20]
-        inds = (outsort-labels.unsqueeze(1)==0)
-        inds = inds.sum(dim=0).data.type(torch.FloatTensor)
-        precision += inds.dot(precisionmat)
         # cross entropy
         crossentropy += F.cross_entropy(out,labels)
+        # precision
+        out, labels = out.data, labels.data
+        _, outsort = torch.sort(out,dim=1,descending=True)
+        outsort = outsort[:,:20]
+        inds = (outsort-labels.unsqueeze(1)==0)
+        inds = inds.sum(dim=0).type(torch.FloatTensor)
+        precision += inds.dot(precisionmat)
         # plain ol accuracy
-        _, predicted = torch.max(out.data, 1)
+        _, predicted = torch.max(out, 1)
         total += labels.size(0)
-        correct += (predicted==labels.data).sum()
-        # if total % 500 == 0:
-        # DEBUGGING: see the rest in trigram.py
-        print('we are on example', total)
-        for s in range(bs): # when you test this, make all the += into =
-            print([TEXT.vocab.itos[w] for w in sentences[s,j-2:j]])
-            print([TEXT.vocab.itos[w] for w in outsort[s]])
-        print('Test Accuracy', correct/total)
-        print('Precision',precision/total)
-        print('Perplexity',torch.exp(bs*crossentropy/total).data[0])
+        correct += (predicted==labels).sum()
+        if total % 500 == 0:
+            # DEBUGGING: see the rest in trigram.py
+            print('we are on example', total)
+            # for s in range(bs):
+            #     print([TEXT.vocab.itos[w] for w in sentences[s,j-2:j].data])
+            #     print(TEXT.vocab.itos[labels[s]])
+            #     print([TEXT.vocab.itos[w] for w in outsort[s]])
+            print('Test Accuracy', correct/total)
+            print('Precision',precision/total)
+            print('Perplexity',torch.exp(bs*crossentropy/total).data[0])
 
 print('Test Accuracy', correct/total)
 print('Precision',precision/total)
@@ -160,6 +162,6 @@ with open("nnlm_predictions.csv", "w") as f:
         words = [TEXT.vocab.stoi[word] for word in l.split(' ')]
         words = Variable(torch.cuda.LongTensor(words[-1-n:-1]))
         out = model(words)
-        _, predicted = torch.sort(out,dim=1)
+        _, predicted = torch.sort(out,dim=1,descending=True)
         predicted = predicted[0,:20].data.tolist()
         writer.writerow([i,' '.join(predicted)])

@@ -151,20 +151,21 @@ for batch in iter(val_iter):
         sentences = sentences.cuda()
     out, hidden = model(sentences, hidden)
     for j in range(sentences.size(1)):
-        # precision
         out = out[j] # bs,|V|
         labels = sentences[j] # bs
-        _, outsort = torch.sort(out,dim=1)
-        outsort = outsort[:,:20]
-        inds = (outsort-labels.unsqueeze(1)==0)
-        inds = inds.sum(dim=0).data.type(torch.FloatTensor)
-        precision += inds.dot(precisionmat)
         # cross entropy
         crossentropy += F.cross_entropy(out,labels)
+        # precision
+        _, outsort = torch.sort(out,dim=1,descending=True)
+        out, labels = out.data, labels.data
+        outsort = outsort[:,:20]
+        inds = (outsort-labels.unsqueeze(1)==0)
+        inds = inds.sum(dim=0).type(torch.FloatTensor)
+        precision += inds.dot(precisionmat)
         # plain ol accuracy
-        _, predicted = torch.max(out.data, 1)
+        _, predicted = torch.max(out, 1)
         total += labels.size(0)
-        correct += (predicted==labels.data).sum()
+        correct += (predicted==labels).sum()
         if total % 500 == 0:
             # DEBUGGING: see the rest in trigram.py
             print('we are on example', total)
@@ -190,7 +191,7 @@ with open("lstm_predictions.csv", "w") as f:
         hidden = (Variable(torch.zeros(n_layers, 1, hidden_size)).cuda(),
             Variable(torch.zeros(n_layers, 1, hidden_size)).cuda())
         out, _ = model(words,hidden)
-        _, predicted = torch.sort(out,dim=1)
+        _, predicted = torch.sort(out,dim=1,descending=True)
         predicted = predicted[0,:20].data.tolist()
         writer.writerow([i,' '.join(predicted)])
 
