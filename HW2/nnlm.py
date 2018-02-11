@@ -8,7 +8,7 @@ import csv
 
 # Hyperparameters
 bs = 10 # batch size
-n = 10 # receptive field
+n = 5 # receptive field
 hidden_size = 100
 learning_rate = .001
 weight_decay = 0
@@ -78,6 +78,7 @@ class NNLM(nn.Module):
 model = NNLM()
 if torch.cuda.is_available():
     model.cuda()
+
 criterion = nn.CrossEntropyLoss()
 params = filter(lambda x: x.requires_grad, model.parameters())
 optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay)
@@ -139,13 +140,17 @@ for batch in iter(val_iter):
         # if total % 500 == 0:
         # DEBUGGING: see the rest in trigram.py
         print('we are on example', total)
+        for s in range(bs): # when you test this, make all the += into =
+            print([TEXT.vocab.itos[w] for w in sentences[s,j-2:j]])
+            print([TEXT.vocab.itos[w] for w in outsort[s]])
         print('Test Accuracy', correct/total)
-        print('Precision',precision/(20*total))
-        print('Perplexity',torch.exp(crossentropy/total).data[0])
+        print('Precision',precision/total)
+        print('Perplexity',torch.exp(bs*crossentropy/total).data[0])
 
 print('Test Accuracy', correct/total)
-print('Precision',precision/(20*total))
-print('Perplexity',torch.exp(crossentropy/total).data[0])
+print('Precision',precision/total)
+print('Perplexity',torch.exp(bs*crossentropy/total).data[0])
+# F.cross_entropy averages instead of adding
 
 model.eval()
 with open("nnlm_predictions.csv", "w") as f:

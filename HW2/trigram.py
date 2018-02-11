@@ -13,6 +13,8 @@ config = parser.parse_args()
 
 # Hyperparameters
 bs = 10 # batch size
+alpha_b = config.alphab
+alpha_t = config.alphat
 
 # Text processing library
 import torchtext
@@ -37,13 +39,13 @@ if False:
 train_iter, val_iter, test_iter = torchtext.data.BPTTIterator.splits(
     (train, val, test), batch_size=bs, device=-1, bptt_len=32, repeat=False)
 
-it = iter(train_iter)
-batch = next(it) 
-print("Size of text batch [max bptt length, batch size]", batch.text.size())
-print("Second in batch", batch.text[:, 2])
-print("Converted back to string: ", " ".join([TEXT.vocab.itos[i] for i in batch.text[:, 2].data]))
-batch = next(it)
-print("Converted back to string: ", " ".join([TEXT.vocab.itos[i] for i in batch.text[:, 2].data]))
+# it = iter(train_iter)
+# batch = next(it) 
+# print("Size of text batch [max bptt length, batch size]", batch.text.size())
+# print("Second in batch", batch.text[:, 2])
+# print("Converted back to string: ", " ".join([TEXT.vocab.itos[i] for i in batch.text[:, 2].data]))
+# batch = next(it)
+# print("Converted back to string: ", " ".join([TEXT.vocab.itos[i] for i in batch.text[:, 2].data]))
 
 # Maybe I can come up with something more efficient than a counter?
 uni = Counter()
@@ -89,21 +91,20 @@ def predict(l):
         total[k[-1]] += trifilt[k] * alpha_t / trisum
     return total
 
-enum_ctr = 0
-with open("trigram_predictions.csv", "w") as f:
-    writer = csv.writer(f)
-    writer.writerow(['id','word'])
-    for i, l in enumerate(open("input.txt"),1):
-        words = l.split(' ')[:-1]
-        words = [TEXT.vocab.stoi[word] for word in words]
-        out = predict(words)
-        out = [TEXT.vocab.itos[i] for i,c in out.most_common(20)]
-        writer.writerow([i,' '.join(out)])
-        enum_ctr += 1
-        if enum_ctr % 100 == 0:
-            print(enum_ctr)
-
-print("Done writing kaggle text!")
+# enum_ctr = 0
+# with open("trigram_predictions.csv", "w") as f:
+#     writer = csv.writer(f)
+#     writer.writerow(['id','word'])
+#     for i, l in enumerate(open("input.txt"),1):
+#         words = l.split(' ')[:-1]
+#         words = [TEXT.vocab.stoi[word] for word in words]
+#         out = predict(words)
+#         out = [TEXT.vocab.itos[i] for i,c in out.most_common(20)]
+#         writer.writerow([i,' '.join(out)])
+#         enum_ctr += 1
+#         if enum_ctr % 100 == 0:
+#             print(enum_ctr)
+# print("Done writing kaggle text!")
 
 # Evaluator
 correct = total = 0
@@ -129,22 +130,21 @@ for batch in iter(val_iter):
             # plain ol accuracy
             total += 1
             correct += (indices[0] == label)
-            if total % 500 == 0:
-                # DEBUGGING: print total, sentence, preds, and 3 metrics
-                print('we are on example', total)
-                # print([TEXT.vocab.itos[w] for w in sentence[j-2:j]])
-                # print([TEXT.vocab.itos[w] for w in indices])
-                # print(-np.log(out[label]))
-                # print(precisionmat[indices.index(label)] if label in indices else 0)
-                # print(indices[0] == label)
-                print('Test Accuracy', correct/total)
-                print('Precision',precision/(20*total))
-                print('Perplexity',np.exp(crossentropy/total))
-    if total>50000: # that's enough
+            # if total % 500 == 0: print stats
+    if total>5000: # that's enough
         break
 
+# DEBUGGING:
+# print('we are on example', total)
+# print([TEXT.vocab.itos[w] for w in sentence[j-2:j]])
+# print(TEXT.vocab.itos[label])
+# print([TEXT.vocab.itos[w] for w in indices])
+# print(1/out[label])
+# print(precisionmat[indices.index(label)] if label in indices else 0)
+# print(indices[0] == label)
+
 print('Test Accuracy', correct/total)
-print('Precision',precision/(20*total))
+print('Precision',precision/total)
 print('Perplexity',np.exp(crossentropy/total))
 # TODO: F.crossentropy averages losses across a batch, so should divide this ppl by 10 to compensate
 # or, more sensibly, multiply the other ones by 10

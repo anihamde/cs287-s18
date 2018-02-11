@@ -169,12 +169,13 @@ for batch in iter(val_iter):
             # DEBUGGING: see the rest in trigram.py
             print('we are on example', total)
             print('Test Accuracy', correct/total)
-            print('Precision',precision/(20*total))
-            print('Perplexity',torch.exp(crossentropy/total).data[0])
+            print('Precision',precision/total)
+            print('Perplexity',torch.exp(bs*crossentropy/total).data[0])
 
 print('Test Accuracy', correct/total)
-print('Precision',precision/(20*total))
-print('Perplexity',torch.exp(crossentropy/total).data[0])
+print('Precision',precision/total)
+print('Perplexity',torch.exp(bs*crossentropy/total).data[0])
+# F.cross_entropy averages instead of adding
 
 # TODO: print out some samples to make sure they make sense
 # TODO: better loss measurements (top 20 precision, perplexity)
