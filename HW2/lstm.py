@@ -30,7 +30,6 @@ print('len(train)', len(train))
 TEXT.build_vocab(train)
 print('len(TEXT.vocab)', len(TEXT.vocab))
 
-# TODO: use argparse
 if False:
     TEXT.build_vocab(train, max_size=1000)
     len(TEXT.vocab)
@@ -55,9 +54,12 @@ print("REMINDER!!! Did you create ../../models/HW2?????")
 
 # TODO: learning rate decay? (zaremba has specific instructions for this)
 # TODO: multichannel tests (with glove and stuff)
-# TODO: bidirectional
-# TODO: parallelize
+# TODO: bidirectional, gru
 # TODO: replace dropouts with functional dropouts
+# TODO: make hidden sizes bigger (500 according to piazza)
+# TODO: early stopping
+# TODO: is the modified RNN code pushed?
+# TODO: minibatch size 20 (according to zaremba), and clip the grads normalized by minibatch size
 
 def repackage_hidden(h):
     """Wraps hidden states in new Variables, to detach them from their history."""

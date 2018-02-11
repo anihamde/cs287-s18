@@ -47,6 +47,9 @@ train_iter, val_iter, test_iter = torchtext.data.BPTTIterator.splits(
 # batch = next(it)
 # print("Converted back to string: ", " ".join([TEXT.vocab.itos[i] for i in batch.text[:, 2].data]))
 
+# TODO: weights as a function of frequency of prev 2 words (bengio)
+# TODO: add an alpha_zero of 10^-6 to each word
+
 # Maybe I can come up with something more efficient than a counter?
 uni = Counter()
 bi = Counter()
@@ -126,6 +129,7 @@ for batch in iter(val_iter):
             if label in indices:
                 precision += precisionmat[indices.index(label)]
             # cross entropy
+            # TODO: tiny epsilon normalization? out[label]+eps
             crossentropy -= np.log(out[label])
             # plain ol accuracy
             total += 1
@@ -146,8 +150,5 @@ for batch in iter(val_iter):
 print('Test Accuracy', correct/total)
 print('Precision',precision/total)
 print('Perplexity',np.exp(crossentropy/total))
-# TODO: F.crossentropy averages losses across a batch, so should divide this ppl by 10 to compensate
-# or, more sensibly, multiply the other ones by 10
-# ok, it's a little more complicated than that. 
 
-print(time.time()-timenow)
+# print(time.time()-timenow)
