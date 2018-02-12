@@ -73,6 +73,7 @@ print("REMINDER!!! Did you create ../../models/HW2?????")
 # TODO: learning rate decay? (zaremba has specific instructions for this)
 # TODO: bidirectional, gru
 # TODO: minibatch size 20 (according to zaremba), and clip the grads normalized by minibatch size
+# TODO: clip grads doesn't work- it deletes all the parameters, and returns norm of 0?
 # TODO: multichannel tests (with glove and stuff), more of our own ideas
 
 def repackage_hidden(h):
@@ -104,13 +105,12 @@ class dLSTM(nn.Module):
         return out, hidden
     
     def initHidden(self):
-        hidden = []
-        for i in range(n_layers):
-            hold = torch.zeros(n_layers, bs, hidden_size).type(torch.FloatTensor)
-            if torch.cuda.is_available():
-                hold = hold.cuda()
-            hidden.append( Variable(hold) )
-        return hidden
+        h0 = torch.zeros(n_layers, bs, hidden_size).type(torch.FloatTensor)
+        c0 = torch.zeros(n_layers, bs, hidden_size).type(torch.FloatTensor)
+        if torch.cuda.is_available():
+            h0 = h0.cuda()
+            c0 = c0.cuda()
+        return (Variable(h0), Variable(c0))
 
 model = dLSTM()
 if torch.cuda.is_available():
@@ -125,7 +125,7 @@ def validate():
     model.eval()
     correct = total = 0
     precisionmat = (1/np.arange(1,21))[::-1].cumsum()[::-1]
-    precisionmat = torch.FloatTensor(precisionmat.copy())
+    precisionmat = torch.cuda.FloatTensor(precisionmat.copy())
     precision = 0
     crossentropy = 0
     hidden = model.initHidden()
@@ -134,9 +134,9 @@ def validate():
         if torch.cuda.is_available():
             sentences = sentences.cuda()
         out, hidden = model(sentences, hidden)
-        for j in range(sentences.size(0)):
+        for j in range(sentences.size(0)-1):
             outj = out[j] # bs,|V|
-            labelsj = sentences[j] # bs
+            labelsj = sentences[j+1] # bs
             # cross entropy
             crossentropy += F.cross_entropy(outj,labelsj)
             # precision
@@ -144,13 +144,14 @@ def validate():
             _, outsort = torch.sort(outj,dim=1,descending=True)
             outsort = outsort[:,:20]
             inds = (outsort-labelsj.unsqueeze(1)==0)
-            inds = inds.sum(dim=0).type(torch.FloatTensor)
+            inds = inds.sum(dim=0).type(torch.cuda.FloatTensor)
             precision += inds.dot(precisionmat)
             # plain ol accuracy
             _, predicted = torch.max(outj, 1)
             total += labelsj.size(0)
             correct += (predicted==labelsj).sum()
             # DEBUGGING: see the rest in trigram.py
+        hidden = repackage_hidden(hidden)
     return correct/total, precision/total, torch.exp(bs*crossentropy/total).data[0]
         # test acc, precision, ppl
         # F.cross_entropy averages instead of adding
@@ -168,12 +169,13 @@ if not args.skip_training:
             if torch.cuda.is_available():
                 sentences = sentences.cuda()
             out, hidden = model(sentences, hidden)
+            # out is n,bs,|V|, hidden is ((n_layers,bs,hidden_size)*2)
             loss = 0
-            for j in range(sentences.size(1)-1):
+            for j in range(sentences.size(0)-1):
                 loss += criterion(out[j], sentences[j+1])
             model.zero_grad()
             loss.backward(retain_graph=True)
-            nn.utils.clip_grad_norm(params, constraint) # is this right?
+            # nn.utils.clip_grad_norm(params, constraint) # what the, why is it zero
             optimizer.step()
             # hidden vector is automatically saved for next batch
             ctr += 1

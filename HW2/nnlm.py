@@ -116,7 +116,7 @@ def validate():
     model.eval()
     correct = total = 0
     precisionmat = (1/np.arange(1,21))[::-1].cumsum()[::-1]
-    precisionmat = torch.FloatTensor(precisionmat.copy()) # hm
+    precisionmat = torch.cuda.FloatTensor(precisionmat.copy()) # hm
     precision = 0
     crossentropy = 0
     for batch in iter(val_iter):
@@ -134,7 +134,7 @@ def validate():
             _, outsort = torch.sort(out,dim=1,descending=True)
             outsort = outsort[:,:20]
             inds = (outsort-labels.unsqueeze(1)==0)
-            inds = inds.sum(dim=0).type(torch.FloatTensor)
+            inds = inds.sum(dim=0).type(torch.cuda.FloatTensor)
             precision += inds.dot(precisionmat)
             # plain ol accuracy
             _, predicted = torch.max(out, 1)
