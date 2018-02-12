@@ -77,7 +77,7 @@ class NNLM(nn.Module):
         out = F.tanh(self.h(embeds)) # bs,hidden_size
         out = self.u(out) # bs,|V|
         out += self.w(embeds) # bs,|V|
-        out = F.softmax(out,dim=1)
+        #out = F.softmax(out,dim=1)
         return out
 
 
