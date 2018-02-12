@@ -86,13 +86,15 @@ if torch.cuda.is_available():
     model.cuda()
 
 criterion = nn.CrossEntropyLoss()
-params = filter(lambda x: x.requires_grad, model.parameters())
+biasparams = []
 weightparams = []
 for name,param in model.named_parameters():
-    if not 'bias' in name:
+    if 'bias' in name:
+        biasparams.append(param)
+    else:
         weightparams.append(param)
 optimizer = torch.optim.Adam([
-                {'params': params},
+                {'params': biasparams},
                 {'params': weightparams, 'weight_decay':weight_decay}
             ], lr=learning_rate)
 
