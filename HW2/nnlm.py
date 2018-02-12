@@ -8,7 +8,7 @@ import csv
 import argparse
 
 parser = argparse.ArgumentParser(description='nnlm training runner')
-parser.add_argument('--model_file'.'-m',type=str,default='../../models/HW2/nnlm.pkl',help='Model save target.')
+parser.add_argument('--model_file'.'-mod',type=str,default='../../models/HW2/nnlm.pkl',help='Model save target.')
 parser.add_argument('--batch_size','-bs',type=int,default=10,help='set training batch size. default = 10.')
 parser.add_argument('--receptive_field','-rf',type=int,default=5,help='set receptive field of nnlm.')
 parser.add_argument('--hidden_size','-hs',type=int,default=100,help='set size of hidden layer.')
