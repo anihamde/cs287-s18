@@ -18,6 +18,7 @@ parser.add_argument('--num_epochs','-e',type=int,default=10,help='set the number
 parser.add_argument('--embedding_max_norm','-emn',type=float,default=15,help='set max L2 norm of word embedding vector.')
 parser.add_argument('--dropout_rate','-dr',type=float,default=0.5,help='set dropout rate for deep layers.')
 parser.add_argument('--skip_training','-sk',action='store_true',help='raise flag to skip training and go to eval.')
+parser.add_argument('--clip_constraint','-c',type=float,default=5,help='set constraint for gradient clipping.')
 args = parser.parse_args()
 
 # Hyperparameters
@@ -29,6 +30,7 @@ weight_decay = args.weight_decay
 num_epochs = args.num_epochs
 emb_mn = args.embedding_max_norm
 dropout_rate = args.dropout_rate
+constraint = args.clip_constraint
 
 # Text processing library
 import torchtext
