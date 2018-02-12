@@ -116,6 +116,7 @@ model = dLSTM()
 if torch.cuda.is_available():
     model.cuda()
     print("CUDA is available, assigning to GPU.")
+
 criterion = nn.NLLLoss()
 params = filter(lambda x: x.requires_grad, model.parameters())
 optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay)
@@ -134,21 +135,21 @@ def validate():
             sentences = sentences.cuda()
         out, hidden = model(sentences, hidden)
         for j in range(sentences.size(1)):
-            out = out[j] # bs,|V|
-            labels = sentences[j] # bs
+            outj = out[j] # bs,|V|
+            labelsj = sentences[j] # bs
             # cross entropy
-            crossentropy += F.cross_entropy(out,labels)
+            crossentropy += F.cross_entropy(outj,labelsj)
             # precision
-            outd, labelsd = out.data, labels.data
-            _, outsort = torch.sort(outd,dim=1,descending=True)
+            outj, labelsj = outj.data, labelsj.data
+            _, outsort = torch.sort(outj,dim=1,descending=True)
             outsort = outsort[:,:20]
-            inds = (outsort-labelsd.unsqueeze(1)==0)
+            inds = (outsort-labelsj.unsqueeze(1)==0)
             inds = inds.sum(dim=0).type(torch.FloatTensor)
             precision += inds.dot(precisionmat)
             # plain ol accuracy
-            _, predicted = torch.max(outd, 1)
-            total += labelsd.size(0)
-            correct += (predicted==labelsd).sum()
+            _, predicted = torch.max(outj, 1)
+            total += labelsj.size(0)
+            correct += (predicted==labelsj).sum()
             # DEBUGGING: see the rest in trigram.py
     return correct/total, precision/total, torch.exp(bs*crossentropy/total).data[0]
     # test acc, precision, ppl
