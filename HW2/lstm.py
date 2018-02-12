@@ -124,7 +124,7 @@ params = filter(lambda x: x.requires_grad, model.parameters())
 optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay)
 
 def validate():
-    softmaxer = torch.nn.Softmax(axis=1)
+    softmaxer = torch.nn.Softmax(dim=1)
     model.eval()
     correct = total = 0
     precisionmat = (1/np.arange(1,21))[::-1].cumsum()[::-1]
@@ -200,7 +200,7 @@ else:
 
 model.eval()
 with open("lstm_predictions.csv", "w") as f:
-    softmaxer = torch.nn.Softmax(axis=1)
+    softmaxer = torch.nn.Softmax(dim=1)
     writer = csv.writer(f)
     writer.writerow(['id','word'])
     for i, l in enumerate(open("input.txt"),1):
