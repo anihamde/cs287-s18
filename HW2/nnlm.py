@@ -172,7 +172,7 @@ if not args.skip_training:
             if sentences.size(1) < n+1: # make sure sentence length is long enough
                 pads = Variable(torch.ones(sentences.size(0),n+1-sentences.size(1)).mul(padidx)).type(torch.cuda.LongTensor)
                 sentences = torch.cat([pads,sentences],dim=1)
-            sentence_stack = torch.LongTensor()
+            sentence_stack = torch.LongTensor().type(torch.cuda.LongTensor)
             for j in range(n,sentences.size(1)):
                 torch.cat( (sentence_stack,sentences[:,j-n:j+1]) , dim=0)            
             model.zero_grad()
