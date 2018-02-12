@@ -5,15 +5,28 @@ from torch.autograd import Variable
 import torch.nn as nn
 import torch.nn.functional as F
 import csv
+import argparse
+
+parser = argparse.ArgumentParser(description='nnlm training runner')
+parser.add_argument('model_file',help='Model save target.')
+parser.add_argument('--batch_size','-bs',type=int,default=10,help='set training batch size. default = 10.')
+parser.add_argument('--receptive_field','-rf',type=int,default=5,help='set receptive field of nnlm.')
+parser.add_argument('--hidden_size','-hs',type=int,default=100,help='set size of hidden layer.')
+parser.add_argument('--learning_rate','-lr',type=float,default=0.001,help='set learning rate.')
+parser.add_argument('--weight_decay','-wd',type=float,default=0.0,help='set L2 normalization factor.')
+parser.add_argument('--num_epochs','-e',type=int,default=10,help='set the number of training epochs.')
+parser.add_argument('--embedding_max_norm','-emn',type=float,default=15,help='set max L2 norm of word embedding vector.')
+args = parser.parse_args()
+
 
 # Hyperparameters
-bs = 10 # batch size
-n = 5 # receptive field
-hidden_size = 100
-learning_rate = .001
-weight_decay = 0
-num_epochs = 10
-emb_mn = 15 # embedding max norm (folk knowledge)
+bs = args.batch_size # batch size
+n = args.receptive_field # receptive field
+hidden_size = args.hidden_size
+learning_rate = args.learning_rate
+weight_decay = args.weight_decay
+num_epochs = args.num_epochs
+emb_mn = args.embedding_max_norm # embedding max norm (folk knowledge)
 
 # Text processing library
 import torchtext
