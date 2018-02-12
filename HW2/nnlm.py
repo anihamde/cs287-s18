@@ -13,6 +13,7 @@ hidden_size = 100
 learning_rate = .001
 weight_decay = 0
 num_epochs = 10
+emb_mn = 15 # embedding max norm (folk knowledge)
 
 # Text processing library
 import torchtext
@@ -53,10 +54,10 @@ print("REMINDER!!! Did you create ../../models/HW2?????")
 # TODO: why is "out" a bunch of ones and zeros? How do I fix it? How did bengio handle it?
 # TODO: maybe instead of outputting |V|, criterion accepts an embedding, and then round to nearest word or something
 # cause just predicting each word with equal prob would give CE around 9.21
-# TODO: yoon's folk knowledge: set max-norm parameter on nn.Embedding
 # TODO: it's gonna be about half an hour per epoch i think. should I make it faster by wasting early parts of sentences?
 # TODO: mixture of models with interpolated trigram (fixed or learned weights)
-# TODO: weight decay penalty (excluding bias terms) (want to try weight clippings too?), dropout
+# TODO: bengio's idea, set w to zero
+# TODO: reg: want to try weight clippings too? dropout maybe?
 # TODO: early stopping
 # TODO: energy min network, what else?
 # TODO: our own extensions (multichannel with glove, static/dynamic, etc?) (conv layers) (dropout) (recurrence) (pad at the beginning?)
@@ -65,7 +66,8 @@ print("REMINDER!!! Did you create ../../models/HW2?????")
 class NNLM(nn.Module):
     def __init__(self):
         super(NNLM, self).__init__()
-        self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
+        # Test the max_norm. Is it norm per row, or total norm of the whole matrix?
+        self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1),max_norm=emb_mn)
         self.embeddings.weight.data = TEXT.vocab.vectors
         self.h = nn.Linear(n*300,hidden_size)
         self.u = nn.Linear(hidden_size,len(TEXT.vocab))
@@ -86,7 +88,14 @@ if torch.cuda.is_available():
 
 criterion = nn.CrossEntropyLoss()
 params = filter(lambda x: x.requires_grad, model.parameters())
-optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay)
+weightparams = []
+for name,param in model.named_parameters():
+    if not 'bias' in name:
+        weightparams.append(param)
+optimizer = torch.optim.Adam([
+                {'params': params},
+                {'params': weightparams, 'weight_decay':weight_decay}
+            ], lr=learning_rate)
 
 losses = []
 model.train()
