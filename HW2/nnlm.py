@@ -41,6 +41,7 @@ train, val, test = torchtext.datasets.LanguageModelingDataset.splits(
 print('len(train)', len(train))
 
 TEXT.build_vocab(train)
+padidx = TEXT.vocab.stoi["<pad>"]
 print('len(TEXT.vocab)', len(TEXT.vocab))
 
 if False:
@@ -128,7 +129,7 @@ def validate():
             out = model(sentences[:,j-n:j]) # bs,|V|
             labels = sentences[:,j] # bs
             # cross entropy
-            crossentropy += F.cross_entropy(out,labels)
+            crossentropy += F.cross_entropy(out,labels,size_average=False,ignore_index=padidx)
             # precision
             out, labels = out.data, labels.data
             _, outsort = torch.sort(out,dim=1,descending=True)
@@ -138,7 +139,7 @@ def validate():
             precision += inds.dot(precisionmat)
             # plain ol accuracy
             _, predicted = torch.max(out, 1)
-            total += labels.size(0)
+            total += labels.ne(padidx).int().sum()
             correct += (predicted==labels).sum()
             # if total % 500 == 0:
                 # DEBUGGING: see the rest in trigram.py
@@ -150,7 +151,7 @@ def validate():
                 # print('Test Accuracy', correct/total)
                 # print('Precision',precision/total)
                 # print('Perplexity',torch.exp(bs*crossentropy/total).data[0])
-    return correct/total, precision/total, torch.exp(bs*crossentropy/total).data[0]
+    return correct/total, precision/total, torch.exp(crossentropy/total).data[0]
     # test acc, precision, ppl
     # F.cross_entropy averages instead of adding
 

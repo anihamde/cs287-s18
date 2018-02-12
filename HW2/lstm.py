@@ -45,6 +45,7 @@ train, val, test = torchtext.datasets.LanguageModelingDataset.splits(
 print('len(train)', len(train))
 
 TEXT.build_vocab(train)
+padidx = TEXT.vocab.stoi["<pad>"]
 print('len(TEXT.vocab)', len(TEXT.vocab))
 
 if False:
@@ -101,7 +102,9 @@ class dLSTM(nn.Module):
         out, hidden = self.lstm(out, hidden)
         out = F.dropout(out,p=dropout_rate)
         # apply the linear and the softmax
-        out = self.softmax(self.linear(out)) # n,bs,|V|
+        out = self.linear(out) # n,bs,|V|
+        #out = self.Softmax(out)    # This was originally the output
+        #out = self.LogSoftmax(out) # the docs indicate LogSoftmax should be used with nn.NLLLoss
         return out, hidden
     
     def initHidden(self):
@@ -117,11 +120,12 @@ if torch.cuda.is_available():
     model.cuda()
     print("CUDA is available, assigning to GPU.")
 
-criterion = nn.NLLLoss()
+criterion = nn.CrossEntropyLoss()
 params = filter(lambda x: x.requires_grad, model.parameters())
 optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay)
 
 def validate():
+    softmaxer = torch.nn.Softmax(dim=1)
     model.eval()
     correct = total = 0
     precisionmat = (1/np.arange(1,21))[::-1].cumsum()[::-1]
@@ -138,9 +142,9 @@ def validate():
             outj = out[j] # bs,|V|
             labelsj = sentences[j+1] # bs
             # cross entropy
-            crossentropy += F.cross_entropy(outj,labelsj)
+            crossentropy += F.cross_entropy(outj,labelsj,size_average=False,ignore_index=padidx)
             # precision
-            outj, labelsj = outj.data, labelsj.data
+            outj, labelsj = softmaxer(outj).data, labelsj.data
             _, outsort = torch.sort(outj,dim=1,descending=True)
             outsort = outsort[:,:20]
             inds = (outsort-labelsj.unsqueeze(1)==0)
@@ -148,11 +152,11 @@ def validate():
             precision += inds.dot(precisionmat)
             # plain ol accuracy
             _, predicted = torch.max(outj, 1)
-            total += labelsj.size(0)
+            total += labelsj.ne(padidx).int().sum()
             correct += (predicted==labelsj).sum()
             # DEBUGGING: see the rest in trigram.py
         hidden = repackage_hidden(hidden)
-    return correct/total, precision/total, torch.exp(bs*crossentropy/total).data[0]
+    return correct/total, precision/total, torch.exp(crossentropy/total).data[0]
         # test acc, precision, ppl
         # F.cross_entropy averages instead of adding
 
@@ -197,6 +201,7 @@ else:
 
 model.eval()
 with open("lstm_predictions.csv", "w") as f:
+    softmaxer = torch.nn.Softmax(dim=1)
     writer = csv.writer(f)
     writer.writerow(['id','word'])
     for i, l in enumerate(open("input.txt"),1):
@@ -206,6 +211,7 @@ with open("lstm_predictions.csv", "w") as f:
             Variable(torch.zeros(n_layers, 1, hidden_size)).cuda())
         out, _ = model(words,hidden)
         out = out.squeeze(1)
+        out = softmaxer(out)
         _, predicted = torch.sort(out,dim=1,descending=True)
         predicted = predicted[0,:20].data.tolist()
         predwords = [TEXT.vocab.itos[x] for x in predicted]
