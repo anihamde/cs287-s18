@@ -5,15 +5,30 @@ from torch.autograd import Variable
 import torch.nn as nn
 import torch.nn.functional as F
 import csv
+import argparse
+
+parser = argparse.ArgumentParser(description='lstm training runner')
+parser.add_argument('--model_file','-m',type=str,default='../../models/HW2/lstm.pkl',help='Model save target.')
+parser.add_argument('--batch_size','-bs',type=int,default=10,help='set training batch size. default=10.')
+parser.add_argument('--num_layers','-nl',type=int,default=2,help='set number of lstm layers.')
+parser.add_argument('--hidden_size','-hs',type=int,default=500,help='set size of hidden layer.')
+parser.add_argument('--learning_rate','-lr',type=float,default=0.001,help='set learning rate.')
+parser.add_argument('--weight_decay','-wd',type=float,default=0.0,help='set L2 normalization factor.')
+parser.add_argument('--num_epochs','-e',type=int,default=10,help='set the number of training epochs.')
+parser.add_argument('--embedding_max_norm','-emn',type=float,default=15,help='set max L2 norm of word embedding vector.')
+parser.add_argument('--dropout_rate','-dr',type=float,default=0.5,help='set dropout rate for deep layers.')
+parser.add_argument('--skip_training','-sk',action='store_true',help='raise flag to skip training and go to eval.')
+args = parser.parse_args()
 
 # Hyperparameters
-bs = 10 # batch size
-hidden_size = 20
-n_layers = 2
-learning_rate = .001
-weight_decay = 0
-num_epochs = 20 # idk!
-dropout_rate = 0.5
+bs = args.batch_size
+n_layers = args.num_layers
+hidden_size = args.hidden_size
+learning_rate = args.learning_rate
+weight_decay = args.weight_decay
+num_epochs = args.num_epochs
+emb_mn = args.embedding_max_norm
+dropout_rate = args.dropout_rate
 
 # Text processing library
 import torchtext
@@ -52,13 +67,11 @@ print("Word embeddings size ", TEXT.vocab.vectors.size())
 word2vec = TEXT.vocab.vectors
 print("REMINDER!!! Did you create ../../models/HW2?????")
 
+# TODO: attention!!
 # TODO: learning rate decay? (zaremba has specific instructions for this)
-# TODO: multichannel tests (with glove and stuff)
 # TODO: bidirectional, gru
-# TODO: replace dropouts with functional dropouts
-# TODO: make hidden sizes bigger (500 according to piazza)
-# TODO: early stopping
 # TODO: minibatch size 20 (according to zaremba), and clip the grads normalized by minibatch size
+# TODO: multichannel tests (with glove and stuff), more of our own ideas
 
 def repackage_hidden(h):
     """Wraps hidden states in new Variables, to detach them from their history."""
@@ -70,11 +83,9 @@ def repackage_hidden(h):
 class dLSTM(nn.Module):
     def __init__(self):
         super(dLSTM, self).__init__()
-        self.embedding = nn.Embedding(word2vec.size(0),word2vec.size(1))
+        self.embedding = nn.Embedding(word2vec.size(0),word2vec.size(1),max_norm=emb_mn)
         self.embedding.weight.data.copy_(word2vec)
-        self.dropbottom = nn.Dropout(dropout_rate)
         self.lstm = nn.LSTM(word2vec.size(1), hidden_size, n_layers, dropout=dropout_rate)
-        self.droptop = nn.Dropout(dropout_rate)
         self.linear = nn.Linear(hidden_size, len(TEXT.vocab))
         self.softmax = nn.LogSoftmax(dim=1)
         
@@ -83,9 +94,9 @@ class dLSTM(nn.Module):
         # hidden is ((n_layers,bs,hidden_size),(n_layers,bs,hidden_size))
         embeds = self.embedding(input) # n,bs,300
         # batch goes along the second dimension
-        out = self.dropbottom(embeds)
+        out = F.dropout(embeds,p=dropout_rate)
         out, hidden = self.lstm(out, hidden)
-        out = self.droptop(out)
+        out = F.dropout(out,p=dropout_rate)
         # apply the linear and the softmax
         out = self.softmax(self.linear(out)) # n,bs,|V|
         return out, hidden
@@ -108,77 +119,75 @@ params = filter(lambda x: x.requires_grad, model.parameters())
 optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay)
 
 losses = []
-model.train()
-for i in range(num_epochs):
-    ctr = 0
-    # initialize hidden vector
+
+if not args.skip_training:
+    for i in range(num_epochs):
+        model.train()
+        ctr = 0
+        # initialize hidden vector
+        hidden = model.initHidden()
+        for batch in iter(train_iter):
+            sentences = batch.text # Variable of LongTensor of size (n,bs)
+            if torch.cuda.is_available():
+                sentences = sentences.cuda()
+            out, hidden = model(sentences, hidden)
+            loss = 0
+            for j in range(sentences.size(1)-1):
+                loss += criterion(out[j], sentences[j+1])
+            model.zero_grad()
+            loss.backward(retain_graph=True)
+            nn.utils.clip_grad_norm(params, constraint) # is this right?
+            optimizer.step()
+            # hidden vector is automatically saved for next batch
+            ctr += 1
+            losses.append(loss.data[0])
+            if ctr % 100 == 0:
+                print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
+                    %(i+1, num_epochs, ctr, len(train_iter), sum(losses[-500:])/len(losses[-500:])  ))
+            hidden = repackage_hidden(hidden)
+
+        # can add a net_flag to these file names. and feel free to change the paths
+        np.save("../../models/HW2/lstm_losses",np.array(losses))
+        torch.save(model.state_dict(), args.model_file)
+        # for early stopping
+        acc, prec, ppl = validate()
+        print("Val acc, prec, ppl", acc, prec, ppl)
+else:
+    model.load_state_dict(torch.load(args.model_file))
+
+def validate():
+    model.eval()
+    correct = total = 0
+    precisionmat = (1/np.arange(1,21))[::-1].cumsum()[::-1]
+    precisionmat = torch.FloatTensor(precisionmat.copy())
+    precision = 0
+    crossentropy = 0
     hidden = model.initHidden()
-    for batch in iter(train_iter):
-        sentences = batch.text # Variable of LongTensor of size (n,bs)
+    for batch in iter(val_iter):
+        sentences = batch.text
         if torch.cuda.is_available():
             sentences = sentences.cuda()
         out, hidden = model(sentences, hidden)
-        loss = 0
-        for j in range(sentences.size(1)-1):
-            loss += criterion(out[j], sentences[j+1])
-        model.zero_grad()
-        loss.backward(retain_graph=True)
-        nn.utils.clip_grad_norm(params, constraint) # is this right?
-        optimizer.step()
-        # hidden vector is automatically saved for next batch
-        ctr += 1
-        losses.append(loss.data[0])
-        if ctr % 100 == 0:
-            print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
-                %(i+1, num_epochs, ctr, len(train_iter), sum(losses[-500:])/len(losses[-500:])  ))
-        hidden = repackage_hidden(hidden)
-
-    # can add a net_flag to these file names. and feel free to change the paths
-    np.save("../../models/HW2/lstm_losses",np.array(losses))
-    torch.save(model.state_dict(), '../../models/HW2/lstm.pkl')
-
-# model.load_state_dict(torch.load('../../models/lstm.pkl'))
-
-model.eval()
-correct = total = 0
-precisionmat = (1/np.arange(1,21))[::-1].cumsum()[::-1]
-precisionmat = torch.FloatTensor(precisionmat.copy())
-precision = 0
-crossentropy = 0
-
-hidden = model.initHidden()
-for batch in iter(val_iter):
-    sentences = batch.text
-    if torch.cuda.is_available():
-        sentences = sentences.cuda()
-    out, hidden = model(sentences, hidden)
-    for j in range(sentences.size(1)):
-        out = out[j] # bs,|V|
-        labels = sentences[j] # bs
-        # cross entropy
-        crossentropy += F.cross_entropy(out,labels)
-        # precision
-        out, labels = out.data, labels.data
-        _, outsort = torch.sort(out,dim=1,descending=True)
-        outsort = outsort[:,:20]
-        inds = (outsort-labels.unsqueeze(1)==0)
-        inds = inds.sum(dim=0).type(torch.FloatTensor)
-        precision += inds.dot(precisionmat)
-        # plain ol accuracy
-        _, predicted = torch.max(out, 1)
-        total += labels.size(0)
-        correct += (predicted==labels).sum()
-        if total % 500 == 0:
+        for j in range(sentences.size(1)):
+            out = out[j] # bs,|V|
+            labels = sentences[j] # bs
+            # cross entropy
+            crossentropy += F.cross_entropy(out,labels)
+            # precision
+            out, labels = out.data, labels.data
+            _, outsort = torch.sort(out,dim=1,descending=True)
+            outsort = outsort[:,:20]
+            inds = (outsort-labels.unsqueeze(1)==0)
+            inds = inds.sum(dim=0).type(torch.FloatTensor)
+            precision += inds.dot(precisionmat)
+            # plain ol accuracy
+            _, predicted = torch.max(out, 1)
+            total += labels.size(0)
+            correct += (predicted==labels).sum()
             # DEBUGGING: see the rest in trigram.py
-            print('we are on example', total)
-            print('Test Accuracy', correct/total)
-            print('Precision',precision/total)
-            print('Perplexity',torch.exp(bs*crossentropy/total).data[0])
-
-print('Test Accuracy', correct/total)
-print('Precision',precision/total)
-print('Perplexity',torch.exp(bs*crossentropy/total).data[0])
-# F.cross_entropy averages instead of adding
+    return correct/total, precision/total, torch.exp(bs*crossentropy/total).data[0]
+    # test acc, precision, ppl
+    # F.cross_entropy averages instead of adding
 
 model.eval()
 with open("lstm_predictions.csv", "w") as f:

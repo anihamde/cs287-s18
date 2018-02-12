@@ -7,14 +7,17 @@ import argparse
 
 timenow = time.time()
 parser = argparse.ArgumentParser()
-parser.add_argument('--alphab', type=float, default=0.2)
-parser.add_argument('--alphat', type=float, default=0.4)
-config = parser.parse_args()
+parser.add_argument('--batch_size','-bs',type=int,default=10,help='set training batch size. default = 10.')
+parser.add_argument('--alphab','-ab',type=float, default=0.2)
+parser.add_argument('--alphat','-at',type=float, default=0.4)
+parser.add_argument('--epsilon','-e',type=float,default=10**-6)
+args = parser.parse_args()
 
 # Hyperparameters
-bs = 10 # batch size
-alpha_b = config.alphab
-alpha_t = config.alphat
+bs = args.batch_size
+alpha_b = args.alphab
+alpha_t = args.alphat
+eps = args.epsilon
 
 # Text processing library
 import torchtext
@@ -47,8 +50,9 @@ train_iter, val_iter, test_iter = torchtext.data.BPTTIterator.splits(
 # batch = next(it)
 # print("Converted back to string: ", " ".join([TEXT.vocab.itos[i] for i in batch.text[:, 2].data]))
 
+# TODO: tiny epsilon normalization to stop entropy from infinity-- is that ok? when a word has prob 0, we do eps CE
+# otherwise, how to stop entropy from infinity?
 # TODO: weights as a function of frequency of prev 2 words (bengio)
-# TODO: add an alpha_zero of 10^-6 to each word
 
 # Maybe I can come up with something more efficient than a counter?
 uni = Counter()
@@ -129,8 +133,7 @@ for batch in iter(val_iter):
             if label in indices:
                 precision += precisionmat[indices.index(label)]
             # cross entropy
-            # TODO: tiny epsilon normalization? out[label]+eps
-            crossentropy -= np.log(out[label])
+            crossentropy -= np.log(max(out[label],eps))
             # plain ol accuracy
             total += 1
             correct += (indices[0] == label)
