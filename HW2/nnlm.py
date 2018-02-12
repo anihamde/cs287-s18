@@ -86,7 +86,6 @@ class NNLM(nn.Module):
         self.h = nn.Linear(n*300,hidden_size)
         self.u = nn.Linear(hidden_size,len(TEXT.vocab))
         self.w = nn.Linear(n*300,len(TEXT.vocab))
-        self.b = 
     def forward(self, inputs): # inputs (batch size, "sentence" length) bs,n
         embeds = self.embeddings(inputs) # bs,n,300
         embeds = embeds.view(-1,n*300) # bs,n*300
