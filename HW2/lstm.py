@@ -72,6 +72,7 @@ print("REMINDER!!! Did you create ../../models/HW2?????")
 # TODO: attention!!
 # TODO: learning rate decay? (zaremba has specific instructions for this)
 # TODO: bidirectional, gru
+
 # TODO: minibatch size 20 (according to zaremba), and clip the grads normalized by minibatch size
 # TODO: clip grads doesn't work- it deletes all the parameters, and returns norm of 0?
 # TODO: multichannel tests (with glove and stuff), more of our own ideas
@@ -138,7 +139,7 @@ def validate():
             outj = out[j] # bs,|V|
             labelsj = sentences[j+1] # bs
             # cross entropy
-            crossentropy += F.cross_entropy(outj,labelsj)
+            crossentropy += F.nll_loss(outj,labelsj)
             # precision
             outj, labelsj = outj.data, labelsj.data
             _, outsort = torch.sort(outj,dim=1,descending=True)
