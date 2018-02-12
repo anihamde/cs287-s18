@@ -192,4 +192,5 @@ with open("lstm_predictions.csv", "w") as f:
         out, _ = model(words,hidden)
         _, predicted = torch.sort(out,dim=1,descending=True)
         predicted = predicted[0,:20].data.tolist()
-        writer.writerow([str(i),' '.join(predicted)])
+        predwords = [TEXT.vocab.itos[x] for x in predicted]
+        writer.writerow([i,' '.join(predwords)])
