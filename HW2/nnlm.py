@@ -61,7 +61,6 @@ print("REMINDER!!! Did you create ../../models/HW2?????")
 # TODO: early stopping
 # TODO: energy min network, what else?
 # TODO: our own extensions (multichannel with glove, static/dynamic, etc?) (conv layers) (dropout) (recurrence) (pad at the beginning?)
-# TODO: make an image of the nlptest VM for future psets
 
 class NNLM(nn.Module):
     def __init__(self):
@@ -101,23 +100,23 @@ losses = []
 model.train()
 for i in range(num_epochs):
     ctr = 0
-for batch in iter(train_iter):
-    sentences = batch.text.transpose(1,0).cuda() # bs,n
-    if sentences.size(1) < n+1: # make sure sentence length is long enough
-        pads = Variable(torch.zeros(sentences.size(0),n+1-sentences.size(1))).type(torch.cuda.LongTensor)
-        sentences = torch.cat([pads,sentences],dim=1)
-    for j in range(n,sentences.size(1)):
-        out = model(sentences[:,j-n:j])
-        loss = criterion(out,sentences[:,j])
-        model.zero_grad()
-        loss.backward()
-        optimizer.step()
-    ctr += 1
-    print(ctr)
-    if ctr % 100 == 0:
-        print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
-            %(i+1, num_epochs, ctr, len(train_iter), loss.data[0]))
-    losses.append(loss.data[0])
+    for batch in iter(train_iter):
+        print('TEST DELETE THIS embedding norm', model.embeddings.weight.norm())
+        sentences = batch.text.transpose(1,0).cuda() # bs,n
+        if sentences.size(1) < n+1: # make sure sentence length is long enough
+            pads = Variable(torch.zeros(sentences.size(0),n+1-sentences.size(1))).type(torch.cuda.LongTensor)
+            sentences = torch.cat([pads,sentences],dim=1)
+        for j in range(n,sentences.size(1)):
+            out = model(sentences[:,j-n:j])
+            loss = criterion(out,sentences[:,j])
+            model.zero_grad()
+            loss.backward()
+            optimizer.step()
+        ctr += 1
+        if ctr % 100 == 0:
+            print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
+                %(i+1, num_epochs, ctr, len(train_iter), loss.data[0]))
+        losses.append(loss.data[0])
 
     # can add a net_flag to these file names. and feel free to change the paths
     np.save("../../models/HW2/nnlm_losses.npy",np.array(losses))
