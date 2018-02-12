@@ -104,8 +104,7 @@ class dLSTM(nn.Module):
         out = F.dropout(out,p=dropout_rate)
         # apply the linear and the softmax
         out = self.linear(out) # n,bs,|V|
-        #out = self.Softmax(out)    # This was originally the output
-        #out = self.LogSoftmax(out) # the docs indicate LogSoftmax should be used with nn.NLLLoss
+        #out = self.softmax(out)    # This was originally the output. (SG: I see this is LogSoftmax)
         return out, hidden
     
     def initHidden(self):
