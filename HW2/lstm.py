@@ -90,7 +90,7 @@ class dLSTM(nn.Module):
         self.embedding.weight.data.copy_(word2vec)
         self.lstm = nn.LSTM(word2vec.size(1), hidden_size, n_layers, dropout=dropout_rate)
         self.linear = nn.Linear(hidden_size, len(TEXT.vocab))
-        self.softmax = nn.LogSoftmax(dim=1)
+        self.softmax = nn.LogSoftmax(dim=2)
         
     def forward(self, input, hidden): 
         # input is (sentence length, batch size) n,bs
