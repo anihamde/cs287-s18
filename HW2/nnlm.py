@@ -121,7 +121,7 @@ def validate():
     precision = 0
     crossentropy = 0
     for batch in iter(val_iter):
-    sentences = batch.text.transpose(1,0).cuda() # bs, n
+        sentences = batch.text.transpose(1,0).cuda() # bs, n
         if sentences.size(1) < n+1: # make sure sentence length is long enough
             pads = Variable(torch.zeros(sentences.size(0),n+1-sentences.size(1))).type(torch.cuda.LongTensor)
             sentences = torch.cat([pads,sentences],dim=1)
