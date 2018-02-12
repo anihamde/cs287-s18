@@ -16,7 +16,7 @@ parser.add_argument('--learning_rate','-lr',type=float,default=0.001,help='set l
 parser.add_argument('--weight_decay','-wd',type=float,default=0.0,help='set L2 normalization factor.')
 parser.add_argument('--num_epochs','-e',type=int,default=10,help='set the number of training epochs.')
 parser.add_argument('--embedding_max_norm','-emn',type=float,default=15,help='set max L2 norm of word embedding vector.')
-parser.add_argument('--skip_training','-sk',action=store_true,help='raise flag to skip training and go to eval.')
+parser.add_argument('--skip_training','-sk',action='store_true',help='raise flag to skip training and go to eval.')
 args = parser.parse_args()
 
 
