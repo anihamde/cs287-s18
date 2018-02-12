@@ -66,7 +66,9 @@ print("REMINDER!!! Did you create ../../models/HW2?????")
 
 # TODO: my piazza question
 # TODO: Is 8000 ppl reasonable? Why are my perplexities so high? What separates us and Bengio???
+# compare to lstm/trigram ppls? print ppls of individual batches? or don't validate on full bptt_len?
 # also, do we have the right idea for precision?
+# the lstm losses are also screwed. are the lstm's sentences at least reasonable?
 # TODO: maybe instead of outputting |V|, criterion accepts an embedding, and then round to nearest word or something (*...)
 # TODO: mixture of models with interpolated trigram (fixed or learned weights) (*)
 # TODO: bengio's idea, set w to zero

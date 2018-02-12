@@ -130,11 +130,11 @@ def validate():
     crossentropy = 0
     hidden = model.initHidden()
     for batch in iter(val_iter):
-        sentences = batch.text
+        sentences = batch.text # n=32,bs
         if torch.cuda.is_available():
             sentences = sentences.cuda()
         out, hidden = model(sentences, hidden)
-        for j in range(sentences.size(1)):
+        for j in range(sentences.size(0)):
             outj = out[j] # bs,|V|
             labelsj = sentences[j] # bs
             # cross entropy
@@ -152,8 +152,8 @@ def validate():
             correct += (predicted==labelsj).sum()
             # DEBUGGING: see the rest in trigram.py
     return correct/total, precision/total, torch.exp(bs*crossentropy/total).data[0]
-    # test acc, precision, ppl
-    # F.cross_entropy averages instead of adding
+        # test acc, precision, ppl
+        # F.cross_entropy averages instead of adding
 
 
 if not args.skip_training:
@@ -203,6 +203,7 @@ with open("lstm_predictions.csv", "w") as f:
         hidden = (Variable(torch.zeros(n_layers, 1, hidden_size)).cuda(),
             Variable(torch.zeros(n_layers, 1, hidden_size)).cuda())
         out, _ = model(words,hidden)
+        out = out.squeeze(1)
         _, predicted = torch.sort(out,dim=1,descending=True)
         predicted = predicted[0,:20].data.tolist()
         predwords = [TEXT.vocab.itos[x] for x in predicted]
