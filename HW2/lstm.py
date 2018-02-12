@@ -139,16 +139,16 @@ def validate():
             # cross entropy
             crossentropy += F.cross_entropy(out,labels)
             # precision
-            out, labels = out.data, labels.data
-            _, outsort = torch.sort(out,dim=1,descending=True)
+            outd, labelsd = out.data, labels.data
+            _, outsort = torch.sort(outd,dim=1,descending=True)
             outsort = outsort[:,:20]
-            inds = (outsort-labels.unsqueeze(1)==0)
+            inds = (outsort-labelsd.unsqueeze(1)==0)
             inds = inds.sum(dim=0).type(torch.FloatTensor)
             precision += inds.dot(precisionmat)
             # plain ol accuracy
-            _, predicted = torch.max(out, 1)
-            total += labels.size(0)
-            correct += (predicted==labels).sum()
+            _, predicted = torch.max(outd, 1)
+            total += labelsd.size(0)
+            correct += (predicted==labelsd).sum()
             # DEBUGGING: see the rest in trigram.py
     return correct/total, precision/total, torch.exp(bs*crossentropy/total).data[0]
     # test acc, precision, ppl

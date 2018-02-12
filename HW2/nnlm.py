@@ -64,6 +64,7 @@ TEXT.vocab.load_vectors(vectors=Vectors('wiki.simple.vec', url=url)) # feel free
 print("Word embeddings size ", TEXT.vocab.vectors.size())
 print("REMINDER!!! Did you create ../../models/HW2?????")
 
+# TODO: my piazza question
 # TODO: Is 8000 ppl reasonable? Why are my perplexities so high? What separates us and Bengio???
 # also, do we have the right idea for precision?
 # TODO: maybe instead of outputting |V|, criterion accepts an embedding, and then round to nearest word or something (*...)
