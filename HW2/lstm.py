@@ -123,8 +123,8 @@ for i in range(num_epochs):
             loss += criterion(out[j], sentences[j+1])
         model.zero_grad()
         loss.backward(retain_graph=True)
+        nn.utils.clip_grad_norm(params, constraint) # is this right?
         optimizer.step()
-        # TODO: weight clippings nn.utils.clip_grad_norm(params, constraint) is this right?
         # hidden vector is automatically saved for next batch
         ctr += 1
         losses.append(loss.data[0])
