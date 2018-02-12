@@ -8,7 +8,7 @@ import csv
 import argparse
 
 parser = argparse.ArgumentParser(description='nnlm training runner')
-parser.add_argument('model_file',help='Model save target.')
+parser.add_argument('--model_file'.'-m',type=str,default='../../models/HW2/nnlm.pkl',help='Model save target.')
 parser.add_argument('--batch_size','-bs',type=int,default=10,help='set training batch size. default = 10.')
 parser.add_argument('--receptive_field','-rf',type=int,default=5,help='set receptive field of nnlm.')
 parser.add_argument('--hidden_size','-hs',type=int,default=100,help='set size of hidden layer.')
@@ -136,9 +136,9 @@ if not args.skip_training:
 
         # can add a net_flag to these file names. and feel free to change the paths
         np.save("../../models/HW2/nnlm_losses.npy",np.array(losses))
-        torch.save(model.state_dict(), '../../models/HW2/nnlm.pkl')
+        torch.save(model.state_dict(), args.model_file)
 else:
-    model.load_state_dict(torch.load('../../models/HW2/nnlm.pkl'))
+    model.load_state_dict(torch.load(args.model_file))
 
 model.eval()
 correct = total = 0
