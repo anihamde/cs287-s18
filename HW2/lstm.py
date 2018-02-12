@@ -158,8 +158,8 @@ for batch in iter(val_iter):
         # cross entropy
         crossentropy += F.cross_entropy(out,labels)
         # precision
-        _, outsort = torch.sort(out,dim=1,descending=True)
         out, labels = out.data, labels.data
+        _, outsort = torch.sort(out,dim=1,descending=True)
         outsort = outsort[:,:20]
         inds = (outsort-labels.unsqueeze(1)==0)
         inds = inds.sum(dim=0).type(torch.FloatTensor)
