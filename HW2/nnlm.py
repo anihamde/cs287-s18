@@ -103,7 +103,7 @@ model.train()
 for i in range(num_epochs):
     ctr = 0
     for batch in iter(train_iter):
-        print('TEST DELETE THIS embedding norm', model.embeddings.weight.norm())
+        #print('TEST DELETE THIS embedding norm', model.embeddings.weight.norm())
         sentences = batch.text.transpose(1,0).cuda() # bs,n
         if sentences.size(1) < n+1: # make sure sentence length is long enough
             pads = Variable(torch.zeros(sentences.size(0),n+1-sentences.size(1))).type(torch.cuda.LongTensor)
