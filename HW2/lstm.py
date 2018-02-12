@@ -58,7 +58,6 @@ print("REMINDER!!! Did you create ../../models/HW2?????")
 # TODO: replace dropouts with functional dropouts
 # TODO: make hidden sizes bigger (500 according to piazza)
 # TODO: early stopping
-# TODO: is the modified RNN code pushed?
 # TODO: minibatch size 20 (according to zaremba), and clip the grads normalized by minibatch size
 
 def repackage_hidden(h):
@@ -137,12 +136,13 @@ for i in range(num_epochs):
     # can add a net_flag to these file names. and feel free to change the paths
     np.save("../../models/HW2/lstm_losses",np.array(losses))
     torch.save(model.state_dict(), '../../models/HW2/lstm.pkl')
+
 # model.load_state_dict(torch.load('../../models/lstm.pkl'))
 
 model.eval()
 correct = total = 0
 precisionmat = (1/np.arange(1,21))[::-1].cumsum()[::-1]
-precisionmat = torch.FloatTensor(precisionmat.copy()) # hm
+precisionmat = torch.FloatTensor(precisionmat.copy())
 precision = 0
 crossentropy = 0
 
@@ -158,8 +158,8 @@ for batch in iter(val_iter):
         # cross entropy
         crossentropy += F.cross_entropy(out,labels)
         # precision
-        _, outsort = torch.sort(out,dim=1,descending=True)
         out, labels = out.data, labels.data
+        _, outsort = torch.sort(out,dim=1,descending=True)
         outsort = outsort[:,:20]
         inds = (outsort-labels.unsqueeze(1)==0)
         inds = inds.sum(dim=0).type(torch.FloatTensor)
@@ -180,9 +180,6 @@ print('Precision',precision/total)
 print('Perplexity',torch.exp(bs*crossentropy/total).data[0])
 # F.cross_entropy averages instead of adding
 
-# TODO: print out some samples to make sure they make sense
-# TODO: better loss measurements (top 20 precision, perplexity)
-
 model.eval()
 with open("lstm_predictions.csv", "w") as f:
     writer = csv.writer(f)
@@ -196,46 +193,3 @@ with open("lstm_predictions.csv", "w") as f:
         _, predicted = torch.sort(out,dim=1,descending=True)
         predicted = predicted[0,:20].data.tolist()
         writer.writerow([i,' '.join(predicted)])
-
-
-
-
-
-
-
-
-#####################
-# HIGHLY DUBIOUS
-# Requires a different way of handling hidden, because there's a hidden for every vertical layer.
-# I manually use multiple layers for the sake of dropout
-
-hidden_size = 20
-class kLSTM(nn.Module):# 128, 128, 20, 20, 2
-    def __init__(self):
-        super(kLSTM, self).__init__()
-        self.embedding = nn.Embedding(word2vec.size(0),word2vec.size(1))
-        self.embeddings.weight.data.copy_(word2vec)
-        self.drop0 = nn.Dropout(dropout_rate)
-        self.lstm1 = nn.LSTM(word2vec.size(1), hidden_size, 1) # 3rd argument is n_layers
-        self.drop1 = nn.Dropout(dropout_rate)
-        self.lstm2 = nn.LSTM(hidden_size, hidden_size, 1)
-        self.drop2 = nn.Dropout(dropout_rate)
-        self.linear = nn.Linear(hidden_size, len(TEXT.vocab))
-        self.softmax = nn.LogSoftmax(dim=1)
-        
-    def forward(self, input, hidden1, hidden2): 
-        # input is (batch size, sentence length) bs,n
-        # hidden1 is ((n_layers,bs,hidden_size),(n_layers,bs,hidden_size))
-        # embed the input integers
-        embeds = self.embedding(input) # bs,n,300
-        # put the batch along the second dimension
-        embeds = embeds.transpose(0, 1) # n,bs,300
-        out = self.drop0(embeds)
-        out, hidden1 = self.lstm1(out, hidden1)
-        out = self.drop1(out)
-        out, hidden2 = self.lstm2(out, hidden2)
-        out = self.drop2(out)
-        # apply the linear and the softmax
-        out = self.softmax(self.linear(out)) # n,bs,|V|
-        return out, hidden1, hidden2
-

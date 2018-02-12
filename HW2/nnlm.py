@@ -51,10 +51,8 @@ TEXT.vocab.load_vectors(vectors=Vectors('wiki.simple.vec', url=url)) # feel free
 print("Word embeddings size ", TEXT.vocab.vectors.size())
 print("REMINDER!!! Did you create ../../models/HW2?????")
 
-# TODO: why is "out" a bunch of ones and zeros? How do I fix it? How did bengio handle it?
+# TODO: is "out" reasonable? Generate some sample sentences? Are we on par with Bengio's results?
 # TODO: maybe instead of outputting |V|, criterion accepts an embedding, and then round to nearest word or something
-# cause just predicting each word with equal prob would give CE around 9.21
-# TODO: it's gonna be about half an hour per epoch i think. should I make it faster by wasting early parts of sentences?
 # TODO: mixture of models with interpolated trigram (fixed or learned weights)
 # TODO: bengio's idea, set w to zero
 # TODO: reg: want to try weight clippings too? dropout maybe?
@@ -103,7 +101,6 @@ model.train()
 for i in range(num_epochs):
     ctr = 0
     for batch in iter(train_iter):
-        print('TEST DELETE THIS embedding norm', model.embeddings.weight.norm())
         sentences = batch.text.transpose(1,0).cuda() # bs,n
         if sentences.size(1) < n+1: # make sure sentence length is long enough
             pads = Variable(torch.zeros(sentences.size(0),n+1-sentences.size(1))).type(torch.cuda.LongTensor)
