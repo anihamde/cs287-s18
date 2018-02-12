@@ -102,7 +102,8 @@ class dLSTM(nn.Module):
         out, hidden = self.lstm(out, hidden)
         out = F.dropout(out,p=dropout_rate)
         # apply the linear and the softmax
-        out = self.softmax(self.linear(out)) # n,bs,|V|
+        out = self.linear(out) # n,bs,|V|
+        #out = self.LogSoftmax(out)
         return out, hidden
     
     def initHidden(self):
@@ -118,11 +119,12 @@ if torch.cuda.is_available():
     model.cuda()
     print("CUDA is available, assigning to GPU.")
 
-criterion = nn.NLLLoss()
+criterion = nn.CrossEntropyLoss()
 params = filter(lambda x: x.requires_grad, model.parameters())
 optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay)
 
 def validate():
+    softmaxer = torch.nn.Softmax(axis=1)
     model.eval()
     correct = total = 0
     precisionmat = (1/np.arange(1,21))[::-1].cumsum()[::-1]
@@ -141,7 +143,7 @@ def validate():
             # cross entropy
             crossentropy += F.cross_entropy(outj,labelsj,size_average=False,ignore_index=padidx)
             # precision
-            outj, labelsj = outj.data, labelsj.data
+            outj, labelsj = softmaxer(outj).data, labelsj.data
             _, outsort = torch.sort(outj,dim=1,descending=True)
             outsort = outsort[:,:20]
             inds = (outsort-labelsj.unsqueeze(1)==0)
