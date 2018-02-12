@@ -120,9 +120,43 @@ criterion = nn.NLLLoss()
 params = filter(lambda x: x.requires_grad, model.parameters())
 optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay)
 
-losses = []
+def validate():
+    model.eval()
+    correct = total = 0
+    precisionmat = (1/np.arange(1,21))[::-1].cumsum()[::-1]
+    precisionmat = torch.FloatTensor(precisionmat.copy())
+    precision = 0
+    crossentropy = 0
+    hidden = model.initHidden()
+    for batch in iter(val_iter):
+        sentences = batch.text
+        if torch.cuda.is_available():
+            sentences = sentences.cuda()
+        out, hidden = model(sentences, hidden)
+        for j in range(sentences.size(1)):
+            out = out[j] # bs,|V|
+            labels = sentences[j] # bs
+            # cross entropy
+            crossentropy += F.cross_entropy(out,labels)
+            # precision
+            out, labels = out.data, labels.data
+            _, outsort = torch.sort(out,dim=1,descending=True)
+            outsort = outsort[:,:20]
+            inds = (outsort-labels.unsqueeze(1)==0)
+            inds = inds.sum(dim=0).type(torch.FloatTensor)
+            precision += inds.dot(precisionmat)
+            # plain ol accuracy
+            _, predicted = torch.max(out, 1)
+            total += labels.size(0)
+            correct += (predicted==labels).sum()
+            # DEBUGGING: see the rest in trigram.py
+    return correct/total, precision/total, torch.exp(bs*crossentropy/total).data[0]
+    # test acc, precision, ppl
+    # F.cross_entropy averages instead of adding
+
 
 if not args.skip_training:
+    losses = []
     for i in range(num_epochs):
         model.train()
         ctr = 0
@@ -157,39 +191,6 @@ if not args.skip_training:
 else:
     model.load_state_dict(torch.load(args.model_file))
 
-def validate():
-    model.eval()
-    correct = total = 0
-    precisionmat = (1/np.arange(1,21))[::-1].cumsum()[::-1]
-    precisionmat = torch.FloatTensor(precisionmat.copy())
-    precision = 0
-    crossentropy = 0
-    hidden = model.initHidden()
-    for batch in iter(val_iter):
-        sentences = batch.text
-        if torch.cuda.is_available():
-            sentences = sentences.cuda()
-        out, hidden = model(sentences, hidden)
-        for j in range(sentences.size(1)):
-            out = out[j] # bs,|V|
-            labels = sentences[j] # bs
-            # cross entropy
-            crossentropy += F.cross_entropy(out,labels)
-            # precision
-            out, labels = out.data, labels.data
-            _, outsort = torch.sort(out,dim=1,descending=True)
-            outsort = outsort[:,:20]
-            inds = (outsort-labels.unsqueeze(1)==0)
-            inds = inds.sum(dim=0).type(torch.FloatTensor)
-            precision += inds.dot(precisionmat)
-            # plain ol accuracy
-            _, predicted = torch.max(out, 1)
-            total += labels.size(0)
-            correct += (predicted==labels).sum()
-            # DEBUGGING: see the rest in trigram.py
-    return correct/total, precision/total, torch.exp(bs*crossentropy/total).data[0]
-    # test acc, precision, ppl
-    # F.cross_entropy averages instead of adding
 
 model.eval()
 with open("lstm_predictions.csv", "w") as f:

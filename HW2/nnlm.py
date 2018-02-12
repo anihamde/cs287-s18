@@ -65,6 +65,7 @@ print("Word embeddings size ", TEXT.vocab.vectors.size())
 print("REMINDER!!! Did you create ../../models/HW2?????")
 
 # TODO: Is 8000 ppl reasonable? Why are my perplexities so high? What separates us and Bengio???
+# also, do we have the right idea for precision?
 # TODO: maybe instead of outputting |V|, criterion accepts an embedding, and then round to nearest word or something (*...)
 # TODO: mixture of models with interpolated trigram (fixed or learned weights) (*)
 # TODO: bengio's idea, set w to zero
@@ -90,7 +91,6 @@ class NNLM(nn.Module):
         #out = F.softmax(out,dim=1)
         return out
 
-
 model = NNLM()
 if torch.cuda.is_available():
     model.cuda()
@@ -107,39 +107,6 @@ optimizer = torch.optim.Adam([
                 {'params': biasparams},
                 {'params': weightparams, 'weight_decay':weight_decay}
             ], lr=learning_rate)
-
-losses = []
-
-if not args.skip_training:
-    for i in range(num_epochs):
-        model.train()
-        ctr = 0
-        for batch in iter(train_iter):
-            # print('TEST DELETE THIS embedding norm', model.embeddings.weight.norm())
-            sentences = batch.text.transpose(1,0).cuda() # bs,n
-            if sentences.size(1) < n+1: # make sure sentence length is long enough
-                pads = Variable(torch.zeros(sentences.size(0),n+1-sentences.size(1))).type(torch.cuda.LongTensor)
-                sentences = torch.cat([pads,sentences],dim=1)
-            for j in range(n,sentences.size(1)):
-                out = model(sentences[:,j-n:j])
-                loss = criterion(out,sentences[:,j])
-                model.zero_grad()
-                loss.backward()
-                optimizer.step()
-            ctr += 1
-            if ctr % 100 == 0:
-                print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
-                    %(i+1, num_epochs, ctr, len(train_iter), loss.data[0]))
-            losses.append(loss.data[0])
-
-        # can add a net_flag to these file names. and feel free to change the paths
-        np.save("../../models/HW2/nnlm_losses.npy",np.array(losses))
-        torch.save(model.state_dict(), args.model_file)
-        # for early stopping
-        acc, prec, ppl = validate()
-        print("Val acc, prec, ppl", acc, prec, ppl)
-else:
-    model.load_state_dict(torch.load(args.model_file))
 
 # This whole thing takes about half a minute on GPU
 def validate():
@@ -183,6 +150,40 @@ def validate():
     return correct/total, precision/total, torch.exp(bs*crossentropy/total).data[0]
     # test acc, precision, ppl
     # F.cross_entropy averages instead of adding
+
+
+if not args.skip_training:
+    losses = []
+    for i in range(num_epochs):
+        model.train()
+        ctr = 0
+        for batch in iter(train_iter):
+            # print('TEST DELETE THIS embedding norm', model.embeddings.weight.norm())
+            sentences = batch.text.transpose(1,0).cuda() # bs,n
+            if sentences.size(1) < n+1: # make sure sentence length is long enough
+                pads = Variable(torch.zeros(sentences.size(0),n+1-sentences.size(1))).type(torch.cuda.LongTensor)
+                sentences = torch.cat([pads,sentences],dim=1)
+            for j in range(n,sentences.size(1)):
+                out = model(sentences[:,j-n:j])
+                loss = criterion(out,sentences[:,j])
+                model.zero_grad()
+                loss.backward()
+                optimizer.step()
+            ctr += 1
+            if ctr % 100 == 0:
+                print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
+                    %(i+1, num_epochs, ctr, len(train_iter), loss.data[0]))
+            losses.append(loss.data[0])
+
+        # can add a net_flag to these file names. and feel free to change the paths
+        np.save("../../models/HW2/nnlm_losses.npy",np.array(losses))
+        torch.save(model.state_dict(), args.model_file)
+        # for early stopping
+        acc, prec, ppl = validate()
+        print("Val acc, prec, ppl", acc, prec, ppl)
+else:
+    model.load_state_dict(torch.load(args.model_file))
+
 
 model.eval()
 with open("nnlm_predictions.csv", "w") as f:
