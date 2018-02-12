@@ -103,7 +103,7 @@ def predict(l):
 #         words = [TEXT.vocab.stoi[word] for word in words]
 #         out = predict(words)
 #         out = [TEXT.vocab.itos[i] for i,c in out.most_common(20)]
-#         writer.writerow([i,' '.join(out)])
+#         writer.writerow([str(i),' '.join(out)])
 #         enum_ctr += 1
 #         if enum_ctr % 100 == 0:
 #             print(enum_ctr)

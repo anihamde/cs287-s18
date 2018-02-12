@@ -191,4 +191,4 @@ with open("nnlm_predictions.csv", "w") as f:
         out = model(words)
         _, predicted = torch.sort(out,dim=1,descending=True)
         predicted = predicted[0,:20].data.tolist()
-        writer.writerow([i,' '.join(predicted)])
+        writer.writerow([str(i),' '.join(predicted)])
