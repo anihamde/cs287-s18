@@ -86,6 +86,7 @@ class NNLM(nn.Module):
         self.h = nn.Linear(n*300,hidden_size)
         self.u = nn.Linear(hidden_size,len(TEXT.vocab))
         self.w = nn.Linear(n*300,len(TEXT.vocab))
+        self.b = 
     def forward(self, inputs): # inputs (batch size, "sentence" length) bs,n
         embeds = self.embeddings(inputs) # bs,n,300
         embeds = embeds.view(-1,n*300) # bs,n*300
@@ -165,12 +166,12 @@ if not args.skip_training:
             # print('TEST DELETE THIS embedding norm', model.embeddings.weight.norm())
             sentences = batch.text.transpose(1,0).cuda() # bs,n
             if sentences.size(1) < n+1: # make sure sentence length is long enough
-                pads = Variable(torch.zeros(sentences.size(0),n+1-sentences.size(1))).type(torch.cuda.LongTensor)
+                pads = Variable(torch.ones(sentences.size(0),n+1-sentences.size(1)).mul(padidx)).type(torch.cuda.LongTensor)
                 sentences = torch.cat([pads,sentences],dim=1)
             for j in range(n,sentences.size(1)):
+                model.zero_grad()
                 out = model(sentences[:,j-n:j])
                 loss = criterion(out,sentences[:,j])
-                model.zero_grad()
                 loss.backward()
                 optimizer.step()
             ctr += 1
