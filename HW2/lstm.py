@@ -14,7 +14,7 @@ parser.add_argument('--num_layers','-nl',type=int,default=2,help='set number of 
 parser.add_argument('--hidden_size','-hs',type=int,default=500,help='set size of hidden layer.')
 parser.add_argument('--learning_rate','-lr',type=float,default=0.001,help='set learning rate.')
 parser.add_argument('--weight_decay','-wd',type=float,default=0.0,help='set L2 normalization factor.')
-parser.add_argument('--num_epochs','-e',type=int,default=10,help='set the number of training epochs.')
+parser.add_argument('--num_epochs','-e',type=int,default=5,help='set the number of training epochs.')
 parser.add_argument('--embedding_max_norm','-emn',type=float,default=15,help='set max L2 norm of word embedding vector.')
 parser.add_argument('--dropout_rate','-dr',type=float,default=0.5,help='set dropout rate for deep layers.')
 parser.add_argument('--skip_training','-sk',action='store_true',help='raise flag to skip training and go to eval.')
@@ -179,7 +179,7 @@ if not args.skip_training:
                 loss += criterion(out[j], sentences[j+1])
             model.zero_grad()
             loss.backward(retain_graph=True)
-            # nn.utils.clip_grad_norm(params, constraint) # what the, why is it zero
+            #nn.utils.clip_grad_norm(params, constraint, norm_type=2) # what the, why is it zero
             optimizer.step()
             # hidden vector is automatically saved for next batch
             ctr += 1
