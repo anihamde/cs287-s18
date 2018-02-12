@@ -174,7 +174,7 @@ if not args.skip_training:
                 sentences = torch.cat([pads,sentences],dim=1)
             sentence_stack = torch.LongTensor()
             for j in range(n,sentences.size(1)):
-                torch.cat([sentence_stack,sentences[:,j-n:j+1]], dim=0)            
+                torch.cat( (sentence_stack,sentences[:,j-n:j+1]) , dim=0)            
             model.zero_grad()
             out = model(sentences[:,:n])
             loss = criterion(out,sentences[:,n])
