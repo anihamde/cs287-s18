@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--batch_size','-bs',type=int,default=10,help='set training batch size. default = 10.')
 parser.add_argument('--alphab','-ab',type=float, default=0.2)
 parser.add_argument('--alphat','-at',type=float, default=0.4)
-parser.add_argument('--epsilon','-e',type=float,default=0.1)
+parser.add_argument('--epsilon','-e',type=float,default=0.01)
 args = parser.parse_args()
 
 # Hyperparameters
@@ -139,7 +139,7 @@ for batch in iter(val_iter):
             total += 1
             correct += (indices[0] == label)
             # if total % 500 == 0: print stats
-    if total>5000: # that's enough
+    if total>2500: # that's enough
         break
 
 # DEBUGGING:
