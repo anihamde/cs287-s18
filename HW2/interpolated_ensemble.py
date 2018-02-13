@@ -264,7 +264,7 @@ def validate():
         NNLMout = torch.stack([ fNNLM(torch.cat([ padsentences[:,a:a+1][b:b+n,:] for b in range(32) ],dim=1).t()) for a in range(sentences.size(1)) ],dim=1)
         #eOUT = torch.cat([LSTMout,GRUout,NNLMout],dim=2)
         NNLMout = NNLMout[-sentences.size(0):,:sentences.size(1),:len(TEXT.vocab)]
-        tOUT = model(sentences,LSTMout,GRUout,NNLMout)
+        tOUT = model(sentences.t(),LSTMout,GRUout,NNLMout)
         out  = tOUT
         for j in range(sentences.size(0)-1):
             outj = out[j] # bs,|V|
@@ -315,7 +315,7 @@ if not args.skip_training:
             #print("gru_dim: {}".format(GRUout.size()))
             # out is n,bs,|V|, hidden is ((n_layers,bs,hidden_size)*2)
             #eOUT = torch.cat([LSTMout,GRUout,NNLMout],dim=2)
-            tOUT = model(sentences,LSTMout,GRUout,NNLMout)
+            tOUT = model(sentences.t(),LSTMout,GRUout,NNLMout)
             out  = tOUT
             loss = criterion(out[:-1,:,:].view(-1,10001), sentences[1:,:].view(-1))
             model.zero_grad()
@@ -359,7 +359,7 @@ with open("interpolated_ensemble_predictions.csv", "w") as f:
         padwords = torch.cat([pads,words],dim=0)
         NNLMout = fNNLM(torch.cat([ padwords[:,0:1][b:b+n,:] for b in range(words.size(0)) ],dim=1).t()).unsqueeze(1)
         #print(NNLMout.size())
-        out = model(sentences,LSTMout,GRUout,NNLMout)
+        out = model(words.t(),LSTMout,GRUout,NNLMout)
         out = out.view(-1,len(TEXT.vocab))[-2]
         #out = out.squeeze(1)[-2] # |V|
         out = F.softmax(out,dim=0)
