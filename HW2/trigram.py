@@ -8,8 +8,8 @@ import argparse
 timenow = time.time()
 parser = argparse.ArgumentParser()
 parser.add_argument('--batch_size','-bs',type=int,default=10,help='set training batch size. default = 10.')
-parser.add_argument('--alphab','-ab',type=float, default=0.2)
-parser.add_argument('--alphat','-at',type=float, default=0.4)
+parser.add_argument('--alphab','-ab',type=float, default=0.4)
+parser.add_argument('--alphat','-at',type=float, default=0.25)
 parser.add_argument('--epsilon','-e',type=float,default=0.01)
 args = parser.parse_args()
 
