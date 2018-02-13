@@ -171,13 +171,20 @@ class dGRU(nn.Module):
 
 class Tune(nn.Module):
     def __init__(self):
-        super(dGRU, self).__init__()
-        self.linear = nn.Linear(len(TEXT.vocab)*3,len(TEXT.vocab))
+        super(Tune, self).__init__()
+        self.linear1 = nn.Linear(len(TEXT.vocab),len(TEXT.vocab))
+        self.linear1.weight.data.copy_(torch.eye(len(TEXT.vocab)))
+        self.linear2 = nn.Linear(len(TEXT.vocab),len(TEXT.vocab))
+        self.linear2.weight.data.copy_(torch.eye(len(TEXT.vocab)))
+        self.linear3 = nn.Linear(len(TEXT.vocab),len(TEXT.vocab))
+        self.linear3.weight.data.copy_(torch.eye(len(TEXT.vocab)))
         
-    def forward(self, input):
-        out = F.dropout(input,p=dropout)
-        out = self.linear(out)
-        reutrn out
+    def forward(self, input1, input2, input3):
+        out = self.linear1(input1)
+        out += self.linear2(input2)
+        out += self.linear3(input3)
+        return out
+
     
 fNNLM = NNLM()    
 fLSTM = dLSTM()    
@@ -185,9 +192,15 @@ fGRU = dGRU()
 fNNLM.load_state_dict(torch.load('../../models/HW2/nnlm.pkl'))
 fLSTM.load_state_dict(torch.load('../../models/HW2/lstm.pkl'))
 fGRU.load_state_dict(torch.load('../../models/HW2/gru.pkl'))
-freeze_model(NNLM)
+freeze_model(fNNLM)
 freeze_model(fLSTM)
 freeze_model(fGRU)
+fNNLM.cuda()
+fLSTM.cuda()
+fGRU.cuda()
+fNNLM.eval()
+fLSTM.eval()
+fGRU.eval()
 
 model = Tune()
 if torch.cuda.is_available():
@@ -217,8 +230,10 @@ def validate():
         pads = Variable(torch.zeros(n-1,sentences.size(1))).type(torch.cuda.LongTensor)
         padsentences = torch.cat([pads,sentences],dim=0)
         NNLMout = torch.stack([ fNNLM(torch.cat([ padsentences[:,a:a+1][b:b+n,:] for b in range(32) ],dim=1).t()) for a in range(bs) ],dim=1)
-        eOUT = torch.cat([LSTMout,GRUout,NNLMout],dim=2)
-        tOUT = model(eOUT.view(-1,eOUT.size(-1)))
+        #eOUT = torch.cat([LSTMout,GRUout,NNLMout],dim=2)
+        tOUT = model(LSTMout.view(-1,len(TEXT.vocab)),
+                     GRUout.view(-1,len(TEXT.vocab)),
+                     NNLMout.view(-1,len(TEXT.vocab)))
         out  = tOUT.view(32,bs,len(TEXT.vocab))
         for j in range(sentences.size(0)-1):
             outj = out[j] # bs,|V|
@@ -261,8 +276,10 @@ if not args.skip_training:
             padsentences = torch.cat([pads,sentences],dim=0)
             NNLMout = torch.stack([ fNNLM(torch.cat([ padsentences[:,a:a+1][b:b+n,:] for b in range(32) ],dim=1).t()) for a in range(bs) ],dim=1)
             # out is n,bs,|V|, hidden is ((n_layers,bs,hidden_size)*2)
-            eOUT = torch.cat([LSTMout,GRUout,NNLMout],dim=2)
-            tOUT = model(eOUT.view(-1,eOUT.size(-1)))
+            #eOUT = torch.cat([LSTMout,GRUout,NNLMout],dim=2)
+            tOUT = model(LSTMout.view(-1,len(TEXT.vocab)),
+                         GRUout.view(-1,len(TEXT.vocab)),
+                         NNLMout.view(-1,len(TEXT.vocab)))
             out  = tOUT.view(32,bs,len(TEXT.vocab))
             loss = criterion(out[:-1,:,:].view(-1,10001), sentences[1:,:].view(-1))
             model.zero_grad()
