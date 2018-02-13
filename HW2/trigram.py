@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--batch_size','-bs',type=int,default=10,help='set training batch size. default = 10.')
 parser.add_argument('--alphab','-ab',type=float, default=0.2)
 parser.add_argument('--alphat','-at',type=float, default=0.4)
-parser.add_argument('--epsilon','-e',type=float,default=10**-6)
+parser.add_argument('--epsilon','-e',type=float,default=0.1)
 args = parser.parse_args()
 
 # Hyperparameters
@@ -133,6 +133,7 @@ for batch in iter(val_iter):
             if label in indices:
                 precision += precisionmat[indices.index(label)]
             # cross entropy
+            prob = (1-eps)*out[label]+eps/len(TEXT.vocab)
             crossentropy -= np.log(max(out[label],eps))
             # plain ol accuracy
             total += 1
