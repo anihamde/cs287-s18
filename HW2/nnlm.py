@@ -192,7 +192,8 @@ if not args.skip_training:
         print("Val acc, prec, ppl", acc, prec, ppl)
 else:
     model.load_state_dict(torch.load(args.model_file))
-
+    acc, prec, ppl = validate()
+    print("Val acc, prec, ppl", acc, prec, ppl)
 
 model.eval()
 with open("nnlm_predictions.csv", "w") as f:
