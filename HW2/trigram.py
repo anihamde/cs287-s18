@@ -151,8 +151,8 @@ for batch in iter(val_iter):
 # print(precisionmat[indices.index(label)] if label in indices else 0)
 # print(indices[0] == label)
 
-print('Test Accuracy', correct/total)
-print('Precision',precision/total)
-print('Perplexity',np.exp(crossentropy/total))
+    print('Test Accuracy', correct/total)
+    print('Precision',precision/total)
+    print('Perplexity',np.exp(crossentropy/total))
 
 # print(time.time()-timenow)
