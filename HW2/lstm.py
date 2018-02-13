@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import csv
 import argparse
+import sys
 
 parser = argparse.ArgumentParser(description='lstm training runner')
 parser.add_argument('--model_file','-m',type=str,default='../../models/HW2/lstm.pkl',help='Model save target.')
@@ -42,11 +43,11 @@ train, val, test = torchtext.datasets.LanguageModelingDataset.splits(
     path="./", 
     train="train.txt", validation="valid.txt", test="valid.txt", text_field=TEXT)
 
-print('len(train)', len(train))
+print('len(train)', len(train), file=sys.stderr)
 
 TEXT.build_vocab(train)
 padidx = TEXT.vocab.stoi["<pad>"]
-print('len(TEXT.vocab)', len(TEXT.vocab))
+print('len(TEXT.vocab)', len(TEXT.vocab), file=sys.stderr)
 
 if False:
     TEXT.build_vocab(train, max_size=1000)
@@ -57,18 +58,18 @@ train_iter, val_iter, test_iter = torchtext.data.BPTTIterator.splits(
 
 it = iter(train_iter)
 batch = next(it) 
-print("Size of text batch [max bptt length, batch size]", batch.text.size())
-print("Second in batch", batch.text[:, 2])
-print("Converted back to string: ", " ".join([TEXT.vocab.itos[i] for i in batch.text[:, 2].data]))
+print("Size of text batch [max bptt length, batch size]", batch.text.size(), file=sys.stderr)
+print("Second in batch", batch.text[:, 2], file=sys.stderr)
+print("Converted back to string: ", " ".join([TEXT.vocab.itos[i] for i in batch.text[:, 2].data]), file=sys.stderr)
 batch = next(it)
-print("Converted back to string: ", " ".join([TEXT.vocab.itos[i] for i in batch.text[:, 2].data]))
+print("Converted back to string: ", " ".join([TEXT.vocab.itos[i] for i in batch.text[:, 2].data]), file=sys.stderr)
 
 # Build the vocabulary with word embeddings
 url = 'https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.simple.vec'
 TEXT.vocab.load_vectors(vectors=Vectors('wiki.simple.vec', url=url)) # feel free to alter path
-print("Word embeddings size ", TEXT.vocab.vectors.size())
+print("Word embeddings size ", TEXT.vocab.vectors.size(), file=sys.stderr)
 word2vec = TEXT.vocab.vectors
-print("REMINDER!!! Did you create ../../models/HW2?????")
+print("REMINDER!!! Did you create ../../models/HW2?????", file=sys.stderr)
 
 # TODO: attention!!
 # TODO: learning rate decay? (zaremba has specific instructions for this)
@@ -118,7 +119,7 @@ class dLSTM(nn.Module):
 model = dLSTM()
 if torch.cuda.is_available():
     model.cuda()
-    print("CUDA is available, assigning to GPU.")
+    print("CUDA is available, assigning to GPU.", file=sys.stderr)
 
 criterion = nn.CrossEntropyLoss()
 params = filter(lambda x: x.requires_grad, model.parameters())
@@ -184,7 +185,8 @@ if not args.skip_training:
             losses.append(loss.data[0])
             if ctr % 100 == 0:
                 print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
-                    %(i+1, num_epochs, ctr, len(train_iter), sum(losses[-500:])/len(losses[-500:])  ))
+                    %(i+1, num_epochs, ctr, len(train_iter), sum(losses[-500:])/len(losses[-500:])  ),
+                      file=sys.stderr)
             hidden = repackage_hidden(hidden)
 
         # can add a net_flag to these file names. and feel free to change the paths
