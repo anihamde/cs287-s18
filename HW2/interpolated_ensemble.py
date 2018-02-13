@@ -239,7 +239,7 @@ for name,param in model.named_parameters():
     if 'bias' in name:
         biasparams.append(param)
 
-optimizer = torch.optim.Adam(biasparams, lr=learning_rate, weight_decay=weight_decay)
+optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay)
 
 def validate():
     softmaxer = torch.nn.Softmax(dim=1)
