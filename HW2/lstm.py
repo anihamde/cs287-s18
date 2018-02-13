@@ -174,9 +174,7 @@ if not args.skip_training:
                 sentences = sentences.cuda()
             out, hidden = model(sentences, hidden)
             # out is n,bs,|V|, hidden is ((n_layers,bs,hidden_size)*2)
-            loss = 0
-            for j in range(sentences.size(0)-1):
-                loss += criterion(out[j], sentences[j+1])
+            loss = criterion(out[:-1,:,:].view(-1,10001), sentences[1:,:].view(-1))
             model.zero_grad()
             loss.backward(retain_graph=True)
             #nn.utils.clip_grad_norm(params, constraint, norm_type=2) # what the, why is it zero
@@ -201,7 +199,6 @@ else:
 
 model.eval()
 with open("lstm_predictions.csv", "w") as f:
-    softmaxer = torch.nn.Softmax(dim=1)
     writer = csv.writer(f)
     writer.writerow(['id','word'])
     for i, l in enumerate(open("input.txt"),1):
@@ -210,9 +207,9 @@ with open("lstm_predictions.csv", "w") as f:
         hidden = (Variable(torch.zeros(n_layers, 1, hidden_size)).cuda(),
             Variable(torch.zeros(n_layers, 1, hidden_size)).cuda())
         out, _ = model(words,hidden)
-        out = out.squeeze(1)
-        out = softmaxer(out)
-        _, predicted = torch.sort(out,dim=1,descending=True)
-        predicted = predicted[0,:20].data.tolist()
+        out = out.squeeze(1)[-2] # |V|
+        out = F.softmax(out,dim=0)
+        _, predicted = torch.sort(out,descending=True)
+        predicted = predicted[:20].data.tolist()
         predwords = [TEXT.vocab.itos[x] for x in predicted]
         writer.writerow([i,' '.join(predwords)])
