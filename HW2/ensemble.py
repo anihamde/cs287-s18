@@ -185,8 +185,9 @@ fGRU = dGRU()
 freeze_model(NNLM)
 freeze_model(fLSTM)
 freeze_model(fGRU)
-
-
+fNNLM.load_state_dict(torch.load('../../models/HW2/nnlm.pkl'))
+fLSTM.load_state_dict(torch.load('../../models/HW2/lstm.pkl'))
+fGRU.load_state_dict(torch.load('../../models/HW2/gru.pkl'))
 
 model = Tune()
 if torch.cuda.is_available():
