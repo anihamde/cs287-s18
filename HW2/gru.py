@@ -204,8 +204,7 @@ with open("gru_predictions.csv", "w") as f:
     for i, l in enumerate(open("input.txt"),1):
         words = [TEXT.vocab.stoi[word] for word in l.split(' ')]
         words = Variable(torch.cuda.LongTensor(words).unsqueeze(1))
-        hidden = (Variable(torch.zeros(n_layers, 1, hidden_size)).cuda(),
-            Variable(torch.zeros(n_layers, 1, hidden_size)).cuda())
+        hidden = model.initHidden()
         out, _ = model(words,hidden)
         out = out.squeeze(1)[-2] # |V|
         out = F.softmax(out,dim=0)
