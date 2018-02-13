@@ -169,22 +169,40 @@ class dGRU(nn.Module):
             h0 = h0.cuda()
         return Variable(h0)
 
-class Tune(nn.Module):
+class Alpha(nn.Module):
     def __init__(self):
-        super(Tune, self).__init__()
-        self.linear1 = nn.Linear(len(TEXT.vocab),len(TEXT.vocab))
-        self.linear1.weight.data.copy_(torch.eye(len(TEXT.vocab)))
-        self.linear2 = nn.Linear(len(TEXT.vocab),len(TEXT.vocab))
-        self.linear2.weight.data.copy_(torch.eye(len(TEXT.vocab)))
-        self.linear3 = nn.Linear(len(TEXT.vocab),len(TEXT.vocab))
-        self.linear3.weight.data.copy_(torch.eye(len(TEXT.vocab)))
+        super(Alpha, self).__init__()
+        self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
+        self.embeddings.weight.data = TEXT.vocab.vectors
+        self.conv3 = nn.Conv2d(300,n_featmaps1,kernel_size=(3,1),padding=(1,0))
+        self.conv5 = nn.Conv2d(300,n_featmaps2,kernel_size=(5,1),padding=(2,0))
+        self.maxpool = nn.AdaptiveMaxPool1d(1)
+        self.dropout = nn.Dropout(dropout_rate)
+        self.linear = nn.Linear(n_featmaps*2,3)
         
-    def forward(self, input1, input2, input3):
-        out = self.linear1(input1)
-        out += self.linear2(input2)
-        out += self.linear3(input3)
+    def forward(self, inputs, model1, model1, model1):
+        bsz = inputs.size(0) # batch size might change
+        if inputs.size(1) < 3: # padding issues on really short sentences
+            pads = Variable(torch.zeros(bsz,3-inputs.size(1))).type(torch.LongTensor)
+            inputs = torch.cat([inputs,pads.cuda()],dim=1)
+        embeds = self.embeddings(inputs) # bs,h,300
+        out = embeds.unsqueeze(1) # bs,1,h,300
+        out = out.permute(0,3,2,1) # bs,300,h,1
+        fw3 = self.conv3(out) # bs,n_feat1,h,1
+        fw5 = self.conv5(out) # bs,n_feat2,h,1
+        out = torch.cat([fw3,fw5],dim=1)
+        out = F.relu(out) # bs,n_feat1+n_feat2,h,1
+        out = out.squeeze(-1) # bs,n_feat1+n_feat2,h
+        out = self.maxpool(out) # bs,n_feat1+n_feat2,1
+        out = out.squeeze(-1) # bs,n_feat1+n_feat2
+        out = self.dropout(out) # bs,n_feat1+n_feat2
+        out = self.linear(out) # bs,3
+        model_stack = torch.stack([model1,model2,model3],dim=3)
+        out = out.unsqueeze(0)
+        out = out.unsqueeze(2)
+        out = model_stack * out
+        out = out.sum(3)
         return out
-
     
 fNNLM = NNLM()    
 fLSTM = dLSTM()    
@@ -239,10 +257,8 @@ def validate():
         NNLMout = torch.stack([ fNNLM(torch.cat([ padsentences[:,a:a+1][b:b+n,:] for b in range(32) ],dim=1).t()) for a in range(sentences.size(1)) ],dim=1)
         #eOUT = torch.cat([LSTMout,GRUout,NNLMout],dim=2)
         NNLMout = NNLMout[-sentences.size(0):,:sentences.size(1),:len(TEXT.vocab)]
-        tOUT = model(LSTMout.view(-1,len(TEXT.vocab)),
-                     GRUout.view(-1,len(TEXT.vocab)),
-                     NNLMout.view(-1,len(TEXT.vocab)))
-        out  = tOUT.view(sentences.size(0),sentences.size(1),len(TEXT.vocab))
+        tOUT = model(sentences,LSTMout,GRUout,NNLMout)
+        out  = tOUT
         for j in range(sentences.size(0)-1):
             outj = out[j] # bs,|V|
             labelsj = sentences[j+1] # bs
@@ -292,10 +308,8 @@ if not args.skip_training:
             #print("gru_dim: {}".format(GRUout.size()))
             # out is n,bs,|V|, hidden is ((n_layers,bs,hidden_size)*2)
             #eOUT = torch.cat([LSTMout,GRUout,NNLMout],dim=2)
-            tOUT = model(LSTMout.view(-1,len(TEXT.vocab)),
-                         GRUout.view(-1,len(TEXT.vocab)),
-                         NNLMout.view(-1,len(TEXT.vocab)))
-            out  = tOUT.view(sentences.size(0),sentences.size(1),len(TEXT.vocab))
+            tOUT = model(sentences,LSTMout,GRUout,NNLMout)
+            out  = tOUT
             loss = criterion(out[:-1,:,:].view(-1,10001), sentences[1:,:].view(-1))
             model.zero_grad()
             loss.backward(retain_graph=True)
@@ -338,9 +352,7 @@ with open("ensemble_predictions.csv", "w") as f:
         padwords = torch.cat([pads,words],dim=0)
         NNLMout = fNNLM(torch.cat([ padwords[:,0:1][b:b+n,:] for b in range(words.size(0)) ],dim=1).t()).unsqueeze(1)
         #print(NNLMout.size())
-        out = model(LSTMout.view(-1,len(TEXT.vocab)),
-                    GRUout.view(-1,len(TEXT.vocab)),
-                    NNLMout.view(-1,len(TEXT.vocab)))
+        out = model(sentences,LSTMout,GRUout,NNLMout)
         out = out.view(-1,len(TEXT.vocab))[-2]
         #out = out.squeeze(1)[-2] # |V|
         out = F.softmax(out,dim=0)
