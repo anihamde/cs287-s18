@@ -13,6 +13,7 @@ parser.add_argument('--model_file','-m',type=str,default='../../models/HW2/lstm.
 parser.add_argument('--batch_size','-bs',type=int,default=10,help='set training batch size. default=10.')
 parser.add_argument('--num_layers','-nl',type=int,default=2,help='set number of lstm layers.')
 parser.add_argument('--hidden_size','-hs',type=int,default=500,help='set size of hidden layer.')
+parser.add_argument('--receptive_field','-rf',type=int,default=5,help='set receptive field of nnlm.')
 parser.add_argument('--learning_rate','-lr',type=float,default=0.001,help='set learning rate.')
 parser.add_argument('--weight_decay','-wd',type=float,default=0.0,help='set L2 normalization factor.')
 parser.add_argument('--num_epochs','-e',type=int,default=5,help='set the number of training epochs.')
@@ -24,6 +25,7 @@ args = parser.parse_args()
 
 # Hyperparameters
 bs = args.batch_size
+n = args.receptive_field # receptive field
 n_layers = args.num_layers
 hidden_size = args.hidden_size
 learning_rate = args.learning_rate
