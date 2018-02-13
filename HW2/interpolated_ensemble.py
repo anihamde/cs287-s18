@@ -9,11 +9,13 @@ import argparse
 import sys
 
 parser = argparse.ArgumentParser(description='lstm training runner')
-parser.add_argument('--model_file','-m',type=str,default='../../models/HW2/ensemble.pkl',help='Model save target.')
+parser.add_argument('--model_file','-m',type=str,default='../../models/HW2/interpolated_ensemble.pkl',help='Model save target.')
 parser.add_argument('--batch_size','-bs',type=int,default=10,help='set training batch size. default=10.')
 parser.add_argument('--num_layers','-nl',type=int,default=2,help='set number of lstm layers.')
 parser.add_argument('--hidden_size','-hs',type=int,default=500,help='set size of hidden layer.')
 parser.add_argument('--receptive_field','-rf',type=int,default=5,help='set receptive field of nnlm.')
+parser.add_argument('--convolutional_featuremap_1','-cf1',type=int,default=200,help='Featuremap density for 3x1 conv.')
+parser.add_argument('--convolutional_featuremap_2','-cf2',type=int,default=200,help='Featuremap density for 5x1 conv.')
 parser.add_argument('--learning_rate','-lr',type=float,default=0.001,help='set learning rate.')
 parser.add_argument('--weight_decay','-wd',type=float,default=0.0,help='set L2 normalization factor.')
 parser.add_argument('--num_epochs','-e',type=int,default=5,help='set the number of training epochs.')
@@ -34,6 +36,8 @@ num_epochs = args.num_epochs
 emb_mn = args.embedding_max_norm
 dropout_rate = args.dropout_rate
 constraint = args.clip_constraint
+n_featmaps1 = args.convolutional_featuremap_1
+n_featmaps2 = args.convolutional_featuremap_2
 
 # Text processing library
 import torchtext
@@ -178,7 +182,7 @@ class Alpha(nn.Module):
         self.conv5 = nn.Conv2d(300,n_featmaps2,kernel_size=(5,1),padding=(2,0))
         self.maxpool = nn.AdaptiveMaxPool1d(1)
         self.dropout = nn.Dropout(dropout_rate)
-        self.linear = nn.Linear(n_featmaps*2,3)
+        self.linear = nn.Linear(n_featmaps1+n_featmaps2,3)
         
     def forward(self, inputs, model1, model2, model3):
         bsz = inputs.size(0) # batch size might change
@@ -326,7 +330,7 @@ if not args.skip_training:
             GRUhidden = repackage_hidden(GRUhidden)
 
         # can add a net_flag to these file names. and feel free to change the paths
-        np.save("../../models/HW2/ensemble_losses",np.array(losses))
+        np.save("../../models/HW2/interpolated_ensemble_losses",np.array(losses))
         torch.save(model.state_dict(), args.model_file)
         # for early stopping
         acc, prec, ppl = validate()
@@ -337,7 +341,7 @@ else:
 
 model.eval()
 model.eval()
-with open("ensemble_predictions.csv", "w") as f:
+with open("interpolated_ensemble_predictions.csv", "w") as f:
     writer = csv.writer(f)
     writer.writerow(['id','word'])
     for i, l in enumerate(open("input.txt"),1):
