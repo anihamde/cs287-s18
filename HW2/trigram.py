@@ -133,13 +133,13 @@ for batch in iter(val_iter):
             if label in indices:
                 precision += precisionmat[indices.index(label)]
             # cross entropy
-            prob = (1-eps)*out[label]+eps/len(TEXT.vocab)
-            crossentropy -= np.log(max(out[label],eps))
+            prob = (1-eps)*out[label]+(eps/len(TEXT.vocab))
+            crossentropy -= np.log(prob)
             # plain ol accuracy
             total += 1
             correct += (indices[0] == label)
             # if total % 500 == 0: print stats
-    if total>2500: # that's enough
+    if total>1500: # that's enough
         break
 
 # DEBUGGING:

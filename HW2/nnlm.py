@@ -15,6 +15,7 @@ parser.add_argument('--hidden_size','-hs',type=int,default=100,help='set size of
 parser.add_argument('--learning_rate','-lr',type=float,default=0.001,help='set learning rate.')
 parser.add_argument('--weight_decay','-wd',type=float,default=0.0,help='set L2 normalization factor.')
 parser.add_argument('--num_epochs','-e',type=int,default=10,help='set the number of training epochs.')
+parser.add_argument('--dropout_rate','-dr',type=float,default=0.5,help='set dropout rate for deep layers.')
 parser.add_argument('--embedding_max_norm','-emn',type=float,default=15,help='set max L2 norm of word embedding vector.')
 parser.add_argument('--bias_decay','-bd',action='store_true',help='raise to impose weight decay on bias variables.')
 parser.add_argument('--skip_training','-sk',action='store_true',help='raise flag to skip training and go to eval.')
@@ -28,6 +29,7 @@ learning_rate = args.learning_rate
 weight_decay = args.weight_decay
 num_epochs = args.num_epochs
 emb_mn = args.embedding_max_norm # embedding max norm (folk knowledge)
+dropout_rate = args.dropout_rate
 
 # Text processing library
 import torchtext
@@ -87,7 +89,8 @@ class NNLM(nn.Module):
         embeds = self.embeddings(inputs) # bs,n,300
         embeds = embeds.view(-1,n*300) # bs,n*300
         out = F.tanh(self.h(embeds)) # bs,hidden_size
-        out = self.u(out) # bs,|V|
+        out = self.u(F.dropout(out,p=dropout_rate)) # bs,|V|
+        embeds = F.dropout(embeds,p=dropout_rate)
         out += self.w(embeds) # bs,|V|
         #out = F.softmax(out,dim=1)
         return out
