@@ -86,6 +86,29 @@ def repackage_hidden(h):
     else:
         return tuple(repackage_hidden(v) for v in h)
 
+def freeze_model(model):
+    for param in model.parameters():
+        param.requires_grad = False
+
+class NNLM(nn.Module):
+    def __init__(self):
+        super(NNLM, self).__init__()
+        # Test the max_norm. Is it norm per row, or total norm of the whole matrix?
+        self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1),max_norm=emb_mn)
+        self.embeddings.weight.data = TEXT.vocab.vectors
+        self.h = nn.Linear(n*300,hidden_size)
+        self.u = nn.Linear(hidden_size,len(TEXT.vocab))
+        self.w = nn.Linear(n*300,len(TEXT.vocab))
+    def forward(self, inputs): # inputs (batch size, "sentence" length) bs,n
+        embeds = self.embeddings(inputs) # bs,n,300
+        embeds = embeds.view(-1,n*300) # bs,n*300
+        out = F.tanh(self.h(embeds)) # bs,hidden_size
+        out = self.u(F.dropout(out,p=dropout_rate)) # bs,|V|
+        embeds = F.dropout(embeds,p=dropout_rate)
+        out += self.w(embeds) # bs,|V|
+        #out = F.softmax(out,dim=1)
+        return out
+        
 class dLSTM(nn.Module):
     def __init__(self):
         super(dLSTM, self).__init__()
@@ -115,8 +138,55 @@ class dLSTM(nn.Module):
             h0 = h0.cuda()
             c0 = c0.cuda()
         return (Variable(h0), Variable(c0))
+    
+class dGRU(nn.Module):
+    def __init__(self):
+        super(dGRU, self).__init__()
+        self.embedding = nn.Embedding(word2vec.size(0),word2vec.size(1),max_norm=emb_mn)
+        self.embedding.weight.data.copy_(word2vec)
+        self.gru = nn.GRU(word2vec.size(1), hidden_size, n_layers, dropout=dropout_rate)
+        self.linear = nn.Linear(hidden_size, len(TEXT.vocab))
+        self.softmax = nn.LogSoftmax(dim=2)
+        
+    def forward(self, input, hidden): 
+        # input is (sentence length, batch size) n,bs
+        # hidden is ((n_layers,bs,hidden_size),(n_layers,bs,hidden_size))
+        embeds = self.embedding(input) # n,bs,300
+        # batch goes along the second dimension
+        out = F.dropout(embeds,p=dropout_rate)
+        out, hidden = self.gru(out, hidden)
+        out = F.dropout(out,p=dropout_rate)
+        # apply the linear and the softmax
+        out = self.linear(out) # n,bs,|V|
+        #out = self.softmax(out)    # This was originally the output. (SG: I see this is LogSoftmax)
+        return out, hidden
+    
+    def initHidden(self):
+        h0 = torch.zeros(n_layers, bs, hidden_size).type(torch.FloatTensor)
+        if torch.cuda.is_available():
+            h0 = h0.cuda()
+        return Variable(h0)
 
-model = dLSTM()
+class Tune(nn.Module):
+    def __init__(self):
+        super(dGRU, self).__init__()
+        self.linear = nn.Linear(len(TEXT.vocab)*3,len(TEXT.vocab))
+        
+    def forward(self, input):
+        out = F.dropout(input,p=dropout)
+        out = self.linear(out)
+        reutrn out
+    
+fNNLM = NNLM()    
+fLSTM = dLSTM()    
+fGRU = dGRU()
+freeze_model(NNLM)
+freeze_model(fLSTM)
+freeze_model(fGRU)
+
+
+
+model = Tune()
 if torch.cuda.is_available():
     model.cuda()
     print("CUDA is available, assigning to GPU.", file=sys.stderr)
@@ -133,12 +203,20 @@ def validate():
     precisionmat = torch.cuda.FloatTensor(precisionmat.copy())
     precision = 0
     crossentropy = 0
-    hidden = model.initHidden()
+    LSTMhidden = fLSTM.initHidden()
+    GRUhidden = fGRU.initHidden()
     for batch in iter(val_iter):
         sentences = batch.text # n=32,bs
         if torch.cuda.is_available():
             sentences = sentences.cuda()
-        out, hidden = model(sentences, hidden)
+        LSTMout, LSTMhidden = fLSTM(sentences, LSTMhidden)
+        GRUout, GRUhidden = fGRU(sentences, GRUhidden)
+        pads = Variable(torch.zeros(n-1,sentences.size(1))).type(torch.cuda.LongTensor)
+        padsentences = torch.cat([pads,sentences],dim=0)
+        NNLMout = torch.stack([ fNNLM(torch.cat([ padsentences[:,a:a+1][b:b+n,:] for b in range(32) ],dim=1).t()) for a in range(bs) ],dim=1)
+        eOUT = torch.cat([LSTMout,GRUout,NNLMout],dim=2)
+        tOUT = model(eOUT.view(-1,eOUT.size(-1)))
+        out  = tOUT.view(32,bs,len(TEXT.vocab))
         for j in range(sentences.size(0)-1):
             outj = out[j] # bs,|V|
             labelsj = sentences[j+1] # bs
@@ -168,13 +246,21 @@ if not args.skip_training:
         model.train()
         ctr = 0
         # initialize hidden vector
-        hidden = model.initHidden()
+        LSTMhidden = fLSTM.initHidden()
+        GRUhidden = fGRU.initHidden()
         for batch in iter(train_iter):
             sentences = batch.text # Variable of LongTensor of size (n,bs)
             if torch.cuda.is_available():
                 sentences = sentences.cuda()
-            out, hidden = model(sentences, hidden)
+            LSTMout, LSTMhidden = fLSTM(sentences, LSTMhidden)
+            GRUout, GRUhidden = fGRU(sentences, GRUhidden)
+            pads = Variable(torch.zeros(n-1,sentences.size(1))).type(torch.cuda.LongTensor)
+            padsentences = torch.cat([pads,sentences],dim=0)
+            NNLMout = torch.stack([ fNNLM(torch.cat([ padsentences[:,a:a+1][b:b+n,:] for b in range(32) ],dim=1).t()) for a in range(bs) ],dim=1)
             # out is n,bs,|V|, hidden is ((n_layers,bs,hidden_size)*2)
+            eOUT = torch.cat([LSTMout,GRUout,NNLMout],dim=2)
+            tOUT = model(eOUT.view(-1,eOUT.size(-1)))
+            out  = tOUT.view(32,bs,len(TEXT.vocab))
             loss = criterion(out[:-1,:,:].view(-1,10001), sentences[1:,:].view(-1))
             model.zero_grad()
             loss.backward(retain_graph=True)
@@ -187,7 +273,8 @@ if not args.skip_training:
                 print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
                     %(i+1, num_epochs, ctr, len(train_iter), sum(losses[-500:])/len(losses[-500:])  ),
                       file=sys.stderr)
-            hidden = repackage_hidden(hidden)
+            LSTMhidden = repackage_hidden(LSTMhidden)
+            GRUhidden = repackage_hidden(GRUhidden)
 
         # can add a net_flag to these file names. and feel free to change the paths
         np.save("../../models/HW2/lstm_losses",np.array(losses))
