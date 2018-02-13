@@ -224,7 +224,7 @@ fNNLM.eval()
 fLSTM.eval()
 fGRU.eval()
 
-model = Tune()
+model = Alpha()
 if torch.cuda.is_available():
     model.cuda()
     print("CUDA is available, assigning to GPU.", file=sys.stderr)
