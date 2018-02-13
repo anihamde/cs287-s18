@@ -174,9 +174,7 @@ if not args.skip_training:
                 sentences = sentences.cuda()
             out, hidden = model(sentences, hidden)
             # out is n,bs,|V|, hidden is ((n_layers,bs,hidden_size)*2)
-            loss = 0
-            for j in range(sentences.size(0)-1):
-                loss += criterion(out[j], sentences[j+1])
+            loss = criterion(out[:-1,:,:].view(-1,10001), sentences[1:,:].view(-1))
             model.zero_grad()
             loss.backward(retain_graph=True)
             #nn.utils.clip_grad_norm(params, constraint, norm_type=2) # what the, why is it zero
