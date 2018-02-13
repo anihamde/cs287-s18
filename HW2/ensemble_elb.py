@@ -4,8 +4,6 @@ from collections import Counter
 import csv
 import copy
 import argparse
-from trigram import predict
-from lstm import repackage_hidden
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--alphatri','-at',type=float, default=0.33)
@@ -60,6 +58,54 @@ url = 'https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.simple.vec'
 TEXT.vocab.load_vectors(vectors=Vectors('wiki.simple.vec', url=url)) # feel free to alter path
 print("REMINDER!!! Did you create ../../models/HW2?????")
 
+
+
+
+
+
+uni = Counter()
+bi = Counter()
+tri = Counter()
+biprev = [1] * bs # "1" is <pad>
+triprev = [1] * bs * 2
+
+for batch in iter(train_iter):
+    txt = batch.text.data
+    uni.update(txt.view(-1).tolist()) # throw all words into bag
+    bi0 = biprev + txt[:-1,:].view(-1).tolist()
+    bi1 = txt.view(-1).tolist()
+    biprev = txt[-1,:].view(-1).tolist()
+    bi.update(zip(bi0,bi1))
+    tri0 = triprev + txt[:-2,:].view(-1).tolist()
+    tri1 = triprev[bs:] + txt[:-1,:].view(-1).tolist()
+    tri2 = txt.view(-1).tolist()
+    triprev = txt[-2:,:].view(-1).tolist()
+    tri.update(zip(tri0,tri1,tri2))
+
+print("Done training trigram!")
+# TODO: experiment with ignoring EOS for unigrams, like this
+# uni[TEXT.vocab.stoi["<eos>"]] = 0
+
+unisum = sum(uni.values()) # just normalize once for unigrams
+for k in uni:
+    uni[k] *= (1 - alpha_b - alpha_t) / unisum
+print("Done normalizing unigram counter!")
+
+def predict(l):
+    # filter
+    bifilt = Counter({k:bi[k] for k in bi if k[0]==l[-1]})
+    trifilt = Counter({k:tri[k] for k in tri if k[0]==l[-2] and k[1]==l[-1]})
+    # normalize
+    bisum = sum(bifilt.values())
+    trisum = sum(trifilt.values())
+    # combine
+    total = copy.copy(uni) # shallow copy
+    for k in bifilt:
+        total[k[-1]] += bifilt[k] * alpha_b / bisum
+    for k in trifilt:
+        total[k[-1]] += trifilt[k] * alpha_t / trisum
+    return total
+
 class NNLM(nn.Module):
     def __init__(self):
         super(NNLM, self).__init__()
@@ -78,6 +124,13 @@ class NNLM(nn.Module):
         out += self.w(embeds) # bs,|V|
         #out = F.softmax(out,dim=1)
         return out
+
+def repackage_hidden(h):
+    """Wraps hidden states in new Variables, to detach them from their history."""
+    if type(h) == Variable:
+        return Variable(h.data)
+    else:
+        return tuple(repackage_hidden(v) for v in h)
 
 class dLSTM(nn.Module):
     def __init__(self):
@@ -108,6 +161,8 @@ class dLSTM(nn.Module):
             h0 = h0.cuda()
             c0 = c0.cuda()
         return (Variable(h0), Variable(c0))
+
+
 
 
 nnlm = NNLM()
@@ -158,7 +213,10 @@ for batch in iter(val_iter):
     _, predicted = torch.max(out, 1)
     total += labels.ne(padidx).int().sum()
     correct += (predicted==labels).sum()
+    hidden = repackage_hidden(hidden)
 
     print('Test Accuracy', correct/total)
     print('Precision',precision/total)
     print('Perplexity',torch.exp(bs*crossentropy/total).data[0])
+
+
