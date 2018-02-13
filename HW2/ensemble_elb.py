@@ -1,6 +1,10 @@
 import time
 import numpy as np
 from collections import Counter
+import torch
+from torch.autograd import Variable
+import torch.nn as nn
+import torch.nn.functional as F
 import csv
 import copy
 import argparse
@@ -53,6 +57,8 @@ train, val, test = torchtext.datasets.LanguageModelingDataset.splits(
     train="train.txt", validation="valid.txt", test="valid.txt", text_field=TEXT)
 
 TEXT.build_vocab(train)
+train_iter, val_iter, test_iter = torchtext.data.BPTTIterator.splits(
+    (train, val, test), batch_size=bs, device=-1, bptt_len=32, repeat=False)
 
 url = 'https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.simple.vec'
 TEXT.vocab.load_vectors(vectors=Vectors('wiki.simple.vec', url=url)) # feel free to alter path
