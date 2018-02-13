@@ -209,6 +209,8 @@ class Alpha(nn.Module):
         out = model_stack * out
         out = out.sum(3)
         return out
+
+model = Alpha()
     
 fNNLM = NNLM()    
 fLSTM = dLSTM()    
@@ -220,26 +222,23 @@ if args.freeze_models:
     freeze_model(fNNLM)
     freeze_model(fLSTM)
     freeze_model(fGRU)
-fNNLM.cuda()
-fLSTM.cuda()
-fGRU.cuda()
+
+if torch.cuda.is_available():
+    fNNLM.cuda()
+    fLSTM.cuda()
+    fGRU.cuda()
+    model.cuda()
+
+params = filter(lambda x: x.requires_grad, model.parameters())
 if args.freeze_models:
     fNNLM.eval()
     fLSTM.eval()
     fGRU.eval()
-
-model = Alpha()
-if torch.cuda.is_available():
-    model.cuda()
-    print("CUDA is available, assigning to GPU.", file=sys.stderr)
+else:
+    for pretrained in [fNNLM,fLSTM,fGRU]:
+        params.extend(filter(lambda x: x.requires_grad, pretrained.parameters()))
 
 criterion = nn.CrossEntropyLoss()
-params = filter(lambda x: x.requires_grad, model.parameters())
-biasparams = []
-for name,param in model.named_parameters():
-    if 'bias' in name:
-        biasparams.append(param)
-
 optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay)
 
 def validate():
