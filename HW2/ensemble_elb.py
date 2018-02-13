@@ -10,7 +10,7 @@ import copy
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--alphatri','-at',type=float, default=0.33)
+parser.add_argument('--alphatri','-atr',type=float, default=0.33)
 parser.add_argument('--alphannlm','-an',type=float, default=0.33)
 parser.add_argument('--nnlmpath','-np',type=str,default='../../models/HW2/nnlm.pkl',help='Path to nnlm model.')
 parser.add_argument('--lstmpath','-lp',type=str,default='../../models/HW2/lstm.pkl',help='Path to lstm model.')
@@ -62,6 +62,7 @@ train_iter, val_iter, test_iter = torchtext.data.BPTTIterator.splits(
 
 url = 'https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.simple.vec'
 TEXT.vocab.load_vectors(vectors=Vectors('wiki.simple.vec', url=url)) # feel free to alter path
+word2vec = TEXT.vocab.vectors
 print("REMINDER!!! Did you create ../../models/HW2?????")
 
 
@@ -143,8 +144,8 @@ class dLSTM(nn.Module):
         super(dLSTM, self).__init__()
         self.embedding = nn.Embedding(word2vec.size(0),word2vec.size(1),max_norm=emb_mn)
         self.embedding.weight.data.copy_(word2vec)
-        self.lstm = nn.LSTM(word2vec.size(1), hidden_size, n_layers, dropout=dropout_rate)
-        self.linear = nn.Linear(hidden_size, len(TEXT.vocab))
+        self.lstm = nn.LSTM(word2vec.size(1), l_hidden_size, n_layers, dropout=dropout_rate)
+        self.linear = nn.Linear(l_hidden_size, len(TEXT.vocab))
         self.softmax = nn.LogSoftmax(dim=2)
         
     def forward(self, input, hidden): 
