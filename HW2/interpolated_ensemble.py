@@ -326,6 +326,10 @@ if not args.skip_training:
             out  = tOUT
             loss = criterion(out[:-1,:,:].view(-1,10001), sentences[1:,:].view(-1))
             model.zero_grad()
+            if not args.freeze_models:
+                fLSTM.zero_grad()
+                fGRU.zero_grad()
+                fNNLM.zero_grad()
             loss.backward(retain_graph=True)
             #nn.utils.clip_grad_norm(params, constraint, norm_type=2) # what the, why is it zero
             optimizer.step()
