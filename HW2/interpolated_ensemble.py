@@ -21,6 +21,7 @@ parser.add_argument('--weight_decay','-wd',type=float,default=0.0,help='set L2 n
 parser.add_argument('--num_epochs','-e',type=int,default=5,help='set the number of training epochs.')
 parser.add_argument('--embedding_max_norm','-emn',type=float,default=15,help='set max L2 norm of word embedding vector.')
 parser.add_argument('--dropout_rate','-dr',type=float,default=0.5,help='set dropout rate for deep layers.')
+parser.add_argument('--freeze_models','-fz',action='store_true',help='raise flag to freeze ensemble member parameters.')
 parser.add_argument('--skip_training','-sk',action='store_true',help='raise flag to skip training and go to eval.')
 parser.add_argument('--clip_constraint','-c',type=float,default=5,help='set constraint for gradient clipping.')
 args = parser.parse_args()
@@ -215,15 +216,17 @@ fGRU = dGRU()
 fNNLM.load_state_dict(torch.load('../../models/HW2/nnlm.pkl'))
 fLSTM.load_state_dict(torch.load('../../models/HW2/lstm.pkl'))
 fGRU.load_state_dict(torch.load('../../models/HW2/gru.pkl'))
-freeze_model(fNNLM)
-freeze_model(fLSTM)
-freeze_model(fGRU)
+if args.freeze_models:
+    freeze_model(fNNLM)
+    freeze_model(fLSTM)
+    freeze_model(fGRU)
 fNNLM.cuda()
 fLSTM.cuda()
 fGRU.cuda()
-fNNLM.eval()
-fLSTM.eval()
-fGRU.eval()
+if args.freeze_models:
+    fNNLM.eval()
+    fLSTM.eval()
+    fGRU.eval()
 
 model = Alpha()
 if torch.cuda.is_available():
@@ -242,6 +245,9 @@ optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay
 def validate():
     softmaxer = torch.nn.Softmax(dim=1)
     model.eval()
+    fLSTM.eval()
+    fGRU.eval()
+    fNNLM.eval()
     correct = total = 0
     precisionmat = (1/np.arange(1,21))[::-1].cumsum()[::-1]
     precisionmat = torch.cuda.FloatTensor(precisionmat.copy())
@@ -292,6 +298,10 @@ if not args.skip_training:
     losses = []
     for i in range(num_epochs):
         model.train()
+        if not args.freeze_models:
+            fLSTM.train()
+            fGRU.train()
+            fNNLM.train()
         ctr = 0
         # initialize hidden vector
         LSTMhidden = fLSTM.initHidden()
@@ -338,7 +348,8 @@ if not args.skip_training:
         print("Val acc, prec, ppl", acc, prec, ppl)
 else:
     model.load_state_dict(torch.load(args.model_file))
-
+    acc, prec, ppl = validate()
+    print("Val acc, prec, ppl", acc, prec, ppl)
 
 model.eval()
 model.eval()
