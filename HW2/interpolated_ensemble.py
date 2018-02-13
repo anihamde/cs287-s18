@@ -205,6 +205,8 @@ class Alpha(nn.Module):
         model_stack = torch.stack([model1,model2,model3],dim=3)
         out = out.unsqueeze(0)
         out = out.unsqueeze(2)
+        print(out.size())
+        print(model_stack.size())
         out = model_stack * out
         out = out.sum(3)
         return out
