@@ -201,7 +201,6 @@ else:
 
 model.eval()
 with open("lstm_predictions.csv", "w") as f:
-    softmaxer = torch.nn.Softmax(dim=1)
     writer = csv.writer(f)
     writer.writerow(['id','word'])
     for i, l in enumerate(open("input.txt"),1):
@@ -210,9 +209,9 @@ with open("lstm_predictions.csv", "w") as f:
         hidden = (Variable(torch.zeros(n_layers, 1, hidden_size)).cuda(),
             Variable(torch.zeros(n_layers, 1, hidden_size)).cuda())
         out, _ = model(words,hidden)
-        out = out.squeeze(1)
-        out = softmaxer(out)
-        _, predicted = torch.sort(out,dim=1,descending=True)
-        predicted = predicted[0,:20].data.tolist()
+        out = out.squeeze(1)[-2] # |V|
+        out = F.softmax(out,dim=0)
+        _, predicted = torch.sort(out,descending=True)
+        predicted = predicted[:20].data.tolist()
         predwords = [TEXT.vocab.itos[x] for x in predicted]
         writer.writerow([i,' '.join(predwords)])
