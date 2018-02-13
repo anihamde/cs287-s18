@@ -125,7 +125,7 @@ for batch in iter(val_iter):
         pads = torch.zeros(sentences.size(0),3-sentences.size(1)).type(torch.LongTensor)
         sentences = torch.cat([pads,sentences],dim=1)
     for sentence in sentences:
-        for j in range(2,sentence.size(0)):
+        for j in range(2,sentence.size(0),5): # added that 5 for spice/variety
             # precision
             out = predict(sentence[j-2:j])
             indices = [a for a,b in out.most_common(20)]
@@ -139,7 +139,7 @@ for batch in iter(val_iter):
             total += 1
             correct += (indices[0] == label)
             # if total % 500 == 0: print stats
-    if total>1500: # that's enough
+    if total>1000: # that's enough
         break
 
 # DEBUGGING:
@@ -151,8 +151,8 @@ for batch in iter(val_iter):
 # print(precisionmat[indices.index(label)] if label in indices else 0)
 # print(indices[0] == label)
 
-print('Test Accuracy', correct/total)
-print('Precision',precision/total)
-print('Perplexity',np.exp(crossentropy/total))
+    print('Test Accuracy', correct/total)
+    print('Precision',precision/total)
+    print('Perplexity',np.exp(crossentropy/total))
 
 # print(time.time()-timenow)
