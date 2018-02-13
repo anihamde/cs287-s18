@@ -180,7 +180,7 @@ class Alpha(nn.Module):
         self.dropout = nn.Dropout(dropout_rate)
         self.linear = nn.Linear(n_featmaps*2,3)
         
-    def forward(self, inputs, model1, model1, model1):
+    def forward(self, inputs, model1, model2, model3):
         bsz = inputs.size(0) # batch size might change
         if inputs.size(1) < 3: # padding issues on really short sentences
             pads = Variable(torch.zeros(bsz,3-inputs.size(1))).type(torch.LongTensor)
