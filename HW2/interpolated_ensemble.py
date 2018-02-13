@@ -201,7 +201,7 @@ class Alpha(nn.Module):
         out = out.squeeze(-1) # bs,n_feat1+n_feat2
         out = self.dropout(out) # bs,n_feat1+n_feat2
         out = self.linear(out) # bs,3
-        out = F.Softmax(out,dim=1)
+        out = F.softmax(out,dim=1)
         model_stack = torch.stack([model1,model2,model3],dim=3)
         out = out.unsqueeze(0)
         out = out.unsqueeze(2)
