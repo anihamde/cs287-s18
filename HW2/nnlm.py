@@ -11,7 +11,7 @@ parser = argparse.ArgumentParser(description='nnlm training runner')
 parser.add_argument('--model_file','-m',type=str,default='../../models/HW2/nnlm.pkl',help='Model save target.')
 parser.add_argument('--batch_size','-bs',type=int,default=10,help='set training batch size. default = 10.')
 parser.add_argument('--receptive_field','-rf',type=int,default=5,help='set receptive field of nnlm.')
-parser.add_argument('--hidden_size','-hs',type=int,default=100,help='set size of hidden layer.')
+parser.add_argument('--hidden_size','-hs',type=int,default=500,help='set size of hidden layer.')
 parser.add_argument('--learning_rate','-lr',type=float,default=0.001,help='set learning rate.')
 parser.add_argument('--weight_decay','-wd',type=float,default=0.0,help='set L2 normalization factor.')
 parser.add_argument('--num_epochs','-e',type=int,default=10,help='set the number of training epochs.')
@@ -192,7 +192,8 @@ if not args.skip_training:
         print("Val acc, prec, ppl", acc, prec, ppl)
 else:
     model.load_state_dict(torch.load(args.model_file))
-
+    acc, prec, ppl = validate()
+    print("Val acc, prec, ppl", acc, prec, ppl)
 
 model.eval()
 with open("nnlm_predictions.csv", "w") as f:

@@ -9,16 +9,19 @@ import argparse
 import sys
 
 parser = argparse.ArgumentParser(description='lstm training runner')
-parser.add_argument('--model_file','-m',type=str,default='../../models/HW2/ensemble.pkl',help='Model save target.')
+parser.add_argument('--model_file','-m',type=str,default='../../models/HW2/interpolated_ensemble.pkl',help='Model save target.')
 parser.add_argument('--batch_size','-bs',type=int,default=10,help='set training batch size. default=10.')
 parser.add_argument('--num_layers','-nl',type=int,default=2,help='set number of lstm layers.')
 parser.add_argument('--hidden_size','-hs',type=int,default=500,help='set size of hidden layer.')
 parser.add_argument('--receptive_field','-rf',type=int,default=5,help='set receptive field of nnlm.')
+parser.add_argument('--convolutional_featuremap_1','-cf1',type=int,default=200,help='Featuremap density for 3x1 conv.')
+parser.add_argument('--convolutional_featuremap_2','-cf2',type=int,default=200,help='Featuremap density for 5x1 conv.')
 parser.add_argument('--learning_rate','-lr',type=float,default=0.001,help='set learning rate.')
 parser.add_argument('--weight_decay','-wd',type=float,default=0.0,help='set L2 normalization factor.')
 parser.add_argument('--num_epochs','-e',type=int,default=5,help='set the number of training epochs.')
 parser.add_argument('--embedding_max_norm','-emn',type=float,default=15,help='set max L2 norm of word embedding vector.')
 parser.add_argument('--dropout_rate','-dr',type=float,default=0.5,help='set dropout rate for deep layers.')
+parser.add_argument('--freeze_models','-fz',action='store_true',help='raise flag to freeze ensemble member parameters.')
 parser.add_argument('--skip_training','-sk',action='store_true',help='raise flag to skip training and go to eval.')
 parser.add_argument('--clip_constraint','-c',type=float,default=5,help='set constraint for gradient clipping.')
 args = parser.parse_args()
@@ -34,6 +37,8 @@ num_epochs = args.num_epochs
 emb_mn = args.embedding_max_norm
 dropout_rate = args.dropout_rate
 constraint = args.clip_constraint
+n_featmaps1 = args.convolutional_featuremap_1
+n_featmaps2 = args.convolutional_featuremap_2
 
 # Text processing library
 import torchtext
@@ -178,9 +183,9 @@ class Alpha(nn.Module):
         self.conv5 = nn.Conv2d(300,n_featmaps2,kernel_size=(5,1),padding=(2,0))
         self.maxpool = nn.AdaptiveMaxPool1d(1)
         self.dropout = nn.Dropout(dropout_rate)
-        self.linear = nn.Linear(n_featmaps*2,3)
+        self.linear = nn.Linear(n_featmaps1+n_featmaps2,3)
         
-    def forward(self, inputs, model1, model1, model1):
+    def forward(self, inputs, model1, model2, model3):
         bsz = inputs.size(0) # batch size might change
         if inputs.size(1) < 3: # padding issues on really short sentences
             pads = Variable(torch.zeros(bsz,3-inputs.size(1))).type(torch.LongTensor)
@@ -197,12 +202,15 @@ class Alpha(nn.Module):
         out = out.squeeze(-1) # bs,n_feat1+n_feat2
         out = self.dropout(out) # bs,n_feat1+n_feat2
         out = self.linear(out) # bs,3
+        out = F.softmax(out,dim=1)
         model_stack = torch.stack([model1,model2,model3],dim=3)
         out = out.unsqueeze(0)
         out = out.unsqueeze(2)
         out = model_stack * out
         out = out.sum(3)
         return out
+
+model = Alpha()
     
 fNNLM = NNLM()    
 fLSTM = dLSTM()    
@@ -210,33 +218,35 @@ fGRU = dGRU()
 fNNLM.load_state_dict(torch.load('../../models/HW2/nnlm.pkl'))
 fLSTM.load_state_dict(torch.load('../../models/HW2/lstm.pkl'))
 fGRU.load_state_dict(torch.load('../../models/HW2/gru.pkl'))
-freeze_model(fNNLM)
-freeze_model(fLSTM)
-freeze_model(fGRU)
-fNNLM.cuda()
-fLSTM.cuda()
-fGRU.cuda()
-fNNLM.eval()
-fLSTM.eval()
-fGRU.eval()
+if args.freeze_models:
+    freeze_model(fNNLM)
+    freeze_model(fLSTM)
+    freeze_model(fGRU)
 
-model = Tune()
 if torch.cuda.is_available():
+    fNNLM.cuda()
+    fLSTM.cuda()
+    fGRU.cuda()
     model.cuda()
-    print("CUDA is available, assigning to GPU.", file=sys.stderr)
+
+params = list(filter(lambda x: x.requires_grad, model.parameters()))
+if args.freeze_models:
+    fNNLM.eval()
+    fLSTM.eval()
+    fGRU.eval()
+else:
+    for pretrained in [fNNLM,fLSTM,fGRU]:
+        params.extend(list(filter(lambda x: x.requires_grad, pretrained.parameters())))
 
 criterion = nn.CrossEntropyLoss()
-params = filter(lambda x: x.requires_grad, model.parameters())
-biasparams = []
-for name,param in model.named_parameters():
-    if 'bias' in name:
-        biasparams.append(param)
-
-optimizer = torch.optim.Adam(biasparams, lr=learning_rate, weight_decay=weight_decay)
+optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay)
 
 def validate():
     softmaxer = torch.nn.Softmax(dim=1)
     model.eval()
+    fLSTM.eval()
+    fGRU.eval()
+    fNNLM.eval()
     correct = total = 0
     precisionmat = (1/np.arange(1,21))[::-1].cumsum()[::-1]
     precisionmat = torch.cuda.FloatTensor(precisionmat.copy())
@@ -257,7 +267,7 @@ def validate():
         NNLMout = torch.stack([ fNNLM(torch.cat([ padsentences[:,a:a+1][b:b+n,:] for b in range(32) ],dim=1).t()) for a in range(sentences.size(1)) ],dim=1)
         #eOUT = torch.cat([LSTMout,GRUout,NNLMout],dim=2)
         NNLMout = NNLMout[-sentences.size(0):,:sentences.size(1),:len(TEXT.vocab)]
-        tOUT = model(sentences,LSTMout,GRUout,NNLMout)
+        tOUT = model(sentences.t(),LSTMout,GRUout,NNLMout)
         out  = tOUT
         for j in range(sentences.size(0)-1):
             outj = out[j] # bs,|V|
@@ -287,6 +297,10 @@ if not args.skip_training:
     losses = []
     for i in range(num_epochs):
         model.train()
+        if not args.freeze_models:
+            fLSTM.train()
+            fGRU.train()
+            fNNLM.train()
         ctr = 0
         # initialize hidden vector
         LSTMhidden = fLSTM.initHidden()
@@ -308,10 +322,14 @@ if not args.skip_training:
             #print("gru_dim: {}".format(GRUout.size()))
             # out is n,bs,|V|, hidden is ((n_layers,bs,hidden_size)*2)
             #eOUT = torch.cat([LSTMout,GRUout,NNLMout],dim=2)
-            tOUT = model(sentences,LSTMout,GRUout,NNLMout)
+            tOUT = model(sentences.t(),LSTMout,GRUout,NNLMout)
             out  = tOUT
             loss = criterion(out[:-1,:,:].view(-1,10001), sentences[1:,:].view(-1))
             model.zero_grad()
+            if not args.freeze_models:
+                fLSTM.zero_grad()
+                fGRU.zero_grad()
+                fNNLM.zero_grad()
             loss.backward(retain_graph=True)
             #nn.utils.clip_grad_norm(params, constraint, norm_type=2) # what the, why is it zero
             optimizer.step()
@@ -326,18 +344,19 @@ if not args.skip_training:
             GRUhidden = repackage_hidden(GRUhidden)
 
         # can add a net_flag to these file names. and feel free to change the paths
-        np.save("../../models/HW2/ensemble_losses",np.array(losses))
+        np.save("../../models/HW2/interpolated_ensemble_losses",np.array(losses))
         torch.save(model.state_dict(), args.model_file)
         # for early stopping
         acc, prec, ppl = validate()
         print("Val acc, prec, ppl", acc, prec, ppl)
 else:
     model.load_state_dict(torch.load(args.model_file))
-
+    acc, prec, ppl = validate()
+    print("Val acc, prec, ppl", acc, prec, ppl)
 
 model.eval()
 model.eval()
-with open("ensemble_predictions.csv", "w") as f:
+with open("interpolated_ensemble_predictions.csv", "w") as f:
     writer = csv.writer(f)
     writer.writerow(['id','word'])
     for i, l in enumerate(open("input.txt"),1):
@@ -352,7 +371,7 @@ with open("ensemble_predictions.csv", "w") as f:
         padwords = torch.cat([pads,words],dim=0)
         NNLMout = fNNLM(torch.cat([ padwords[:,0:1][b:b+n,:] for b in range(words.size(0)) ],dim=1).t()).unsqueeze(1)
         #print(NNLMout.size())
-        out = model(sentences,LSTMout,GRUout,NNLMout)
+        out = model(words.t(),LSTMout,GRUout,NNLMout)
         out = out.view(-1,len(TEXT.vocab))[-2]
         #out = out.squeeze(1)[-2] # |V|
         out = F.softmax(out,dim=0)
