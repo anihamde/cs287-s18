@@ -11,8 +11,11 @@ import sys
 parser = argparse.ArgumentParser(description='lstm training runner')
 parser.add_argument('--model_file','-m',type=str,default='../../models/HW2/interpolated_ensemble.pkl',help='Model save target.')
 parser.add_argument('--batch_size','-bs',type=int,default=10,help='set training batch size. default=10.')
-parser.add_argument('--num_layers','-nl',type=int,default=2,help='set number of lstm layers.')
-parser.add_argument('--hidden_size','-hs',type=int,default=500,help='set size of hidden layer.')
+parser.add_argument('--lstm_num_layers','-lnl',type=int,default=2,help='set number of lstm layers.')
+parser.add_argument('--lstm_hidden_size','-lhs',type=int,default=500,help='set size of hidden layer.')
+parser.add_argument('--gru_num_layers','-gnl',type=int,default=2,help='set number of lstm layers.')
+parser.add_argument('--gru_hidden_size','-ghs',type=int,default=500,help='set size of hidden layer.')
+parser.add_argument('--nnlm_hidden_size','-nhs',type=int,default=500,help='set size of hidden layer.')
 parser.add_argument('--receptive_field','-rf',type=int,default=5,help='set receptive field of nnlm.')
 parser.add_argument('--convolutional_featuremap_1','-cf1',type=int,default=200,help='Featuremap density for 3x1 conv.')
 parser.add_argument('--convolutional_featuremap_2','-cf2',type=int,default=200,help='Featuremap density for 5x1 conv.')
@@ -29,8 +32,11 @@ args = parser.parse_args()
 # Hyperparameters
 bs = args.batch_size
 n = args.receptive_field # receptive field
-n_layers = args.num_layers
-hidden_size = args.hidden_size
+LSTM_n_layers = args.lstm_num_layers
+LSTM_hidden_size = args.lstm_hidden_size
+GRU_n_layers = args.gru_num_layers
+GRU_hidden_size = args.gru_hidden_size
+NNLM_hidden_size = args.nnlm_hidden_size
 learning_rate = args.learning_rate
 weight_decay = args.weight_decay
 num_epochs = args.num_epochs
@@ -103,8 +109,8 @@ class NNLM(nn.Module):
         # Test the max_norm. Is it norm per row, or total norm of the whole matrix?
         self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1),max_norm=emb_mn)
         self.embeddings.weight.data = TEXT.vocab.vectors
-        self.h = nn.Linear(n*300,hidden_size)
-        self.u = nn.Linear(hidden_size,len(TEXT.vocab))
+        self.h = nn.Linear(n*300,NNLM_hidden_size)
+        self.u = nn.Linear(NNLM_hidden_size,len(TEXT.vocab))
         self.w = nn.Linear(n*300,len(TEXT.vocab))
     def forward(self, inputs): # inputs (batch size, "sentence" length) bs,n
         embeds = self.embeddings(inputs) # bs,n,300
@@ -121,8 +127,8 @@ class dLSTM(nn.Module):
         super(dLSTM, self).__init__()
         self.embedding = nn.Embedding(word2vec.size(0),word2vec.size(1),max_norm=emb_mn)
         self.embedding.weight.data.copy_(word2vec)
-        self.lstm = nn.LSTM(word2vec.size(1), hidden_size, n_layers, dropout=dropout_rate)
-        self.linear = nn.Linear(hidden_size, len(TEXT.vocab))
+        self.lstm = nn.LSTM(word2vec.size(1), LSTM_hidden_size, LSTM_n_layers, dropout=dropout_rate)
+        self.linear = nn.Linear(LSTM_hidden_size, len(TEXT.vocab))
         self.softmax = nn.LogSoftmax(dim=2)
         
     def forward(self, input, hidden): 
@@ -138,9 +144,9 @@ class dLSTM(nn.Module):
         #out = self.softmax(out)    # This was originally the output. (SG: I see this is LogSoftmax)
         return out, hidden
     
-    def initHidden(self):
-        h0 = torch.zeros(n_layers, bs, hidden_size).type(torch.FloatTensor)
-        c0 = torch.zeros(n_layers, bs, hidden_size).type(torch.FloatTensor)
+    def initHidden(self,batch_size=bs):
+        h0 = torch.zeros(LSTM_n_layers, batch_size, LSTM_hidden_size).type(torch.FloatTensor)
+        c0 = torch.zeros(LSTM_n_layers, batch_size, LSTM_hidden_size).type(torch.FloatTensor)
         if torch.cuda.is_available():
             h0 = h0.cuda()
             c0 = c0.cuda()
@@ -151,8 +157,8 @@ class dGRU(nn.Module):
         super(dGRU, self).__init__()
         self.embedding = nn.Embedding(word2vec.size(0),word2vec.size(1),max_norm=emb_mn)
         self.embedding.weight.data.copy_(word2vec)
-        self.gru = nn.GRU(word2vec.size(1), hidden_size, n_layers, dropout=dropout_rate)
-        self.linear = nn.Linear(hidden_size, len(TEXT.vocab))
+        self.gru = nn.GRU(word2vec.size(1), GRU_hidden_size, GRU_n_layers, dropout=dropout_rate)
+        self.linear = nn.Linear(GRU_hidden_size, len(TEXT.vocab))
         self.softmax = nn.LogSoftmax(dim=2)
         
     def forward(self, input, hidden): 
@@ -168,8 +174,8 @@ class dGRU(nn.Module):
         #out = self.softmax(out)    # This was originally the output. (SG: I see this is LogSoftmax)
         return out, hidden
     
-    def initHidden(self):
-        h0 = torch.zeros(n_layers, bs, hidden_size).type(torch.FloatTensor)
+    def initHidden(self,batch_size=bs):
+        h0 = torch.zeros(GRU_n_layers, batch_size, GRU_hidden_size).type(torch.FloatTensor)
         if torch.cuda.is_available():
             h0 = h0.cuda()
         return Variable(h0)
@@ -362,9 +368,8 @@ with open("interpolated_ensemble_predictions.csv", "w") as f:
     for i, l in enumerate(open("input.txt"),1):
         words = [TEXT.vocab.stoi[word] for word in l.split(' ')]
         words = Variable(torch.cuda.LongTensor(words).unsqueeze(1))
-        LSTMhidden = (Variable(torch.zeros(n_layers, 1, hidden_size)).cuda(),
-            Variable(torch.zeros(n_layers, 1, hidden_size)).cuda())
-        GRUhidden = Variable(torch.zeros(n_layers, 1, hidden_size)).cuda()
+        LSTMhidden = fLSTM.initHidden(1)
+        GRUhidden = fGRU.initHidden(1)
         LSTMout, LSTMhidden = fLSTM(words, LSTMhidden)
         GRUout, GRUhidden = fGRU(words, GRUhidden)
         pads = Variable(torch.zeros(n-1,words.size(1))).type(torch.cuda.LongTensor)
