@@ -113,6 +113,7 @@ def predict(l):
         total[k[-1]] += trifilt[k] * alpha_t / trisum
     return total
 
+# here's batch size is wrong
 class NNLM(nn.Module):
     def __init__(self):
         super(NNLM, self).__init__()
