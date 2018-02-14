@@ -229,14 +229,14 @@ if torch.cuda.is_available():
     fGRU.cuda()
     model.cuda()
 
-params = filter(lambda x: x.requires_grad, model.parameters())
+params = list(filter(lambda x: x.requires_grad, model.parameters()))
 if args.freeze_models:
     fNNLM.eval()
     fLSTM.eval()
     fGRU.eval()
 else:
     for pretrained in [fNNLM,fLSTM,fGRU]:
-        params.extend(filter(lambda x: x.requires_grad, pretrained.parameters()))
+        params.extend(list(filter(lambda x: x.requires_grad, pretrained.parameters())))
 
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay)
