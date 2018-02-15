@@ -20,6 +20,7 @@ parser.add_argument('--embedding_max_norm','-emn',type=float,default=15,help='se
 parser.add_argument('--dropout_rate','-dr',type=float,default=0.5,help='set dropout rate for deep layers.')
 parser.add_argument('--skip_training','-sk',action='store_true',help='raise flag to skip training and go to eval.')
 parser.add_argument('--clip_constraint','-c',type=float,default=5,help='set constraint for gradient clipping.')
+parser.add_argument('--weight_tying','-wt',action='store_true',help='Add weight tying.')
 args = parser.parse_args()
 
 # Hyperparameters
@@ -93,6 +94,8 @@ class dLSTM(nn.Module):
         self.embedding.weight.data.copy_(word2vec)
         self.lstm = nn.LSTM(word2vec.size(1), hidden_size, n_layers, dropout=dropout_rate)
         self.linear = nn.Linear(hidden_size, len(TEXT.vocab))
+        if args.weight_tying:
+            self.linear.weight = self.embedding.weight.t()
         self.softmax = nn.LogSoftmax(dim=2)
         
     def forward(self, input, hidden): 
