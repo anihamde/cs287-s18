@@ -184,6 +184,8 @@ if not args.skip_training:
             #nn.utils.clip_grad_norm(params, constraint, norm_type=2) # what the, why is it zero
             optimizer.step()
             # hidden vector is automatically saved for next batch
+            if args.weight_tying:
+                model.linear.weight = model.embedding.weight.t()
             ctr += 1
             losses.append(loss.data[0])
             if ctr % 100 == 0:
