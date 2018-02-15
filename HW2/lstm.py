@@ -94,10 +94,8 @@ class dLSTM(nn.Module):
         self.embedding.weight.data.copy_(word2vec)
         self.lstm = nn.LSTM(word2vec.size(1), hidden_size, n_layers, dropout=dropout_rate)
         self.linear = nn.Linear(hidden_size, len(TEXT.vocab))
-        print(self.linear.weight.data.size())
-        print(self.embedding.weight.data.size())
         if args.weight_tying:
-            self.linear.weight.data.copy_(self.embedding.weight.data.t())
+            self.linear.weight.data.copy_(self.embedding.weight.data)
         self.softmax = nn.LogSoftmax(dim=2)
         
     def forward(self, input, hidden): 
@@ -187,7 +185,7 @@ if not args.skip_training:
             optimizer.step()
             # hidden vector is automatically saved for next batch
             if args.weight_tying:
-                model.linear.weight.data.copy_(model.embedding.weight.data.t())
+                model.linear.weight.data.copy_(model.embedding.weight.data)
             ctr += 1
             losses.append(loss.data[0])
             if ctr % 100 == 0:
