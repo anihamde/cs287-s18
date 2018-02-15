@@ -186,7 +186,7 @@ if not args.skip_training:
             # hidden vector is automatically saved for next batch
             if args.weight_tying:
                 #model.linear.weight.data.copy_(model.embedding.weight.data)
-                model.embedding.weight.data.copy(model.linear.weight.data)
+                model.embedding.weight.data.copy_(model.linear.weight.data)
             ctr += 1
             losses.append(loss.data[0])
             if ctr % 100 == 0:
