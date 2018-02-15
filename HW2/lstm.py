@@ -94,6 +94,8 @@ class dLSTM(nn.Module):
         self.embedding.weight.data.copy_(word2vec)
         self.lstm = nn.LSTM(word2vec.size(1), hidden_size, n_layers, dropout=dropout_rate)
         self.linear = nn.Linear(hidden_size, len(TEXT.vocab))
+        print(self.linear.weight.data.size())
+        print(self.embedding.weight.data.size())
         if args.weight_tying:
             self.linear.weight.data.copy_(self.embedding.weight.data.t())
         self.softmax = nn.LogSoftmax(dim=2)
