@@ -24,7 +24,7 @@ parser.add_argument('--weight_tying','-wt',action='store_true',help='Add weight 
 args = parser.parse_args()
 
 # Hyperparameters
-<<<<<<< HEAD
+# <<<<<<< HEAD
 bs = 10 # batch size
 hidden_size = 20
 embedding_size = 300
@@ -33,7 +33,7 @@ learning_rate = .001
 weight_decay = 0
 num_epochs = 20 # idk!
 dropout_rate = 0.5
-=======
+#=======
 bs = args.batch_size
 n_layers = args.num_layers
 hidden_size = args.hidden_size
@@ -43,7 +43,7 @@ num_epochs = args.num_epochs
 emb_mn = args.embedding_max_norm
 dropout_rate = args.dropout_rate
 constraint = args.clip_constraint
->>>>>>> 618427197ac670ccaf55003f9cbd8a64a50a6d39
+#>>>>>>> 618427197ac670ccaf55003f9cbd8a64a50a6d39
 
 # Text processing library
 import torchtext
@@ -104,18 +104,18 @@ class dLSTM(nn.Module):
         self.embedding = nn.Embedding(word2vec.size(0),word2vec.size(1),max_norm=emb_mn)
         self.embedding.weight.data.copy_(word2vec)
         self.lstm = nn.LSTM(word2vec.size(1), hidden_size, n_layers, dropout=dropout_rate)
-<<<<<<< HEAD
+#<<<<<<< HEAD
         self.droptop = nn.Dropout(dropout_rate)
         self.linear = nn.Linear(hidden_size, embedding_size)#len(TEXT.vocab))
         self.tied = nn.Linear(embedding_size,len(TEXT.vocab))
         self.tied.weight.data.copy_(self.embedding.weight.data)
         self.softmax = nn.LogSoftmax(dim=1)
-=======
+#=======
         self.linear = nn.Linear(hidden_size, len(TEXT.vocab))
         if args.weight_tying:
             self.linear.weight.data.copy_(self.embedding.weight.data)
         self.softmax = nn.LogSoftmax(dim=2)
->>>>>>> 618427197ac670ccaf55003f9cbd8a64a50a6d39
+#>>>>>>> 618427197ac670ccaf55003f9cbd8a64a50a6d39
         
     def forward(self, input, hidden): 
         # input is (sentence length, batch size) n,bs
