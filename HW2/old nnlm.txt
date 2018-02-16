@@ -1,0 +1,48 @@
+
+model.eval()
+correct = total = 0
+precisionmat = []
+
+for i in range(0,20):
+    precisionmat.append(1.0/(1.0+i))
+
+for i in range(0,20):
+    precisionmat[i] = sum(precisionmat[i:20])
+
+precisioncalc = 0
+precisioncntr = 0
+crossentropy = 0
+
+for batch in iter(val_iter):
+    sentences = batch.text.transpose(1,0) # bs, n
+    if sentences.size(1) < n+1: # make sure sentence length is long enough
+        pads = Variable(torch.zeros(sentences.size(0),n+1-sentences.size(1))).type(torch.LongTensor)
+        sentences = torch.cat([pads,sentences],dim=1)
+    for j in range(n,sentences.size(1)):
+        # precision
+        out = model(sentences[:,j-n:j]) # bs,|V|
+        _,indices = torch.sort(out,descending=True)
+        indices20 = indices[:,:20] # bs,20
+        labels = sentences[:,j] # bs
+        labels2 = labels.unsqueeze(1) # bs, 1
+        indicmat = np.where((indices20 - labels2.expand(labels2.size(0),20)).data.numpy() == 0)
+        for k in range(0,len(indicmat[0])):
+            colm = indicmat[1][k]
+            precisioncalc += precisionmat[colm]
+        precisioncntr += len(labels)
+        # cross entropy
+        crossentropy += F.cross_entropy(out,labels)
+        # plain ol accuracy
+        _, predicted = torch.max(out.data, 1)
+        total += labels.size(0)
+        correct += (predicted.numpy() == labels.data.numpy()).sum()
+
+
+###############################
+
+# Everything is faster on GPUs. Here's an old version that used numpy
+o = out.cpu().data.numpy()
+l = labels.cpu().data.numpy()
+outsort = np.argsort(o,axis=1)[:,:20]
+inds = (outsort-np.expand_dims(l,1)==0)
+precision += np.dot(precisionmat, np.sum(inds,axis=0))

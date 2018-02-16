@@ -1,0 +1,72 @@
+params are 0.2 0.5
+len(train) 1
+len(TEXT.vocab) 10001
+Done training!
+Done normalizing unigram counter!
+Test Accuracy 0.21843137254901962
+Precision 1.3003368880448263
+Perplexity 220.3933033852525
+2384.083351135254
+params are 0.2 0.8
+len(train) 1
+len(TEXT.vocab) 10001
+Done training!
+Done normalizing unigram counter!
+Test Accuracy 0.22058823529411764
+Precision 1.3242612104392804
+Perplexity inf
+2309.3424546718597
+params are 0.5 0.2
+len(train) 1
+len(TEXT.vocab) 10001
+Done training!
+Done normalizing unigram counter!
+Test Accuracy 0.21411764705882352
+Precision 1.2954736673209486
+Perplexity 191.98203475401846
+2269.9410769939423
+params are 0.5 0.5
+len(train) 1
+len(TEXT.vocab) 10001
+Done training!
+Done normalizing unigram counter!
+Test Accuracy 0.21901960784313726
+Precision 1.3191217560060737
+Perplexity inf
+2276.3870968818665
+params are 0.5 0.8
+len(train) 1
+len(TEXT.vocab) 10001
+Done training!
+Done normalizing unigram counter!
+Test Accuracy 0.21509803921568627
+Precision 1.2834547488747168
+Perplexity nan
+2278.7400941848755
+params are 0.8 0.2
+len(train) 1
+len(TEXT.vocab) 10001
+Done training!
+Done normalizing unigram counter!
+Test Accuracy 0.21
+Precision 1.2908652455342127
+Perplexity nan
+2259.636997938156
+params are 0.8 0.5
+len(train) 1
+len(TEXT.vocab) 10001
+Done training!
+Done normalizing unigram counter!
+Test Accuracy 0.21411764705882352
+Precision 1.2804963260827948
+Perplexity nan
+2262.4903733730316
+params are 0.8 0.8
+len(train) 1
+len(TEXT.vocab) 10001
+Done training!
+Done normalizing unigram counter!
+Test Accuracy 0.21549019607843137
+Precision 1.2762607209561176
+Perplexity nan
+2324.1016726493835

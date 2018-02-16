@@ -1,13 +1,23 @@
 import time
 import numpy as np
 from collections import Counter
+import csv
+import copy
+import argparse
 
 timenow = time.time()
+parser = argparse.ArgumentParser()
+parser.add_argument('--batch_size','-bs',type=int,default=10,help='set training batch size. default = 10.')
+parser.add_argument('--alphab','-ab',type=float, default=0.4)
+parser.add_argument('--alphat','-at',type=float, default=0.25)
+parser.add_argument('--epsilon','-e',type=float,default=0.01)
+args = parser.parse_args()
 
 # Hyperparameters
-bs = 10 # batch size
-alpha_t = .4 # trigram probability
-alpha_b = .2 # bigram probability
+bs = args.batch_size
+alpha_b = args.alphab
+alpha_t = args.alphat
+eps = args.epsilon
 
 # Text processing library
 import torchtext
@@ -32,22 +42,27 @@ if False:
 train_iter, val_iter, test_iter = torchtext.data.BPTTIterator.splits(
     (train, val, test), batch_size=bs, device=-1, bptt_len=32, repeat=False)
 
-it = iter(train_iter)
-batch = next(it) 
-print("Size of text batch [max bptt length, batch size]", batch.text.size())
-print("Second in batch", batch.text[:, 2])
-print("Converted back to string: ", " ".join([TEXT.vocab.itos[i] for i in batch.text[:, 2].data]))
-batch = next(it)
-print("Converted back to string: ", " ".join([TEXT.vocab.itos[i] for i in batch.text[:, 2].data]))
+# it = iter(train_iter)
+# batch = next(it) 
+# print("Size of text batch [max bptt length, batch size]", batch.text.size())
+# print("Second in batch", batch.text[:, 2])
+# print("Converted back to string: ", " ".join([TEXT.vocab.itos[i] for i in batch.text[:, 2].data]))
+# batch = next(it)
+# print("Converted back to string: ", " ".join([TEXT.vocab.itos[i] for i in batch.text[:, 2].data]))
 
+# TODO: tiny epsilon normalization to stop entropy from infinity-- is that ok? when a word has prob 0, we do eps CE
+# otherwise, how to stop entropy from infinity?
+# TODO: weights as a function of frequency of prev 2 words (bengio)
+
+# Maybe I can come up with something more efficient than a counter?
 uni = Counter()
 bi = Counter()
 tri = Counter()
-biprev = [1] * bs # this uses padding
+biprev = [1] * bs # "1" is <pad>
 triprev = [1] * bs * 2
 
-for b in iter(train_iter):
-    txt = b.text.data
+for batch in iter(train_iter):
+    txt = batch.text.data
     uni.update(txt.view(-1).tolist()) # throw all words into bag
     bi0 = biprev + txt[:-1,:].view(-1).tolist()
     bi1 = txt.view(-1).tolist()
@@ -59,15 +74,14 @@ for b in iter(train_iter):
     triprev = txt[-2:,:].view(-1).tolist()
     tri.update(zip(tri0,tri1,tri2))
 
-print("Training done!")
+print("Done training!")
 # TODO: experiment with ignoring EOS for unigrams, like this
 # uni[TEXT.vocab.stoi["<eos>"]] = 0
 
 unisum = sum(uni.values()) # just normalize once for unigrams
 for k in uni:
     uni[k] *= (1 - alpha_b - alpha_t) / unisum
-
-print("Done with normalizing!")
+print("Done normalizing unigram counter!")
 
 def predict(l):
     # filter
@@ -77,86 +91,68 @@ def predict(l):
     bisum = sum(bifilt.values())
     trisum = sum(trifilt.values())
     # combine
-    total = uni
+    total = copy.copy(uni) # shallow copy
     for k in bifilt:
         total[k[-1]] += bifilt[k] * alpha_b / bisum
     for k in trifilt:
         total[k[-1]] += trifilt[k] * alpha_t / trisum
-    # select top results
     return total
-    # return [TEXT.vocab.itos[i] for i,c in total.most_common(20)]
 
-print("Defined predict")
-
-
-enum_cntr = 0
-
-with open("sample.txt", "w") as fout: 
-    print("id,word", file=fout)
-    for i, l in enumerate(open("input.txt"), 1):
-        words = l.split(' ')[:-1]
-        words = [TEXT.vocab.stoi[word] for word in words]
-        total = predict(words)
-        print("%d,%s"%(i, " ".join([TEXT.vocab.itos[i] for i,c in total.most_common(20)])), file=fout)
-        enum_cntr += 1
-
-        if enum_cntr % 100 == 0:
-            print(enum_cntr)
-
-print("Done with making predictions!")
+# enum_ctr = 0
+# with open("trigram_predictions.csv", "w") as f:
+#     writer = csv.writer(f)
+#     writer.writerow(['id','word'])
+#     for i, l in enumerate(open("input.txt"),1):
+#         words = l.split(' ')[:-1]
+#         words = [TEXT.vocab.stoi[word] for word in words]
+#         out = predict(words)
+#         out = [TEXT.vocab.itos[i] for i,c in out.most_common(20)]
+#         writer.writerow([i,' '.join(out)])
+#         enum_ctr += 1
+#         if enum_ctr % 100 == 0:
+#             print(enum_ctr)
+# print("Done writing kaggle text!")
 
 # Evaluator
-
-n = 2
 correct = total = 0
-precisionmat = 1/(range(1,21))
-
-for i in range(0,20):
-    precisionmat[i] = sum(precisionmat[i:20])
-
-precisioncalc = 0
-precisioncntr = 0
+precisionmat = (1/np.arange(1,21))[::-1].cumsum()[::-1]
+precision = 0
 crossentropy = 0
 
-print("Beginning validation!")
-
 for batch in iter(val_iter):
-    sentences = batch.text.transpose(1,0)
-    if sentences.size(1) < n+1: # make sure sentence length is long enough
-        pads = Variable(torch.zeros(sentences.size(0),n+1-sentences.size(1))).type(torch.LongTensor)
+    sentences = batch.text.data.transpose(1,0) # bs,n
+    if sentences.size(1) < 3: # make sure sentence length is long enough
+        pads = torch.zeros(sentences.size(0),3-sentences.size(1)).type(torch.LongTensor)
         sentences = torch.cat([pads,sentences],dim=1)
     for sentence in sentences:
-        for j in range(n,sentence.size(0)):
+        for j in range(2,sentence.size(0),5): # added that 5 for spice/variety
             # precision
-            words = l.split(' ')[:-1]
-            sentence = [TEXT.vocab.stoi[word] for word in words]
-
-            out = predict(sentence) # TODO: Fix this
-            # out = model(sentence[j-n:j])
-            sorte,indices = torch.sort(out,desc=True)
-            indices20 = indices[0:20]
-            # _, predicted = torch.max(out.data, 1)
+            out = predict(sentence[j-2:j])
+            indices = [a for a,b in out.most_common(20)]
             label = sentence[j]
-            
-            indic = np.where(indices20 - label == 0)
-
-            precisioncalc += precisionmat[indic]
-
-            precisioncntr += 1
-
+            if label in indices:
+                precision += precisionmat[indices.index(label)]
             # cross entropy
-            crossentropy += F.cross_entropy(out,label)
-
+            prob = (1-eps)*out[label]+(eps/len(TEXT.vocab))
+            crossentropy -= np.log(prob)
             # plain ol accuracy
-            _, predicted = torch.max(out.data, 1)
-            total += label.size(0)
-            correct += (predicted == label).sum()
+            total += 1
+            correct += (indices[0] == label)
+            # if total % 500 == 0: print stats
+    if total>1000: # that's enough
+        break
 
-            if precisioncntr % 1000 == 0:
-                print(precisioncntr)
+# DEBUGGING:
+# print('we are on example', total)
+# print([TEXT.vocab.itos[w] for w in sentence[j-2:j]])
+# print(TEXT.vocab.itos[label])
+# print([TEXT.vocab.itos[w] for w in indices])
+# print(1/out[label])
+# print(precisionmat[indices.index(label)] if label in indices else 0)
+# print(indices[0] == label)
 
-print('Test Accuracy', correct/total)
-print('Precision',precisioncalc/(20*precisioncntr))
-print('Perplexity',torch.exp(crossentropy/precisioncntr))
+    print('Test Accuracy', correct/total)
+    print('Precision',precision/total)
+    print('Perplexity',np.exp(crossentropy/total))
 
-print(time.time()-timenow)
+# print(time.time()-timenow)
