@@ -9,6 +9,7 @@ import csv
 # Hyperparameters
 bs = 10 # batch size
 hidden_size = 20
+embedding_size = 300
 n_layers = 2
 learning_rate = .001
 weight_decay = 0
@@ -66,7 +67,9 @@ class dLSTM(nn.Module):
         self.dropbottom = nn.Dropout(dropout_rate)
         self.lstm = nn.LSTM(word2vec.size(1), hidden_size, n_layers, dropout=dropout_rate)
         self.droptop = nn.Dropout(dropout_rate)
-        self.linear = nn.Linear(hidden_size, len(TEXT.vocab))
+        self.linear = nn.Linear(hidden_size, embedding_size)#len(TEXT.vocab))
+        self.tied = nn.Linear(embedding_size,len(TEXT.vocab))
+        self.tied.weight.data.copy_(self.embedding.weight.data)
         self.softmax = nn.LogSoftmax(dim=1)
         
     def forward(self, input, hidden): 
