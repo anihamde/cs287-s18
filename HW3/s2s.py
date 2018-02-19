@@ -59,26 +59,35 @@ print("Word embeddings size ", EN.vocab.vectors.size())
 word2vec = EN.vocab.vectors
 print("REMINDER!!! Did you create ../../models/HW2?????")
 
+sos_token = EN.vocab.stoi["<s>"]
+eos_token = EN.vocab.stoi["</s>"]
 ''' TODO
 Pass a binary mask to attention module
 How is ppl calculated? How does bleu perl script work?
 can I contain encoder/decoder in same network? and not use a for loop?
+German word2vec? (Should I even use English word2vec in decoder? rn I'm not)
+Multi-layer, bidirectional, LSTM instead of GRU, etc
+Dropout, embedding max norms, etc
 '''
 
 
+# TWO MAJOR THINGS I HAD TO CHANGE ABOUT THE TUTORIAL CODE
+# They pass in one-hot vectors to represent words in the vocabulary, we don't
+# They assume batch_size is one, we don't
 class EncoderRNN(nn.Module):
     def __init__(self, hidden_size, bs=BATCH_SIZE):
         super(EncoderRNN, self).__init__()
         self.hidden_size = hidden_size
         self.bs = bs
-        self.embedding = nn.Embedding(word2vec.size(0), word2vec.size(1))
-        self.embedding.weight.data.copy_(word2vec)
-        self.gru = nn.GRU(word2vec.size(1), hidden_size) # input sz,hidden sz,nlayers
+        self.embedding = nn.Embedding(len(DE.vocab), 300) # 300??
+        self.gru = nn.GRU(300, hidden_size) # GRU args: inputsz,hiddensz,nlayers
 
     def forward(self, inputs, hidden):
+        # i can't use "input" as a variable name in python
+        # inputs is bs; hidden is nlayers*ndirections,bs,hiddensz
         embedded = self.embedding(inputs).view(1,self.bs,-1) # 1,bs,300
         output = embedded
-        output, hidden = self.gru(output, hidden) # output 1,bs,hiddensz*ndirections
+        output, hidden = self.gru(output, hidden) # output is 1,bs,hiddensz*ndirections
         return output, hidden
 
     def initHidden(self):
@@ -89,25 +98,26 @@ class EncoderRNN(nn.Module):
             return result
 
 class DecoderRNN(nn.Module):
-    def __init__(self, hidden_size, bs=BATCH_SIZE): # dropout?
+    def __init__(self, hidden_size, output_size, bs=BATCH_SIZE): # dropout?
         super(DecoderRNN, self).__init__()
         self.hidden_size = hidden_size
         self.bs = bs
-        self.embedding = nn.Embedding(len(DE.vocab), 300) # 300??
-        self.gru = nn.GRU(300, hidden_size)
-        self.out = nn.Linear(hidden_size, 1) # output_size should be 1
-        self.softmax = nn.LogSoftmax(dim=0)
+        self.embedding = nn.Embedding(len(EN.vocab), 300) # 300??
+        self.gru = nn.GRU(300, hidden_size) # GRU args: inputsz,hiddensz,nlayers
+        self.out = nn.Linear(hidden_size, output_size) # output_size is len(EN.vocab)
+        self.softmax = nn.LogSoftmax(dim=1)
 
     def forward(self, inputs, hidden):
+        # inputs is bs; hidden is nlayers*ndirections,bs,hiddensz
         output = self.embedding(inputs).view(1,self.bs,-1) # 1,bs,300
         output = F.relu(output)
-        output, hidden = self.gru(output, hidden) # output 1,bs,hiddensz*directions
-        output = self.out(output[0]) # bs,1
-        output = self.softmax(output.squeeze(1)) # bs
+        output, hidden = self.gru(output, hidden) # output is 1,bs,hiddensz*directions
+        output = self.out(output[0]) # bs,|V|
+        output = self.softmax(output)
         return output, hidden
 
     def initHidden(self):
-        result = Variable(torch.zeros(1, 1, self.hidden_size))
+        result = Variable(torch.zeros(1, self.bs, self.hidden_size)) # nlayers*ndirections,bs,hiddensz
         if torch.cuda.is_available():
             return result.cuda()
         else:
@@ -128,7 +138,6 @@ def train(input_variable, target_variable, encoder, decoder, encoder_optimizer, 
     input_length = input_variable.size(0) # input is maxlen,bs
     target_length = target_variable.size(0) # target is maxlen-1,bs
 
-    # check all this, check decoder too
     encoder_outputs = Variable(torch.zeros(max_length, BATCH_SIZE, encoder.hidden_size))
     encoder_outputs = encoder_outputs.cuda() if torch.cuda.is_available() else encoder_outputs
 
@@ -139,8 +148,7 @@ def train(input_variable, target_variable, encoder, decoder, encoder_optimizer, 
             input_variable[ei], encoder_hidden)
         encoder_outputs[ei] = encoder_output[0]
 
-    sos_token = EN.vocab.stoi["<s>"]
-    decoder_input = Variable(torch.LongTensor([sos_token]*BATCH_SIZE)) # should be bs-dimensional
+    decoder_input = Variable(torch.LongTensor([sos_token]*BATCH_SIZE)) # decoder input is bs
     decoder_input = decoder_input.cuda() if torch.cuda.is_available() else decoder_input
 
     decoder_hidden = encoder_hidden
@@ -150,25 +158,26 @@ def train(input_variable, target_variable, encoder, decoder, encoder_optimizer, 
     if use_teacher_forcing:
         # Teacher forcing: Feed the target as the next input
         for di in range(target_length):
-            # decoder_output, decoder_hidden, decoder_attention = decoder( # attention!!
+            # decoder_output, decoder_hidden, decoder_attention = decoder( # THIS IS THE ATTENTION VERSION!
             #     decoder_input, decoder_hidden, encoder_outputs)
-            decoder_output,decoder_hidden = decoder(decoder_input,decoder_hidden)
+            decoder_output,decoder_hidden = decoder(decoder_input,decoder_hidden) # decoder output is bs,|V|
             loss += criterion(decoder_output, target_variable[di])
             decoder_input = target_variable[di]  # Teacher forcing
 
     else:
         # Without teacher forcing: use its own predictions as the next input
         for di in range(target_length):
-            decoder_output, decoder_hidden, decoder_attention = decoder(
-                decoder_input, decoder_hidden, encoder_outputs)
+            # decoder_output, decoder_hidden, decoder_attention = decoder(
+            #     decoder_input, decoder_hidden, encoder_outputs)
+            decoder_output,decoder_hidden = decoder(decoder_input,decoder_hidden)
             topv, topi = decoder_output.data.topk(1)
-            ni = topi[0][0]
+            ni = topi.squeeze(1) # bs
 
-            decoder_input = Variable(torch.LongTensor([[ni]]))
+            decoder_input = Variable(ni)
             decoder_input = decoder_input.cuda() if torch.cuda.is_available() else decoder_input
 
             loss += criterion(decoder_output, target_variable[di])
-            if ni == EOS_token:
+            if ni == eos_token:
                 break
 
     loss.backward()
@@ -236,10 +245,9 @@ def trainIters(encoder, decoder, n_iters, print_every=1000, plot_every=100, lear
     showPlot(plot_losses)
 
 
-hidden_size = 256 # idk?
-# got rid of input_size arg
+hidden_size = 256
 encoder = EncoderRNN(hidden_size)
-attn_decoder = AttnDecoderRNN(hidden_size, output_lang.n_words, dropout_p=0.1)
+attn_decoder = AttnDecoderRNN(hidden_size, len(EN.vocab), dropout_p=0.1)
 if torch.cuda.is_available():
     encoder = encoder.cuda()
     decoder = decoder.cuda()
