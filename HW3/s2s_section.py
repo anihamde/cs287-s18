@@ -7,30 +7,34 @@ parser.add_argument('attention', metavar='is_attent', type=str, nargs=1,
 args = parser.parse_args()
 is_attent = args[0]
 
+eta = 0.05
+
 class AttnNetwork(nn.Module):
-    def __init__(self, vocab_size = 50, word_dim = 50, hidden_dim = 300):
+    def __init__(self, vocab_size_DE = 50, vocab_size_EN = 50, word_dim = 50, hidden_dim = 300):
         super(AttnNetwork, self).__init__()
         self.hidden_dim = hidden_dim
         self.encoder = nn.LSTM(word_dim, hidden_dim, num_layers = 1, batch_first = True)
         self.decoder = nn.LSTM(word_dim, hidden_dim, num_layers = 1, batch_first = True)
-        self.embedding = nn.Embedding(vocab_size, word_dim) #we are going to be sharing the embedding layer 
+        self.embedding_DE = nn.Embedding(vocab_size_DE, word_dim) #we are going to be sharing the embedding layer 
         #this vocab layer will combine dec hidden state with context vector, and the project out into vocab space 
+        self.embedding_EN = nn.Embedding(vocab_size_EN, word_dim)
         if is_attent:
             self.vocab_layer = nn.Sequential(nn.Linear(hidden_dim*2, hidden_dim),
-                                         nn.Tanh(), nn.Linear(hidden_dim, vocab_size), nn.LogSoftmax())
+                                         nn.Tanh(), nn.Linear(hidden_dim, vocab_size_EN), nn.LogSoftmax())
             #baseline reward, which we initialize with log 1/V
         else:
             self.vocab_layer = nn.Sequential(nn.Linear(hidden_dim, hidden_dim),
-                                         nn.Tanh(), nn.Linear(hidden_dim, vocab_size), nn.LogSoftmax())
+                                         nn.Tanh(), nn.Linear(hidden_dim, vocab_size_EN), nn.LogSoftmax())
             #baseline reward, which we initialize with log 1/V
-        self.baseline = Variable(torch.zeros(1).fill_(np.log(1/vocab_size)))                
+        self.baseline = Variable(torch.zeros(1).fill_(np.log(1/vocab_size_EN)))                
         
-    def forward(self, x, attn_type="hard"):
-        emb = self.embedding(x)
+    def forward(self, x_DE, x_EN, attn_type="hard"):
+        emb_DE = self.embedding_DE(x_DE)
+        emb_EN = self.embedding_EN(x_EN)
         h0 = Variable(torch.zeros(1, x.size(0), self.hidden_dim))
         c0 = Variable(torch.zeros(1, x.size(0), self.hidden_dim))
-        enc_h, _ = self.encoder(emb, (h0, c0))
-        dec_h, _ = self.decoder(emb[:, :-1], (h0, c0))
+        enc_h, _ = self.encoder(emb_DE, (h0, c0))
+        dec_h, _ = self.decoder(emb_EN[:, :-1], (h0, c0))
         #we've gotten our encoder/decoder hidden states so we are ready to do attention        
         #first let's get all our scores, which we can do easily since we are using dot-prod attention
         scores = torch.bmm(enc_h, dec_h.transpose(1,2)) #this will be a batch x source_len x target_len
@@ -68,7 +72,7 @@ class AttnNetwork(nn.Module):
     
     def predict(self, x, attn_type = "hard"):
         #predict with greedy decoding
-        emb = self.embedding(x)
+        emb = self.embedding_DE(x)
         h = Variable(torch.zeros(1, x.size(0), self.hidden_dim))
         c = Variable(torch.zeros(1, x.size(0), self.hidden_dim))
         enc_h, _ = self.encoder(emb, (h, c))
@@ -76,7 +80,7 @@ class AttnNetwork(nn.Module):
         if is_attent:
             self.attn = []        
             for t in range(x.size(1)):
-                emb_t = self.embedding(y[-1])
+                emb_t = self.embedding_DE(y[-1])
                 dec_h, (h, c) = self.decoder(emb_t.unsqueeze(1), (h, c))
                 scores = torch.bmm(enc_h, dec_h.transpose(1,2)).squeeze(2)
                 attn_dist = F.softmax(scores, dim = 1)
@@ -93,11 +97,37 @@ class AttnNetwork(nn.Module):
             self.attn = torch.stack(self.attn, 0).transpose(0, 1)
         else:
             for t in range(x.size(1)):
-                emb_t = self.embedding(y[-1])
+                emb_t = self.embedding_DE(y[-1])
                 dec_h, (h, c) = self.decoder(emb_t.unsqueeze(1), (h, c))
                 scores = torch.bmm(enc_h, dec_h.transpose(1,2)).squeeze(2)
                 pred = self.vocab_layer(dec_h.squeeze(1))
                 _, next_token = pred.max(1)
                 y.append(next_token)
         return torch.stack(y, 0).transpose(0, 1)
+
+
+def pretty_print(t):
+    #print 2d tensors nicely
+    print("\n".join([" ".join(list(map("{:.3f}".format, list(u)))) for u in list(t)]))
+    print('')
+    
+model = AttnNetwork()
+attn_type = "hard"
+num_iters = 10000
+optim = torch.optim.SGD(model.parameters(), lr=eta)
+avg_acc = 0
+for i in range(num_iters):
+    optim.zero_grad()
+    x, y = generate_data()
+    loss, neg_reward = model.forward(x, attn_type)
+    y_pred = model.predict(x, attn_type)
+    correct = torch.sum(y_pred.data[:, 1:] == y.data[:, 1:]) #exclude <s> token in acc calculation    
+    (loss + neg_reward).backward()
+    # torch.nn.utils.clip_grad_norm(model.parameters(), 1)
+    optim.step()     
+    avg_acc = 0.95*avg_acc + 0.05*correct/ (x.size(0)*x.size(1))    
+    if i % 100 == 0:        
+        print("Attn Type: %s, Iter: %d, Reward: %.2f, Accuracy: %.2f, PPL: %.2f" %
+              (attn_type, i, model.baseline.data[0], avg_acc, np.exp(loss/x.size(1))))
+        pretty_print(model.attn[0])        
             
