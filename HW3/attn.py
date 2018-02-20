@@ -65,16 +65,19 @@ print(batch.trg)
 # EN.vocab.load_vectors(vectors=Vectors('wiki.simple.vec', url=url)) # feel free to alter path
 # print("Word embeddings size ", EN.vocab.vectors.size())
 # word2vec = EN.vocab.vectors
-print("REMINDER!!! Did you create ../../models/HW2?????") # TODO: save the model and all that
+print("REMINDER!!! Did you create ../../models/HW3?????")
 
 sos_token = EN.vocab.stoi["<s>"]
 eos_token = EN.vocab.stoi["</s>"]
 
+# TODO: consult paper for hyperparams
+# TODO: beam search optim. does it require a whole new method?
+# TODO: bleu calculation
+
 class AttnNetwork(nn.Module):
-    def __init__(self, word_dim=300, hidden_dim=500, bs=BATCH_SIZE):
+    def __init__(self, word_dim=300, hidden_dim=500):
         super(AttnNetwork, self).__init__()
         self.hidden_dim = hidden_dim
-        self.bs = bs
         # LSTM initialization params: inputsz,hiddensz,nlayers,bias,batch_first,bidirectional
         self.encoder = nn.LSTM(word_dim, hidden_dim, num_layers = 1, batch_first = True)
         self.decoder = nn.LSTM(word_dim, hidden_dim, num_layers = 1, batch_first = True)
@@ -86,12 +89,12 @@ class AttnNetwork(nn.Module):
         # baseline reward, which we initialize with log 1/V
         self.baseline = Variable(torch.zeros(1).fill_(np.log(1/vocab_size)))                
         
-    def forward(self, x_de, x_en, attn_type="hard"):
+    def forward(self, x_de, x_en, attn_type="hard", bs=BATCH_SIZE, update_baseline=True):
         # x_de is bs,n_de. x_en is bs,n_en
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
         emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
-        h0 = Variable(torch.zeros(1, self.bs, self.hidden_dim)) 
-        c0 = Variable(torch.zeros(1, self.bs, self.hidden_dim))
+        h0 = Variable(torch.zeros(1, bs, self.hidden_dim)) 
+        c0 = Variable(torch.zeros(1, bs, self.hidden_dim))
         # hidden vars have dimension nlayers*ndirections,bs,hiddensz
         enc_h, _ = self.encoder(emb_de, (h0, c0))
         # enc_h is bs,n_de,hiddensz*ndirections. ordering is different from last week because batch_first=True
@@ -121,7 +124,7 @@ class AttnNetwork(nn.Module):
             # the rnn output and the context together make the decoder "hidden state", which is bs,2*hidden_size*ndirections
             pred = self.vocab_layer(torch.cat([dec_h[:, t], context], 1)) # bs,len(EN.vocab)
             y = x_en[:, t+1] # bs. these are our labels
-            reward = torch.gather(pred, 1, y.unsqueeze(1))  # bs
+            reward = torch.gather(pred, 1, y.unsqueeze(1)) # bs
             # reward[i] = pred[i,y[i]]. this gets log prob of correct word for each batch. similar to -crossentropy
             avg_reward += reward.data.mean()
             if attn_type == "hard":
@@ -129,18 +132,18 @@ class AttnNetwork(nn.Module):
                 # reinforce rule (just read the formula), with special baseline
             loss -= reward.mean() # minimizing loss is maximizing reward
         avg_reward = avg_reward/dec_h.size(1)
-        self.baseline.data = 0.95*self.baseline.data + 0.05*avg_reward # update baseline as a moving average
+        if update_baseline: # update baseline as a moving average
+            self.baseline.data = 0.95*self.baseline.data + 0.05*avg_reward
         return loss, neg_reward
     
-    # TODO: if i wanna predict one word at a time, make bs an argument to the function
-    def predict(self, x_de, attn_type = "hard"):
+    def predict(self, x_de, attn_type = "hard", bs=BATCH_SIZE):
         # predict with greedy decoding
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
-        h = Variable(torch.zeros(1, self.bs, self.hidden_dim))
-        c = Variable(torch.zeros(1, self.bs, self.hidden_dim))
+        h = Variable(torch.zeros(1, bs, self.hidden_dim))
+        c = Variable(torch.zeros(1, bs, self.hidden_dim))
         enc_h, _ = self.encoder(emb_de, (h, c))
         # all the same. enc_h is bs,n_de,hiddensz*ndirections. h and c are both nlayers*ndirections,bs,hiddensz
-        y = [Variable(torch.LongTensor([sos.token]*self.bs))] # bs
+        y = [Variable(torch.LongTensor([sos.token]*bs))] # bs
         self.attn = []
         n_en = MAX_LEN # this will change
         for t in range(n_en): # generate some english.
@@ -171,12 +174,12 @@ def asMinutes(s):
     m = math.floor(s / 60)
     s -= m * 60
     return '%dm %ds' % (m, s)
-def timeSince(since, percent):
+def timeSince(since):
     now = time.time()
     s = now - since
-    es = s / (percent)
-    rs = es - s
-    return '%s (- %s)' % (asMinutes(s), asMinutes(rs))
+    # es = s / (percent)
+    # rs = es - s
+    return '%s' % (asMinutes(s))
 
 model = AttnNetwork()
 n_epochs = 10
@@ -187,14 +190,14 @@ attn_type = "hard"
 
 start = time.time()
 plot_losses = []
-print_loss_total = 0  # Reset every print_every
-plot_loss_total = 0  # Reset every plot_every
-ctr = 0
 avg_acc = 0
 optimizer = optim.SGD(net.parameters(), lr=learning_rate)
 
 for epoch in range(n_epochs):
     train_iter.init_epoch()
+    ctr = 0
+    print_loss_total = 0  # Reset every print_every
+    plot_loss_total = 0  # Reset every plot_every
     for batch in iter(train_iter):
         ctr += 1
         optim.zero_grad()
@@ -208,23 +211,34 @@ for epoch in range(n_epochs):
         (loss + neg_reward).backward()
         torch.nn.utils.clip_grad_norm(model.parameters(), 1)
         optim.step()
-        print_loss_total += loss
-        plot_loss_total += loss
+        print_loss_total += loss / x_en.size(1)
+        plot_loss_total += loss / x_en.size(1)
 
         if ctr % print_every == 0:
             print_loss_avg = print_loss_total / print_every
             print_loss_total = 0
-            timelog = timeSince(start,ctr/n_epochs/len(train_iter))
+            timenow = timeSince(start)
             print ('Time %s, Epoch [%d/%d], Iter [%d/%d], Loss: %.4f, Reward: %.2f, Accuracy: %.2f, PPL: %.2f' 
-                %(timelog, epoch+1, num_epochs, ctr, len(train_iter), print_loss_avg,
-                    model.baseline.data[0], avg_acc, np.exp(loss/x_en.size(1))))
+                %(timenow, epoch+1, num_epochs, ctr, len(train_iter), print_loss_avg,
+                    model.baseline.data[0], avg_acc, np.exp(print_loss_avg)))
 
         if ctr % plot_every == 0:
             plot_loss_avg = plot_loss_total / plot_every
             plot_losses.append(plot_loss_avg)
             plot_loss_total = 0
 
+    val_loss_total = 0 # Validation/early stopping
+    for batch in iter(val_iter):
+        x_de = batch.src
+        x_en = batch.trg
+        loss, neg_reward = model.forward(x_de, x_en, attn_type, update_baseline=False)
+        # too lazy to implement reward or accuracy for validation
+        val_loss_total += loss / x_en.size(1)
+    val_loss_avg = val_loss_total / len(val_iter)
+    timenow = timeSince(start)
+    print('Validation. Time %s, PPL: %.2f' %(timenow, np.exp(val_loss_avg)))
+
+# NOTE: AttnNetwork averages loss within batches, but neither over sentences nor across batches. thus, rescaling is necessary
+
 torch.save(model.state_dict(), args.model_file)
 showPlot(plot_losses)
-
-# TODO: gotta calculate ppl on val_iter... only use predict fn for kaggle. requires BSO
