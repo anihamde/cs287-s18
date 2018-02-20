@@ -62,10 +62,17 @@ print("REMINDER!!! Did you create ../../models/HW2?????")
 sos_token = EN.vocab.stoi["<s>"]
 eos_token = EN.vocab.stoi["</s>"]
 ''' TODO
-Pass a binary mask to attention module
-How is ppl calculated? How does bleu perl script work?
-can I contain encoder/decoder in same network? and not use a for loop?
-German word2vec? (Should I even use English word2vec in decoder? rn I'm not)
+How is ppl calculated (with no teacher forcing)? How does bleu perl script work?
+German word2vec? (Should I even use English word2vec in the decoder? rn I'm not)
+What is purpose of baseline reward?
+BSO only applies to hard attention right? Are you searching through words or through z's?
+
+Pass a binary mask to attention module...?
+In training I assume batch.trg has last column of all </s>
+Can I throw out the perplexity from predicting on <s>? Who knows what the first word in a sentence is?
+How do we predict if diff sentences in a batch finish at diff times? (although only the 1st 3 words matter)
+- Should I keep generating up to MAX_LEN? Or should I exit on </s> (and predict would only take batch size 1)
+
 Multi-layer, bidirectional, LSTM instead of GRU, etc
 Dropout, embedding max norms, etc
 '''
@@ -102,7 +109,7 @@ class DecoderRNN(nn.Module):
         super(DecoderRNN, self).__init__()
         self.hidden_size = hidden_size
         self.bs = bs
-        self.embedding = nn.Embedding(len(EN.vocab), 300) # 300??
+        self.embedding = nn.Embedding(output_size, 300) # 300??
         self.gru = nn.GRU(300, hidden_size) # GRU args: inputsz,hiddensz,nlayers
         self.out = nn.Linear(hidden_size, output_size) # output_size is len(EN.vocab)
         self.softmax = nn.LogSoftmax(dim=1)
@@ -248,6 +255,7 @@ def trainIters(encoder, decoder, n_iters, print_every=1000, plot_every=100, lear
 hidden_size = 256
 encoder = EncoderRNN(hidden_size)
 attn_decoder = AttnDecoderRNN(hidden_size, len(EN.vocab), dropout_p=0.1)
+decoder = DecoderRNN(hidden_size, len(EN.vocab))
 if torch.cuda.is_available():
     encoder = encoder.cuda()
     decoder = decoder.cuda()

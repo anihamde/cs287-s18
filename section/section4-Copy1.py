@@ -24,9 +24,9 @@ import torch.nn.functional as F
 
 # In[3]:
 
-def generate_data(vocab_size = 50, len = 4, batch_size = 20):
+def generate_data(vocab_size = 10000, len = 4, batch_size = 20):
     x = np.random.randint(1, vocab_size, size = (batch_size, len)) #input data
-    y = x[:, ::] #reverse input, this will become our target
+    y = x[:, ::] #reverse input, this will become our target (i don't think this reversed anything)
     #target needs special "start sentence" token, which will have token idx = 0 (we don't need <eos> here though)
     y = np.hstack([np.zeros((batch_size, 1)), y])
     return Variable(torch.from_numpy(x).long()), Variable(torch.from_numpy(y).long())        
@@ -36,6 +36,7 @@ def generate_data(vocab_size = 50, len = 4, batch_size = 20):
 
 x,y = generate_data()
 print(x, y) # bs 20, len 4 and bs 20, len 5
+# y has an extra column of zeros
 
 
 # Let's define our network, which will be an encoder/decoder model.
@@ -43,9 +44,10 @@ print(x, y) # bs 20, len 4 and bs 20, len 5
 # In[ ]:
 
 class AttnNetwork(nn.Module):
-    def __init__(self, vocab_size = 50, word_dim = 50, hidden_dim = 300):
+    def __init__(self, vocab_size = 10000, word_dim = 300, hidden_dim = 500):
         super(AttnNetwork, self).__init__()
         self.hidden_dim = hidden_dim
+        # params: input size, hidden size, num_layers, other stuff (bidirectional,dropout)
         self.encoder = nn.LSTM(word_dim, hidden_dim, num_layers = 1, batch_first = True)
         self.decoder = nn.LSTM(word_dim, hidden_dim, num_layers = 1, batch_first = True)
         self.embedding = nn.Embedding(vocab_size, word_dim) #we are going to be sharing the embedding layer 
@@ -56,11 +58,15 @@ class AttnNetwork(nn.Module):
         self.baseline = Variable(torch.zeros(1).fill_(np.log(1/vocab_size)))                
         
     def forward(self, x, attn_type="hard"):
-        emb = self.embedding(x)
-        h0 = Variable(torch.zeros(1, x.size(0), self.hidden_dim))
+        # x is bs,n
+        emb = self.embedding(x) # bs,n,word_dim (20,4,300)
+        h0 = Variable(torch.zeros(1, x.size(0), self.hidden_dim)) 
         c0 = Variable(torch.zeros(1, x.size(0), self.hidden_dim))
-        enc_h, _ = self.encoder(emb, (h0, c0))
-        dec_h, _ = self.decoder(emb[:, :-1], (h0, c0))
+        # nlayers*ndirections,bs,hidden_size
+        enc_h, _ = self.encoder(emb, (h0, c0)) # remember batch_first arg!
+        # enc_h is bs,n,hidden_size*ndirections
+        dec_h, _ = self.decoder(emb[:, :-1], (h0, c0)) # not passing in last word in each sentence
+        # dec_h is bs,n-1,hidden_size*ndirections
         #we've gotten our encoder/decoder hidden states so we are ready to do attention        
         #first let's get all our scores, which we can do easily since we are using dot-prod attention
         scores = torch.bmm(enc_h, dec_h.transpose(1,2)) #this will be a batch x source_len x target_len
@@ -68,21 +74,25 @@ class AttnNetwork(nn.Module):
         loss = 0
         avg_reward = 0        
         for t in range(dec_h.size(1)):            
-            attn_dist = F.softmax(scores[:, :, t], dim=1) #get attention scores
+            attn_dist = F.softmax(scores[:, :, t], dim=1) #get attention scores bs,n
             if attn_type == "hard":
                 cat = torch.distributions.Categorical(attn_dist) 
-                attn_samples = cat.sample() #samples from attn_dist    
+                attn_samples = cat.sample() #samples from attn_dist, size is bs 
                 #make this into a one-hot distribution (there are more efficient ways of doing this)
-                one_hot = Variable(torch.zeros_like(attn_dist.data).scatter_(-1, attn_samples.data.unsqueeze(1), 1))
-                context = torch.bmm(one_hot.unsqueeze(1), enc_h).squeeze(1)                 
+                one_hot = Variable(torch.zeros_like(attn_dist.data).scatter_(-1, attn_samples.data.unsqueeze(1), 1)) # bs,n. it's a one hot
+                context = torch.bmm(one_hot.unsqueeze(1), enc_h).squeeze(1) # bs,1,n by bs,n,300 is bs,1,300.
+                # basically selecting correct h's by one hotness
             else:
                 context = torch.bmm(attn_dist.unsqueeze(1), enc_h).squeeze(1)
-            pred = self.vocab_layer(torch.cat([dec_h[:, t], context], 1))
-            y = x[:, t+1] #this will be our label
+            # context is bs,hidden_size*ndirections
+            # the rnn output and the context together make the decoder "hidden state", which is bs,2*hidden_size*ndirections
+            pred = self.vocab_layer(torch.cat([dec_h[:, t], context], 1)) # bs,|V|
+            y = x[:, t+1] #this will be our label bs
             reward = torch.gather(pred, 1, y.unsqueeze(1))  #our reward is log prob at the word level
+            # reward[i] = pred[i,y[i]] oh, it does extract the log probs! for each element of the batch
             avg_reward += reward.data.mean() 
             if attn_type == "hard":                
-                neg_reward -= (cat.log_prob(attn_samples) * (reward.detach()-self.baseline)).mean() #reinforce rule                                        
+                neg_reward -= (cat.log_prob(attn_samples) * (reward.detach()-self.baseline)).mean() #reinforce rule (just read the formula)                                      
             loss -= reward.mean()       
         avg_reward = avg_reward/dec_h.size(1)
         self.baseline.data = 0.95*self.baseline.data + 0.05*avg_reward #update baseline as a moving average
@@ -132,7 +142,7 @@ optim = torch.optim.SGD(model.parameters(), lr=0.5)
 avg_acc = 0
 for i in range(num_iters):
     optim.zero_grad()
-    x, y = generate_data()
+    x, y = generate_data() # x is bs,n and y is bs,n+1 (extra col of zeros)
     loss, neg_reward = model.forward(x, attn_type)
     y_pred = model.predict(x, attn_type)
     correct = torch.sum(y_pred.data[:, 1:] == y.data[:, 1:]) #exclude <s> token in acc calculation    
