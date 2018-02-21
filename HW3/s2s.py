@@ -61,23 +61,6 @@ print("REMINDER!!! Did you create ../../models/HW2?????")
 
 sos_token = EN.vocab.stoi["<s>"]
 eos_token = EN.vocab.stoi["</s>"]
-''' TODO
-How is ppl calculated (with no teacher forcing)? How does bleu perl script work?
-Does it make sense to train without teacher forcing (just let it generate words until target len)?
-German word2vec? (Should I even use English word2vec in the decoder? rn I'm not)
-What is purpose of baseline reward?
-BSO only applies to hard attention right? Are you searching through words or through z's?
-- (If it's through z's, then how do I do it for s2s where there's no z's?)
-
-Pass a binary mask to attention module...?
-In training I assume batch.trg has last column of all </s>
-Can I throw out the perplexity from predicting on <s>? Who knows what the first word in a sentence is?
-How do we predict if diff sentences in a batch finish at diff times? (although only the 1st 3 words matter)
-- Should I keep generating up to MAX_LEN? Or should I exit on </s> (and predict would only take batch size 1)
-
-Multi-layer, bidirectional, LSTM instead of GRU, etc
-Dropout, embedding max norms, etc
-'''
 
 
 # TWO MAJOR THINGS I HAD TO CHANGE ABOUT THE TUTORIAL CODE
