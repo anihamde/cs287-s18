@@ -97,6 +97,8 @@ class AttnNetwork(nn.Module):
         self.attn = torch.stack(self.attn, 0).transpose(0, 1) # bs,n_en,n_de (for visualization!)
         return torch.stack(y, 0).transpose(0, 1) # bs,n_en
 
+    # alternate function: singleton batch. store stuff in a heap, somehow
+    def predict2(self, x_de, attn_type = "hard"):
 
 class S2S(nn.Module):
     def __init__(self, word_dim=300, hidden_dim=500):
@@ -131,5 +133,19 @@ class S2S(nn.Module):
         # TODO: to be consistent with the other network i'm not dividing by n_en here. Can we change this?
         return loss, 0 # passing back an invisible "negative reward"
     
-    def predict(self):
-        pass # TODO: wait until I write the better version for AttnNetwork
+    def predict(self, x_de, bs=BATCH_SIZE):
+        # predict with greedy decoding
+        emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
+        h = Variable(torch.zeros(1, bs, self.hidden_dim))
+        c = Variable(torch.zeros(1, bs, self.hidden_dim))
+        enc_h, (h,c) = self.encoder(emb_de, (h, c))
+        # all the same. enc_h is bs,n_de,hiddensz*ndirections. h and c are both nlayers*ndirections,bs,hiddensz
+        y = [Variable(torch.LongTensor([sos.token]*bs))] # bs
+        n_en = MAX_LEN # this will change
+        for t in range(n_en): # generate some english.
+            emb_t = self.embedding(y[-1]) # embed the last thing we generated. bs
+            dec_h, (h, c) = self.decoder(emb_t.unsqueeze(1), (h, c)) # dec_h is bs,1,hiddensz*ndirections (batch_first=True)
+            pred = self.vocab_layer(dec_h) # bs,1,len(EN.vocab)
+            _, next_token = pred.max(1) # bs
+            y.append(next_token)
+        return torch.stack(y, 0).transpose(0, 1) # bs,n_en

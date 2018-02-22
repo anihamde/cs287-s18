@@ -83,11 +83,11 @@ eos_token = EN.vocab.stoi["</s>"]
 ''' TODO
 Study the data form. In training I assume batch.trg has last column of all </s>. Is this true?
 - If not, how am I gonna handle training on uneven batches, where sentences finish at different lengths?
-How is ppl calculated (with no teacher forcing)? I don't think you can. Just abstain from teacher forcing for now
-Build a section-code-style s2s without teacher forcing
-If we have time, we can try the tutorial script with and without attn, see if teacher forcing makes a difference
 Predict: just make a new fn with batch size 1, exits after 3, and is more amenable to BSO
 - explain the challenge of predicting bs sentences at once. hack ideas? involving MAX_LEN or </s>
+How is ppl calculated with no teacher forcing? I don't think you can. Just abstain from teacher forcing for now
+- Build a section-code-style s2s without teacher forcing
+- If we have time, we can try the tutorial script with and without attn, see if teacher forcing makes a difference
 Yes, there is a German word2vec and I should use it
 BLEU perl script
 What is purpose of baseline reward?
