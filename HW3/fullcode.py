@@ -1,3 +1,5 @@
+# PARANOIA
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -98,17 +100,17 @@ class AttnNetwork(nn.Module):
         return torch.stack(y, 0).transpose(0, 1) # bs,n_en
 
     # alternate function: singleton batch. store stuff in a heap, somehow
-    def predict2(self, x_de, attn_type = "hard"):
-    	emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
-        h = Variable(torch.zeros(1, 1, self.hidden_dim))
-        c = Variable(torch.zeros(1, 1, self.hidden_dim))
-        enc_h, _ = self.encoder(emb_de, (h, c))
+    def predict2(self, x_de, beamsz, gen_len=3, attn_type = "hard"):
+        emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
+        h0 = Variable(torch.zeros(1, 1, self.hidden_dim))
+        c0 = Variable(torch.zeros(1, 1, self.hidden_dim))
+        enc_h, _ = self.encoder(emb_de, (h0, c0))
         # bs is 1 in this case. singleton batch!
         # hence, enc_h is 1,n_de,hiddensz*ndirections. h and c are both nlayers*ndirections,1,hiddensz
-        masterheap = CandList()
-        beam = Null
-        for i in range(3):
-          	candlist = masterheap.get_candlist() # beamsz
+        masterheap = CandList(beamsz,self.hidden_dim,enc_h.size(1))
+        beam = None
+        for i in range(gen_len):
+            candlist = masterheap.get_candlist() # beamsz
             beamsz = candlist.size(0)
             h, c = masterheap.get_hiddens() # (nlayers*ndirections,beamsz,hiddensz),(nlayers*ndirections,beamsz,hiddensz)
             attn = masterheap.get_attentions() # beamsz,i,n_de
@@ -134,24 +136,26 @@ class AttnNetwork(nn.Module):
             newlogprobs = pred
             beam = masterheap.update_candlist(beam,newlogprobs) # (beamsz)x(iter+1)
             masterheap.update_hiddens(h,c)
-        	masterheap.update_attns(attn_dist)
-          	
-      	
+            masterheap.update_attns(attn_dist)
+        
+        return beam
+            
+# TODO: not holding onto variables forever?
         
 # If we have beamsz 100 and we only go 3 steps, we're guaranteed to have 100 unique trigrams
 class CandList():
-  	def __init__(self,beamsz=100):
-      	self.candlist = [[sos.token]]
-        self.hiddens = (Variable(torch.zeros(1, bs, self.hidden_dim)),Variable(torch.zeros(1, bs, self.hidden_dim)))
-        self.attentions = ()
+    def __init__(self,beamsz=100,hidden_dim,n_de):
+        self.candlist = [[sos.token]]
+        self.hiddens = (torch.zeros(1, beamsz, hidden_dim),torch.zeros(1, beamsz, hidden_dim))
+        self.attentions = torch.zeros(beamsz,1,n_de)
     def get_candlist():
-    	return Variable(torch.LongTensor(self.candlist))
+        return Variable(torch.LongTensor(self.candlist))
     def get_hiddens():
-    	pass
+        return Variable(self.hiddens[0],self.hiddens[1])
     def get_attentions():
-      
-	def update_candlist(wordslist,newlogprobs):
-      	if wordslist:
+        return self.attentions
+    def update_candlist(wordslist,newlogprobs):
+        if wordslist:
             newlogprobs += self.probs
             newlogprobs = torch.flatten(newlogprobs)
             sorted, indices = torch.sort(newlogprobs,[beamsz])
@@ -167,30 +171,24 @@ class CandList():
         else:
             sorted, indices = torch.sort(newlogprobs,[beamsz])
             self.probs = sorted
-            self.oldbeamindices = Null
+            self.oldbeamindices = None
 
             fullbeam = indices.unsqueeze(1) # (beamsz)x(1)
             
         return fullbeam
         
-      def update_hiddens():
-          self.oldbeamindices
-      def update_attentions():
-          self.oldbeamindices
+      def update_hiddens(self,h,c):
+          h_new = h[:,self.oldbeamindices,:].data
+          c_new = c[:,self.oldbeamindices,:].data
+          self.hiddens = (h_new,c_new)
+          
+      def update_attentions(self,attn):
+          shuffled = self.attentions[self.oldbeamindices,:,:]
+          self.attentions = torch.cat([shuffled,attn.data],1)
       
 
                  
-                 
-''' pseudocode
-y = [bs]
-heap = {}
-insert y into the heap, with its attention matrix and logprob 0
-finished_sentences = {}
-while finished_sentences isn't full and heap isn't empty
-    pred = run_the_model_forward
-    toplogprobs,topindices=torch.max(preds, only the top 20 tho)
-    
-'''
+
 
 class S2S(nn.Module):
     def __init__(self, word_dim=300, hidden_dim=500):
@@ -204,7 +202,7 @@ class S2S(nn.Module):
         # vocab layer will project dec hidden state out into vocab space 
         self.vocab_layer = nn.Sequential(nn.Linear(hidden_dim, hidden_dim),
                                          nn.Tanh(), nn.Linear(hidden_dim, vocab_size), nn.LogSoftmax())               
-		
+        
     def forward(self, x_de, x_en, bs=BATCH_SIZE):
         # x_de is bs,n_de. x_en is bs,n_en
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
@@ -241,3 +239,41 @@ class S2S(nn.Module):
             _, next_token = pred.max(1) # bs
             y.append(next_token)
         return torch.stack(y, 0).transpose(0, 1) # bs,n_en
+      
+      
+      
+# Visualization copied over from PyTorch code
+  
+# def showAttention(input_sentence, output_words, attentions):
+#     # Set up figure with colorbar
+#     fig = plt.figure()
+#     ax = fig.add_subplot(111)
+#     cax = ax.matshow(attentions.numpy(), cmap='bone')
+#     fig.colorbar(cax)
+
+#     # Set up axes
+#     ax.set_xticklabels([''] + input_sentence.split(' ') +
+#                        ['<EOS>'], rotation=90)
+#     ax.set_yticklabels([''] + output_words)
+
+#     # Show label at every tick
+#     ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
+#     ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
+
+#     plt.show()
+
+# def evaluateAndShowAttention(input_sentence):
+#     output_words, attentions = evaluate(
+#         encoder1, attn_decoder1, input_sentence)
+#     print('input =', input_sentence)
+#     print('output =', ' '.join(output_words))
+#     showAttention(input_sentence, output_words, attentions)
+
+
+# evaluateAndShowAttention("elle a cinq ans de moins que moi .")
+
+# evaluateAndShowAttention("elle est trop petit .")
+
+# evaluateAndShowAttention("je ne crains pas de mourir .")
+
+# evaluateAndShowAttention("c est un jeune directeur plein de talent .")
