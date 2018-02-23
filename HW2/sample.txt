@@ -1,0 +1,2 @@
+id,word
+1,<eos> by under in N the <unk> to of and a into below with for said on from but apart
