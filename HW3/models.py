@@ -97,31 +97,26 @@ class AttnNetwork(nn.Module):
         self.attn = torch.stack(self.attn, 0).transpose(0, 1) # bs,n_en,n_de (for visualization!)
         return torch.stack(y, 0).transpose(0, 1) # bs,n_en
 
-    # alternate function: singleton batch. store stuff in a heap, somehow
-    
-    # alternate function: singleton batch. store stuff in a heap, somehow
+    # Singleton batch with BSO
     def predict2(self, x_de, beamsz, gen_len=3, attn_type = "hard"):
-        emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
+        emb_de = self.embedding_de(x_de) # bs,n_de,word_dim, but bs is 1 in this case-- singleton batch!
         h0 = Variable(torch.zeros(1, 1, self.hidden_dim))
         c0 = Variable(torch.zeros(1, 1, self.hidden_dim))
         enc_h, _ = self.encoder(emb_de, (h0, c0))
-        # bs is 1 in this case. singleton batch!
         # hence, enc_h is 1,n_de,hiddensz*ndirections. h and c are both nlayers*ndirections,1,hiddensz
         masterheap = CandList(beamsz,self.hidden_dim,enc_h.size(1))
-        beam = None
+        beam = None # TODO why are we not storing this in masterheap?
         for i in range(gen_len):
             candlist = masterheap.get_candlist() # beamsz
-            beamsz = candlist.size(0)
+            enc_h_expand = enc_h.expand(candlist.size(0),-1,-1) # beamsz,n_de,hiddensz*ndirections (beamsz is either 1 or true beamsz)
             h, c = masterheap.get_hiddens() # (nlayers*ndirections,beamsz,hiddensz),(nlayers*ndirections,beamsz,hiddensz)
-            attn = masterheap.get_attentions() # beamsz,i,n_de
             emb_t = self.embedding(candlist) # embed the last thing we generated. beamsz,word_dim
             dec_h, (h, c) = self.decoder(candlist.unsqueeze(1), (h, c)) # dec_h is beamsz,1,hiddensz*ndirections (batch_first=True)
-            scores = torch.bmm(enc_h.expand(beamsz,-1,-1), dec_h.transpose(1,2)).squeeze(2)
+            scores = torch.bmm(enc_h_expand, dec_h.transpose(1,2)).squeeze(2)
             # (beamsz,n_de,hiddensz*ndirections) * (beamsz,hiddensz*ndirections,1) = (beamsz,n_de,1). squeeze to beamsz,n_de
             attn_dist = F.softmax(scores,dim=1)
-            attn_dist.data # will be important to save these TODO!
             if attn_type == "hard":
-                _, argmax = attn_dist.max(1) # bs. for each batch, select most likely german word to pay attention to
+                _, argmax = attn_dist.max(1) # beamsz for each batch, select most likely german word to pay attention to
                 one_hot = Variable(torch.zeros_like(attn_dist.data).scatter_(-1, argmax.data.unsqueeze(1), 1))
                 context = torch.bmm(one_hot.unsqueeze(1), enc_h.expand(beamsz,-1,-1)).squeeze(1)
             else:
@@ -129,11 +124,11 @@ class AttnNetwork(nn.Module):
             # the difference btwn hard and soft is just whether we use a one_hot or a distribution
             # context is beamsz,hiddensz*ndirections
             pred = self.vocab_layer(torch.cat([dec_h.squeeze(1), context], 1)) # beamsz,len(EN.vocab)
-            newlogprobs = pred
-            beam = masterheap.update_candlist(beam,newlogprobs) # (beamsz)x(iter+1)
+            beam = masterheap.update_candlist(beam,pred) # (beamsz)x(iter+1)
             masterheap.update_hiddens(h,c)
             masterheap.update_attns(attn_dist)
         
+        # TODO: do you want the attentions too?
         return beam
             
 # TODO: not holding onto variables forever?
@@ -154,8 +149,8 @@ class CandList():
         if wordslist:
             newlogprobs += self.probs
             newlogprobs = torch.flatten(newlogprobs)
-            sorted, indices = torch.sort(newlogprobs,[beamsz])
-            self.probs = sorted
+            sorte, indices = torch.sort(newlogprobs,[beamsz])
+            self.probs = sorte
             self.oldbeamindices = indices/len(EN.vocab)            
             currbeam = indices%len(EN.vocab).unsqueeze(1) # (beamsz)x(1)
             
@@ -165,8 +160,8 @@ class CandList():
             
             fullbeam = torch.cat([prevbeam,currbeam],1) # (beamsz)x(iter+1)
         else:
-            sorted, indices = torch.sort(newlogprobs,[beamsz])
-            self.probs = sorted
+            sorte, indices = torch.sort(newlogprobs,[beamsz])
+            self.probs = sorte
             self.oldbeamindices = None
 
             fullbeam = indices.unsqueeze(1) # (beamsz)x(1)
@@ -180,18 +175,8 @@ class CandList():
           
       def update_attentions(self,attn):
           shuffled = self.attentions[self.oldbeamindices,:,:]
-          self.attentions = torch.cat([shuffle
+          self.attentions = torch.cat([shuffled,attn.data],1)
 
-''' pseudocode
-y = [bs]
-heap = {}
-insert y into the heap, with its attention matrix and logprob 0
-finished_sentences = {}
-while finished_sentences isn't full and heap isn't empty
-    pred = run_the_model_forward
-    toplogprobs,topindices=torch.max(preds, only the top 20 tho)
-    
-'''
 
 class S2S(nn.Module):
     def __init__(self, word_dim=300, hidden_dim=500):

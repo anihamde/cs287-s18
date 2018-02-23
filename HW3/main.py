@@ -15,7 +15,7 @@ import copy
 import argparse
 
 from models import AttnNetwork
-from helpers import asMinutes, timeSince
+from helpers import asMinutes, timeSince, escape
 
 parser = argparse.ArgumentParser(description='training runner')
 parser.add_argument('--model_file','-m',type=str,default='../../models/HW3/model.pkl',help='Model save target.')
@@ -160,15 +160,12 @@ for epoch in range(n_epochs):
 
 # NOTE: AttnNetwork averages loss within batches, but neither over sentences nor across batches. thus, rescaling is necessary
 
-def escape(l):
-    return l.replace("\"", "<quote>").replace(",", "<comma>")
-
 with open("preds.csv", "w") as f:
     writer = csv.writer(f)
     writer.writerow(['id','word'])
     for i, l in enumerate(open("source_test.txt"),1):
 
-        out = model.predict2(l)
+        out = model.predict2(l) # TODO: wrong
         
         longstr = ""
 

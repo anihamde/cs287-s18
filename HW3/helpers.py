@@ -12,3 +12,6 @@ def timeSince(since):
     # es = s / (percent)
     # rs = es - s
     return '%s' % (asMinutes(s))
+
+def escape(l):
+    return l.replace("\"", "<quote>").replace(",", "<comma>")
