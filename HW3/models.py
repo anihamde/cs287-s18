@@ -100,6 +100,17 @@ class AttnNetwork(nn.Module):
     # alternate function: singleton batch. store stuff in a heap, somehow
     def predict2(self, x_de, attn_type = "hard"):
 
+''' pseudocode
+y = [bs]
+heap = {}
+insert y into the heap, with its attention matrix and logprob 0
+finished_sentences = {}
+while finished_sentences isn't full and heap isn't empty
+    pred = run_the_model_forward
+    toplogprobs,topindices=torch.max(preds, only the top 20 tho)
+    
+'''
+
 class S2S(nn.Module):
     def __init__(self, word_dim=300, hidden_dim=500):
         super(S2S, self).__init__()

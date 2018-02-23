@@ -129,7 +129,7 @@ for epoch in range(n_epochs):
         correct = torch.sum(y_pred[:,1:lesser_of_two_evils]==x_en[:,1:lesser_of_two_evils]) # exclude <s> token in acc calculation
         avg_acc = 0.95*avg_acc + 0.05*correct/(x_en.size(0)*x_en.size(1))
         (loss + neg_reward).backward()
-        torch.nn.utils.clip_grad_norm(model.parameters(), 1)
+        torch.nn.utils.clip_grad_norm(model.parameters(), 1) # TODO: is this right? it didn't work last time
         optim.step()
         print_loss_total += loss / x_en.size(1)
         plot_loss_total += loss / x_en.size(1)
