@@ -160,10 +160,14 @@ for epoch in range(n_epochs):
 
 # NOTE: AttnNetwork averages loss within batches, but neither over sentences nor across batches. thus, rescaling is necessary
 
+def escape(l):
+    return l.replace("\"", "<quote>").replace(",", "<comma>")
+
 with open("preds.csv", "w") as f:
     writer = csv.writer(f)
     writer.writerow(['id','word'])
     for i, l in enumerate(open("source_test.txt"),1):
+
         out = model.predict2(l)
         
         longstr = ""
@@ -180,8 +184,9 @@ with open("preds.csv", "w") as f:
                 colcntr += 1
                 longstr = longstr + EN.vocab.itos[column]
 
-        writer.writerow([i,longstr])
+        longstr = escape(longstr)
 
+        writer.writerow([i,longstr])
 
 torch.save(model.state_dict(), args.model_file)
 showPlot(plot_losses) # TODO: function not added/checked
