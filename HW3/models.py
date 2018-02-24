@@ -82,7 +82,7 @@ class AttnNetwork(nn.Module):
         self.vocab_layer = nn.Sequential(nn.Linear(hidden_dim*2, hidden_dim),
                                          nn.Tanh(), nn.Linear(hidden_dim, len(EN.vocab)), nn.LogSoftmax(dim=-1))
         # baseline reward, which we initialize with log 1/V
-        self.baseline = Variable(torch.zeros(1).fill_(np.log(1/len(EN.vocab))).cuda())            
+        self.baseline = Variable(torch.zeros(1).fill_(np.log(1/len(EN.vocab))).cuda())          
     def forward(self, x_de, x_en, attn_type="hard", bs=BATCH_SIZE, update_baseline=True):
         # x_de is bs,n_de. x_en is bs,n_en
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
@@ -122,7 +122,7 @@ class AttnNetwork(nn.Module):
             # reward[i] = pred[i,y[i]]. this gets log prob of correct word for each batch. similar to -crossentropy
             avg_reward += reward.data.mean()
             if attn_type == "hard":
-                neg_reward -= (cat.log_prob(attn_samples) * (reward.detach()-self.baseline)).mean() 
+                neg_reward -= (cat.log_prob(attn_samples) * (reward.detach()-self.baseline.detach())).mean() 
                 # reinforce rule (just read the formula), with special baseline
             loss -= reward.mean() # minimizing loss is maximizing reward
         avg_reward = avg_reward/dec_h.size(1)

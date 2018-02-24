@@ -69,10 +69,10 @@ train_iter, val_iter = data.BucketIterator.splits((train, val), batch_size=BATCH
                                                   repeat=False, sort_key=lambda x: len(x.src))
 
 batch = next(iter(train_iter))
-print("Source")
-print(batch.src)
-print("Target")
-print(batch.trg)
+print("Source size")
+print(batch.src.size())
+print("Target size")
+print(batch.trg.size())
 
 url = 'https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.simple.vec'
 EN.vocab.load_vectors(vectors=Vectors('wiki.simple.vec', url=url)) # feel free to alter path
@@ -84,6 +84,7 @@ sos_token = EN.vocab.stoi["<s>"]
 eos_token = EN.vocab.stoi["</s>"]
 
 ''' TODO
+Memory issues, detaching, volatile=True
 Study the data form. In training I assume batch.trg has last column of all </s>. Is this true? NO!
 - If not, how am I gonna handle training on uneven batches, where sentences finish at different lengths?
 How the sentences look: the DE ones are n_de by bs, and end roughly evenly. the EN ones are n_en by bs and end all over the place
@@ -136,8 +137,8 @@ for epoch in range(n_epochs):
         (loss + neg_reward).backward()
         torch.nn.utils.clip_grad_norm(model.parameters(), 1) # TODO: is this right? it didn't work last time
         optimizer.step()
-        print_loss_total += loss / x_en.size(1)
-        plot_loss_total += loss / x_en.size(1)
+        print_loss_total += loss.data[0] / x_en.size(1)
+        plot_loss_total += loss.data[0] / x_en.size(1)
 
         if ctr % print_every == 0:
             print_loss_avg = print_loss_total / print_every
@@ -152,6 +153,7 @@ for epoch in range(n_epochs):
             plot_losses.append(plot_loss_avg)
             plot_loss_total = 0
 
+    torch.save(model.state_dict(), args.model_file) # I'm Paranoid!!!!!!!!!!!!!!!!
     val_loss_total = 0 # Validation/early stopping
     for batch in iter(val_iter):
         x_de = batch.src.transpose(1,0).cuda()
@@ -162,7 +164,7 @@ for epoch in range(n_epochs):
     val_loss_avg = val_loss_total / len(val_iter)
     timenow = timeSince(start)
     print('Validation. Time %s, PPL: %.2f' %(timenow, np.exp(val_loss_avg)))
-
+    
 # NOTE: AttnNetwork averages loss within batches, but neither over sentences nor across batches. thus, rescaling is necessary
 
 with open("preds.csv", "w") as f:
