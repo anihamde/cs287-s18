@@ -146,7 +146,7 @@ for epoch in range(n_epochs):
             print_loss_total = 0
             timenow = timeSince(start)
             print ('Time %s, Epoch [%d/%d], Iter [%d/%d], Loss: %.4f, Reward: %.2f, Accuracy: %.2f, PPL: %.2f' 
-                %(timenow, epoch+1, num_epochs, ctr, len(train_iter), print_loss_avg,
+                %(timenow, epoch+1, n_epochs, ctr, len(train_iter), print_loss_avg,
                     model.baseline.data[0], avg_acc, np.exp(print_loss_avg)))
 
         if ctr % plot_every == 0:
