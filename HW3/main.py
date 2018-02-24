@@ -17,9 +17,6 @@ import math
 import copy
 import argparse
 
-from models import AttnNetwork, CandList, S2S
-from helpers import asMinutes, timeSince, escape
-
 parser = argparse.ArgumentParser(description='training runner')
 parser.add_argument('--model_file','-m',type=str,default='../../models/HW3/model.pkl',help='Model save target.')
 parser.add_argument('--n_epochs','-e',type=int,default=5,help='set the number of training epochs.')
@@ -107,7 +104,8 @@ Multi-layer, bidirectional, LSTM instead of GRU, etc
 Weight tying, interpolation
 Dropout, embedding max norms, etc
 '''
-
+from models import AttnNetwork, CandList, S2S
+from helpers import asMinutes, timeSince, escape
 
 model = AttnNetwork()
 model.cuda()
