@@ -43,8 +43,6 @@ def tokenize_en(text):
 
 BOS_WORD = '<s>'
 EOS_WORD = '</s>'
-global EN
-global DE
 DE = data.Field(tokenize=tokenize_de)
 EN = data.Field(tokenize=tokenize_en, init_token = BOS_WORD, eos_token = EOS_WORD) # only target needs BOS/EOS
 

@@ -1,11 +1,14 @@
 import numpy as np
 import torch
 import torch.nn as nn
+from __main__ import EN,DE,sos_token,eos_token
+
+print(sos_token)
 
 # TODO: check for better way to specify tokens and BATCH_SIZE
 BATCH_SIZE = 32
-sos_token = 2
-eos_token = 3
+# sos_token = 2
+# eos_token = 3
 
 # I thought it might be better to move these unwieldy models into their own file. Feel free to change it back!
 
