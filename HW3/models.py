@@ -243,3 +243,23 @@ class S2S(nn.Module):
             _, next_token = pred.max(1) # bs
             y.append(next_token)
         return torch.stack(y, 0).transpose(0, 1) # bs,n_en
+
+    # Singleton batch with BSO
+    def predict2(self, x_de, beamsz, gen_len=3):
+        emb_de = self.embedding_de(x_de) # bs,n_de,word_dim, but bs is 1 in this case-- singleton batch!
+        h0 = Variable(torch.zeros(1, 1, self.hidden_dim))
+        c0 = Variable(torch.zeros(1, 1, self.hidden_dim))
+        enc_h, _ = self.encoder(emb_de, (h0, c0))
+        # hence, enc_h is 1,n_de,hiddensz*ndirections. h and c are both nlayers*ndirections,1,hiddensz
+        masterheap = CandList(beamsz,self.hidden_dim,enc_h.size(1))
+        for i in range(gen_len):
+            prev = masterheap.get_prev() # beamsz
+            enc_h_expand = enc_h.expand(prev.size(0),-1,-1) # beamsz,n_de,hiddensz*ndirections (beamsz is either 1 or true beamsz)
+            h, c = masterheap.get_hiddens() # (nlayers*ndirections,beamsz,hiddensz),(nlayers*ndirections,beamsz,hiddensz)
+            emb_t = self.embedding(prev) # embed the last thing we generated. beamsz,word_dim
+            dec_h, (h, c) = self.decoder(prev.unsqueeze(1), (h, c)) # dec_h is beamsz,1,hiddensz*ndirections (batch_first=True)
+            pred = self.vocab_layer(dec_h) # beamsz,len(EN.vocab)
+            masterheap.update_beam(pred)
+            masterheap.update_hiddens(h,c)
+        
+        return masterheap.probs,masterheap.wordlist
