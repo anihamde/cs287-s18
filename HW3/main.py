@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.distributions # this package provides a lot of nice abstractions for policy gradients
