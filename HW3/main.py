@@ -176,6 +176,7 @@ with open("preds.csv", "w") as f:
 torch.save(model.state_dict(), args.model_file)
 showPlot(plot_losses) # TODO: function not added/checked
 
+# visualize only for AttnNetwork
 def visualize(attns,sentence_de,bs,nwords): # attns = (SentLen_EN)x(SentLen_DE), sentence_de = ["German_1",...,"German_(SentLen_DE)"]
     _,wordlist,attns = model.predict2(sentence_de,beamsz=bs,gen_len=nwords)
 
