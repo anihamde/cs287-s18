@@ -122,7 +122,7 @@ class AttnNetwork(nn.Module):
             # reward[i] = pred[i,y[i]]. this gets log prob of correct word for each batch. similar to -crossentropy
             avg_reward += reward.data.mean()
             if attn_type == "hard":
-                neg_reward -= (cat.log_prob(attn_samples) * (reward.detach()-self.baseline)).mean() 
+                neg_reward -= (cat.log_prob(attn_samples) * (reward.detach()-self.baseline.detach())).mean() 
                 # reinforce rule (just read the formula), with special baseline
             loss -= reward.mean() # minimizing loss is maximizing reward
         avg_reward = avg_reward/dec_h.size(1)

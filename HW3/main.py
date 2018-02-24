@@ -128,7 +128,7 @@ for epoch in range(n_epochs):
         optimizer.zero_grad()
         x_de = batch.src.transpose(1,0).cuda()
         x_en = batch.trg.transpose(1,0).cuda()
-        loss, neg_reward = model.forward(x_de, x_en, attn_type)
+        loss, neg_reward = model.forward(x_de, x_en, attn_type, update_baseline=False) # TODO: just figuring out memory error!
         y_pred = model.predict(x_de, attn_type)
         lesser_of_two_evils = min(y_pred.size(1),x_en.size(1)) # TODO: temporary fix!!
         correct = torch.sum(y_pred[:,1:lesser_of_two_evils]==x_en[:,1:lesser_of_two_evils]) # exclude <s> token in acc calculation
@@ -136,8 +136,8 @@ for epoch in range(n_epochs):
         (loss + neg_reward).backward()
         torch.nn.utils.clip_grad_norm(model.parameters(), 1) # TODO: is this right? it didn't work last time
         optimizer.step()
-        print_loss_total += loss / x_en.size(1)
-        plot_loss_total += loss / x_en.size(1)
+        print_loss_total += loss.data[0] / x_en.size(1)
+        plot_loss_total += loss.data[0] / x_en.size(1)
 
         if ctr % print_every == 0:
             print_loss_avg = print_loss_total / print_every
