@@ -23,8 +23,8 @@ class AttnNetwork(nn.Module):
         # x_de is bs,n_de. x_en is bs,n_en
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
         emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
-        h0 = Variable(torch.zeros(1, bs, self.hidden_dim)) 
-        c0 = Variable(torch.zeros(1, bs, self.hidden_dim))
+        h0 = Variable(torch.zeros(1, bs, self.hidden_dim).cuda()) 
+        c0 = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())
         # hidden vars have dimension nlayers*ndirections,bs,hiddensz
         enc_h, _ = self.encoder(emb_de, (h0, c0))
         # enc_h is bs,n_de,hiddensz*ndirections. ordering is different from last week because batch_first=True
@@ -69,11 +69,11 @@ class AttnNetwork(nn.Module):
     # predict many batches with greedy encoding
     def predict(self, x_de, attn_type = "hard", bs=BATCH_SIZE):
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
-        h = Variable(torch.zeros(1, bs, self.hidden_dim))
-        c = Variable(torch.zeros(1, bs, self.hidden_dim))
+        h = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())
+        c = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())
         enc_h, _ = self.encoder(emb_de, (h, c))
         # all the same. enc_h is bs,n_de,hiddensz*ndirections. h and c are both nlayers*ndirections,bs,hiddensz
-        y = [Variable(torch.LongTensor([sos.token]*bs))] # bs
+        y = [Variable(torch.cuda.LongTensor([sos_token]*bs))] # bs
         self.attn = []
         n_en = MAX_LEN # this will change
         for t in range(n_en): # generate some english.
@@ -100,16 +100,17 @@ class AttnNetwork(nn.Module):
     # Singleton batch with BSO
     def predict2(self, x_de, beamsz, gen_len=3, attn_type = "hard"):
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim, but bs is 1 in this case-- singleton batch!
-        h0 = Variable(torch.zeros(1, 1, self.hidden_dim))
-        c0 = Variable(torch.zeros(1, 1, self.hidden_dim))
+        h0 = Variable(torch.zeros(1, 1, self.hidden_dim).cuda())
+        c0 = Variable(torch.zeros(1, 1, self.hidden_dim).cuda())
         enc_h, _ = self.encoder(emb_de, (h0, c0))
-        # hence, enc_h is 1,n_de,hiddensz*ndirections. h and c are both nlayers*ndirections,1,hiddensz
+        # since enc batch size=1, enc_h is 1,n_de,hiddensz*ndirections. h and c are both nlayers*ndirections,1,hiddensz
         masterheap = CandList(beamsz,self.hidden_dim,enc_h.size(1))
+        # in the following loop, beamsz is length 1 for first iteration, length true beamsz (100) afterward
         for i in range(gen_len):
             prev = masterheap.get_prev() # beamsz
-            enc_h_expand = enc_h.expand(prev.size(0),-1,-1) # beamsz,n_de,hiddensz*ndirections (beamsz is either 1 or true beamsz)
-            h, c = masterheap.get_hiddens() # (nlayers*ndirections,beamsz,hiddensz),(nlayers*ndirections,beamsz,hiddensz)
             emb_t = self.embedding(prev) # embed the last thing we generated. beamsz,word_dim
+            enc_h_expand = enc_h.expand(prev.size(0),-1,-1) # beamsz,n_de,hiddensz*ndirections
+            h, c = masterheap.get_hiddens() # (nlayers*ndirections,beamsz,hiddensz),(nlayers*ndirections,beamsz,hiddensz)
             dec_h, (h, c) = self.decoder(prev.unsqueeze(1), (h, c)) # dec_h is beamsz,1,hiddensz*ndirections (batch_first=True)
             scores = torch.bmm(enc_h_expand, dec_h.transpose(1,2)).squeeze(2)
             # (beamsz,n_de,hiddensz*ndirections) * (beamsz,hiddensz*ndirections,1) = (beamsz,n_de,1). squeeze to beamsz,n_de
@@ -131,18 +132,20 @@ class AttnNetwork(nn.Module):
         return masterheap.probs,masterheap.wordlist,masterheap.attentions
 
 # TODO: sos_token, len(EN.vocab) not defined here
-# TODO: do a trial run, with both beamsz=1 and beamsz=100
+# TODO: make everything cuda
 
 # If we have beamsz 100 and we only go 3 steps, we're guaranteed to have 100 unique trigrams
 # This is written so that, at any time, hiddens/attentions/wordlist/probs all align with each other across the beamsz dimension
 # - We could've enforced this better by packaging together each beam member in an object, but we don't
 # philosophy: we're going to take the dirty variables and reorder them nicely all in here and store them as tensors
+# the inputs to these methods could have beamsz = 1 or beamsz = true beamsz (100)
 class CandList():
     def __init__(self,beamsz=100,hidden_dim,n_de):
-        self.hiddens = (torch.zeros(1, beamsz, hidden_dim),torch.zeros(1, beamsz, hidden_dim))
-        # hidden tensors for each beam element
-        self.attentions = torch.zeros(beamsz,1,n_de)
-        # attention matrices-- we will concatenate along dimension 1
+        self.beamsz = beamsz
+        self.hiddens = (torch.zeros(1, 1, hidden_dim).cuda(),torch.zeros(1, 1, hidden_dim).cuda())
+        # hidden tensors (initially beamsz 1, later beamsz true beamsz)
+        self.attentions = None
+        # attention matrices-- we will concatenate along dimension 1. beamsz,n_en,n_de
         self.wordlist = None
         # wordlist will have dimension beamsz,iter
         self.probs = torch.zeros(beamsz)
@@ -151,7 +154,7 @@ class CandList():
         if self.wordlist:
             return Variable(self.wordlist[-1])
         else:
-            return Variable(torch.LongTensor([sos.token]))
+            return Variable(torch.cuda.LongTensor([sos.token]))
     def get_hiddens(self):
         return Variable(self.hiddens[0],self.hiddens[1])
     def update_beam(self,newlogprobs): # newlogprobs is beamsz,len(EN.vocab)
@@ -161,7 +164,7 @@ class CandList():
         sorte,indices = torch.topk(newlogprobs,beamsz) 
         # sorte and indices are beamsz. sorte contains probs, indices represent english word indices
         self.probs = sorte
-        self.oldbeamindices = indices / len(EN.vocab) # TODO: for first one, this'll be a bunch of zeros right?
+        self.oldbeamindices = indices / len(EN.vocab)
         currbeam = indices % len(EN.vocab) # beamsz
         self.update_wordlist(currbeam)
     def update_wordlist(self,currbeam):
@@ -171,16 +174,24 @@ class CandList():
             shuffled = self.wordlist[self.oldbeamindices]
             self.wordlist = torch.cat([shuffled,currbeam],1)
         else:
-            sos_tokens = Variable(torch.LongTensor([[sos_token]]*currbeam.sz(0)))
-            self.wordlist = torh.cat([sos_tokens,currbeam],1)
+            self.wordlist = currbeam
         # self.wordlist is now beamsz,iter+1
     def update_hiddens(self,h,c):
         # no need to save old hidden states
-        self.hiddens = (h_new.data,c_new.data)
+        if h.size(1) is 1:
+            h = h.expand(-1,self.beamsz,-1)
+            c = c.expand(-1,self.beamsz,-1)
+        # dimensions are nlayers*ndirections,beamsz,hiddensz
+        self.hiddens = (h.data,c.data)
     def update_attentions(self,attn):
-        # attn is beamsz,n_de
-        unshuffled = torch.cat([self.attentions,attn.data],1)
-        self.attentions = unshuffled[self.oldbeamindices]
+        attn = attn.unsqueeze(1)
+        if self.attentions:
+            # attn is beamsz,1,n_de
+            unshuffled = torch.cat([self.attentions,attn.data],1)
+            self.attentions = unshuffled[self.oldbeamindices]
+        else:
+            # attn is 1,1,n_de
+            self.attentions = attn.data.expand(self.beamsz,-1)
 
 
 class S2S(nn.Module):
@@ -200,8 +211,8 @@ class S2S(nn.Module):
         # x_de is bs,n_de. x_en is bs,n_en
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
         emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
-        h = Variable(torch.zeros(1, bs, self.hidden_dim)) 
-        c = Variable(torch.zeros(1, bs, self.hidden_dim))
+        h = Variable(torch.zeros(1, bs, self.hidden_dim).cuda()) 
+        c = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())
         # hidden vars have dimension nlayers*ndirections,bs,hiddensz
         enc_h, (h,c) = self.encoder(emb_de, (h, c))
         # enc_h is bs,n_de,hiddensz*ndirections. ordering is different from last week because batch_first=True
@@ -219,11 +230,11 @@ class S2S(nn.Module):
     def predict(self, x_de, bs=BATCH_SIZE):
         # predict with greedy decoding
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
-        h = Variable(torch.zeros(1, bs, self.hidden_dim))
-        c = Variable(torch.zeros(1, bs, self.hidden_dim))
+        h = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())
+        c = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())
         enc_h, (h,c) = self.encoder(emb_de, (h, c))
         # all the same. enc_h is bs,n_de,hiddensz*ndirections. h and c are both nlayers*ndirections,bs,hiddensz
-        y = [Variable(torch.LongTensor([sos.token]*bs))] # bs
+        y = [Variable(torch.cuda.LongTensor([sos.token]*bs))] # bs
         n_en = MAX_LEN # this will change
         for t in range(n_en): # generate some english.
             emb_t = self.embedding(y[-1]) # embed the last thing we generated. bs
