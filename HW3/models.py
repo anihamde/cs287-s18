@@ -21,9 +21,9 @@ class AttnNetwork(nn.Module):
         self.embedding_en = nn.Embedding(len(EN.vocab), word_dim)
         # vocab layer will combine dec hidden state with context vector, and then project out into vocab space 
         self.vocab_layer = nn.Sequential(nn.Linear(hidden_dim*2, hidden_dim),
-                                         nn.Tanh(), nn.Linear(hidden_dim, vocab_size), nn.LogSoftmax())
+                                         nn.Tanh(), nn.Linear(hidden_dim, len(EN.vocab)), nn.LogSoftmax())
         # baseline reward, which we initialize with log 1/V
-        self.baseline = Variable(torch.zeros(1).fill_(np.log(1/vocab_size)))                
+        self.baseline = Variable(torch.zeros(1).fill_(np.log(1/len(EN.vocab))))            
         
     def forward(self, x_de, x_en, attn_type="hard", bs=BATCH_SIZE, update_baseline=True):
         # x_de is bs,n_de. x_en is bs,n_en
@@ -208,7 +208,7 @@ class S2S(nn.Module):
         self.embedding_en = nn.Embedding(len(EN.vocab), word_dim)
         # vocab layer will project dec hidden state out into vocab space 
         self.vocab_layer = nn.Sequential(nn.Linear(hidden_dim, hidden_dim),
-                                         nn.Tanh(), nn.Linear(hidden_dim, vocab_size), nn.LogSoftmax())               
+                                         nn.Tanh(), nn.Linear(hidden_dim, len(EN.vocab)), nn.LogSoftmax())               
         
     def forward(self, x_de, x_en, bs=BATCH_SIZE):
         # x_de is bs,n_de. x_en is bs,n_en
