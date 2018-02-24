@@ -85,7 +85,7 @@ class AttnNetwork(nn.Module):
         self.attn = []
         n_en = MAX_LEN # this will change
         for t in range(n_en): # generate some english.
-            emb_t = self.embedding(y[-1]) # embed the last thing we generated. bs
+            emb_t = self.embedding_en(y[-1]) # embed the last thing we generated. bs
             dec_h, (h, c) = self.decoder(emb_t.unsqueeze(1), (h, c)) # dec_h is bs,1,hiddensz*ndirections (batch_first=True)
             scores = torch.bmm(enc_h, dec_h.transpose(1,2)).squeeze(2)
             # (bs,n_de,hiddensz*ndirections) * (bs,hiddensz*ndirections,1) = (bs,n_de,1). squeeze to bs,n_de
@@ -116,7 +116,7 @@ class AttnNetwork(nn.Module):
         # in the following loop, beamsz is length 1 for first iteration, length true beamsz (100) afterward
         for i in range(gen_len):
             prev = masterheap.get_prev() # beamsz
-            emb_t = self.embedding(prev) # embed the last thing we generated. beamsz,word_dim
+            emb_t = self.embedding_en(prev) # embed the last thing we generated. beamsz,word_dim
             enc_h_expand = enc_h.expand(prev.size(0),-1,-1) # beamsz,n_de,hiddensz*ndirections
             h, c = masterheap.get_hiddens() # (nlayers*ndirections,beamsz,hiddensz),(nlayers*ndirections,beamsz,hiddensz)
             dec_h, (h, c) = self.decoder(prev.unsqueeze(1), (h, c)) # dec_h is beamsz,1,hiddensz*ndirections (batch_first=True)
@@ -242,7 +242,7 @@ class S2S(nn.Module):
         y = [Variable(torch.cuda.LongTensor([sos.token]*bs))] # bs
         n_en = MAX_LEN # this will change
         for t in range(n_en): # generate some english.
-            emb_t = self.embedding(y[-1]) # embed the last thing we generated. bs
+            emb_t = self.embedding_en(y[-1]) # embed the last thing we generated. bs
             dec_h, (h, c) = self.decoder(emb_t.unsqueeze(1), (h, c)) # dec_h is bs,1,hiddensz*ndirections (batch_first=True)
             pred = self.vocab_layer(dec_h) # bs,1,len(EN.vocab)
             _, next_token = pred.max(1) # bs
