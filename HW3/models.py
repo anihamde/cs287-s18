@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from __main__ import EN,DE,sos_token,eos_token
+from __main__ import *#EN,DE,sos_token,eos_token
 
 print(sos_token)
 
