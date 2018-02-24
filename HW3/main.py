@@ -84,7 +84,7 @@ sos_token = EN.vocab.stoi["<s>"]
 eos_token = EN.vocab.stoi["</s>"]
 
 ''' TODO
-Memory issues, detaching, volatile=True
+Memory issues, detaching, volatile=True. I fixed the worst, but need to fix the baseline and test with hard attention.
 Study the data form. In training I assume batch.trg has last column of all </s>. Is this true? NO!
 - If not, how am I gonna handle training on uneven batches, where sentences finish at different lengths?
 How the sentences look: the DE ones are n_de by bs, and end roughly evenly. the EN ones are n_en by bs and end all over the place
