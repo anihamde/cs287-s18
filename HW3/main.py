@@ -118,7 +118,7 @@ print_every = 100
 plot_every = 100
 plot_losses = []
 avg_acc = 0
-optimizer = optim.SGD(net.parameters(), lr=learning_rate)
+optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
 for epoch in range(n_epochs):
     train_iter.init_epoch()
