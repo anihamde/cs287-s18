@@ -179,7 +179,7 @@ torch.save(model.state_dict(), args.model_file)
 # showPlot(plot_losses) # TODO: function not added/checked
 
 # visualize only for AttnNetwork
-def visualize(attns,sentence_de,bs,nwords): # attns = (SentLen_EN)x(SentLen_DE), sentence_de = ["German_1",...,"German_(SentLen_DE)"]
+def visualize(attns,sentence_de,bs,nwords,flname): # attns = (SentLen_EN)x(SentLen_DE), sentence_de = ["German_1",...,"German_(SentLen_DE)"]
     _,wordlist,attns = model.predict2(sentence_de,beamsz=bs,gen_len=nwords)
 
     fig = plt.figure()
@@ -195,9 +195,13 @@ def visualize(attns,sentence_de,bs,nwords): # attns = (SentLen_EN)x(SentLen_DE),
     ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
     ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
 
-    plt.show()
+    plt.savefig("{}.png".format(flname))
 
 list_of_german_sentences = [[""]]
 
+cntr = 0
 for sentence_de in list_of_german_sentences:
-    visualize(model,sentence_de,5,10)
+    flname = "plot_"+"{}".format(cntr)
+    visualize(model,sentence_de,5,10,"{}".format(flname))
+    cntr += 1
+
