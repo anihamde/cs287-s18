@@ -128,13 +128,13 @@ for epoch in range(n_epochs):
     for batch in iter(train_iter):
         ctr += 1
         optimizer.zero_grad()
-        x_de = batch.src.cuda()
-        x_en = batch.trg.cuda()
+        x_de = batch.src.transpose(1,0).cuda()
+        x_en = batch.trg.transpose(1,0).cuda()
         loss, neg_reward = model.forward(x_de, x_en, attn_type)
         y_pred = model.predict(x_de, attn_type)
-        # lesser_of_two_evils = min(y_pred.size(1),x_en.size(1)) # TODO: temporary fix!!
-        # correct = torch.sum(y_pred[:,1:lesser_of_two_evils]==x_en[:,1:lesser_of_two_evils]) # exclude <s> token in acc calculation
-        avg_acc = 0.95*avg_acc + 0.05*correct/(x_en.size(0)*x_en.size(1))
+        lesser_of_two_evils = min(y_pred.size(1),x_en.size(1)) # TODO: temporary fix!!
+        correct = torch.sum(y_pred[:,1:lesser_of_two_evils]==x_en[:,1:lesser_of_two_evils]) # exclude <s> token in acc calculation
+        avg_acc = 0.95*avg_acc + 0.05*correct.data[0]/(x_en.size(0)*x_en.size(1))
         (loss + neg_reward).backward()
         torch.nn.utils.clip_grad_norm(model.parameters(), 1) # TODO: is this right? it didn't work last time
         optimizer.step()
@@ -146,7 +146,7 @@ for epoch in range(n_epochs):
             print_loss_total = 0
             timenow = timeSince(start)
             print ('Time %s, Epoch [%d/%d], Iter [%d/%d], Loss: %.4f, Reward: %.2f, Accuracy: %.2f, PPL: %.2f' 
-                %(timenow, epoch+1, num_epochs, ctr, len(train_iter), print_loss_avg,
+                %(timenow, epoch+1, n_epochs, ctr, len(train_iter), print_loss_avg,
                     model.baseline.data[0], avg_acc, np.exp(print_loss_avg)))
 
         if ctr % plot_every == 0:
@@ -156,8 +156,8 @@ for epoch in range(n_epochs):
 
     val_loss_total = 0 # Validation/early stopping
     for batch in iter(val_iter):
-        x_de = batch.src.cuda()
-        x_en = batch.trg.cuda()
+        x_de = batch.src.transpose(1,0).cuda()
+        x_en = batch.trg.transpose(1,0).cuda()
         loss, neg_reward = model.forward(x_de, x_en, attn_type, update_baseline=False)
         # too lazy to implement reward or accuracy for validation
         val_loss_total += loss / x_en.size(1)

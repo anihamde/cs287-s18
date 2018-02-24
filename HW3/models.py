@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.autograd import Variable
 from __main__ import EN,DE,BATCH_SIZE,MAX_LEN,MIN_FREQ,sos_token,eos_token
 
@@ -24,7 +25,7 @@ class AttnNetwork(nn.Module):
         self.vocab_layer = nn.Sequential(nn.Linear(hidden_dim*2, hidden_dim),
                                          nn.Tanh(), nn.Linear(hidden_dim, len(EN.vocab)), nn.LogSoftmax())
         # baseline reward, which we initialize with log 1/V
-        self.baseline = Variable(torch.zeros(1).fill_(np.log(1/len(EN.vocab))))            
+        self.baseline = Variable(torch.zeros(1).fill_(np.log(1/len(EN.vocab))).cuda())            
         
     def forward(self, x_de, x_en, attn_type="hard", bs=BATCH_SIZE, update_baseline=True):
         # x_de is bs,n_de. x_en is bs,n_en
@@ -50,7 +51,7 @@ class AttnNetwork(nn.Module):
             if attn_type == "hard":
                 cat = torch.distributions.Categorical(attn_dist) 
                 attn_samples = cat.sample() # bs. each element is a sample from categorical distribution
-                one_hot = Variable(torch.zeros_like(attn_dist.data).scatter_(-1, attn_samples.data.unsqueeze(1), 1)) # bs,n_de
+                one_hot = Variable(torch.zeros_like(attn_dist.data).scatter_(-1, attn_samples.data.unsqueeze(1), 1).cuda()) # bs,n_de
                 # made a bunch of one-hot vectors
                 context = torch.bmm(one_hot.unsqueeze(1), enc_h).squeeze(1)
                 # now we use the one-hot vectors to select correct hidden vectors from enc_h
@@ -84,7 +85,7 @@ class AttnNetwork(nn.Module):
         self.attn = []
         n_en = MAX_LEN # this will change
         for t in range(n_en): # generate some english.
-            emb_t = self.embedding(y[-1]) # embed the last thing we generated. bs
+            emb_t = self.embedding_en(y[-1]) # embed the last thing we generated. bs
             dec_h, (h, c) = self.decoder(emb_t.unsqueeze(1), (h, c)) # dec_h is bs,1,hiddensz*ndirections (batch_first=True)
             scores = torch.bmm(enc_h, dec_h.transpose(1,2)).squeeze(2)
             # (bs,n_de,hiddensz*ndirections) * (bs,hiddensz*ndirections,1) = (bs,n_de,1). squeeze to bs,n_de
@@ -92,7 +93,7 @@ class AttnNetwork(nn.Module):
             self.attn.append(attn_dist.data)
             if attn_type == "hard":
                 _, argmax = attn_dist.max(1) # bs. for each batch, select most likely german word to pay attention to
-                one_hot = Variable(torch.zeros_like(attn_dist.data).scatter_(-1, argmax.data.unsqueeze(1), 1))
+                one_hot = Variable(torch.zeros_like(attn_dist.data).scatter_(-1, argmax.data.unsqueeze(1), 1).cuda())
                 context = torch.bmm(one_hot.unsqueeze(1), enc_h).squeeze(1)
             else:
                 context = torch.bmm(attn_dist.unsqueeze(1), enc_h).squeeze(1)
@@ -115,7 +116,7 @@ class AttnNetwork(nn.Module):
         # in the following loop, beamsz is length 1 for first iteration, length true beamsz (100) afterward
         for i in range(gen_len):
             prev = masterheap.get_prev() # beamsz
-            emb_t = self.embedding(prev) # embed the last thing we generated. beamsz,word_dim
+            emb_t = self.embedding_en(prev) # embed the last thing we generated. beamsz,word_dim
             enc_h_expand = enc_h.expand(prev.size(0),-1,-1) # beamsz,n_de,hiddensz*ndirections
             h, c = masterheap.get_hiddens() # (nlayers*ndirections,beamsz,hiddensz),(nlayers*ndirections,beamsz,hiddensz)
             dec_h, (h, c) = self.decoder(prev.unsqueeze(1), (h, c)) # dec_h is beamsz,1,hiddensz*ndirections (batch_first=True)
@@ -124,7 +125,7 @@ class AttnNetwork(nn.Module):
             attn_dist = F.softmax(scores,dim=1)
             if attn_type == "hard":
                 _, argmax = attn_dist.max(1) # beamsz for each batch, select most likely german word to pay attention to
-                one_hot = Variable(torch.zeros_like(attn_dist.data).scatter_(-1, argmax.data.unsqueeze(1), 1))
+                one_hot = Variable(torch.zeros_like(attn_dist.data).scatter_(-1, argmax.data.unsqueeze(1), 1).cuda())
                 context = torch.bmm(one_hot.unsqueeze(1), enc_h.expand(beamsz,-1,-1)).squeeze(1)
             else:
                 context = torch.bmm(attn_dist.unsqueeze(1), enc_h.expand(beamsz,-1,-1)).squeeze(1)
@@ -152,7 +153,7 @@ class CandList():
         # attention matrices-- we will concatenate along dimension 1. beamsz,n_en,n_de
         self.wordlist = None
         # wordlist will have dimension beamsz,iter
-        self.probs = torch.zeros(beamsz)
+        self.probs = torch.zeros(beamsz).cuda()
         # vector of probabilities, length beamsz
     def get_prev(self):
         if self.wordlist:
@@ -241,7 +242,7 @@ class S2S(nn.Module):
         y = [Variable(torch.cuda.LongTensor([sos.token]*bs))] # bs
         n_en = MAX_LEN # this will change
         for t in range(n_en): # generate some english.
-            emb_t = self.embedding(y[-1]) # embed the last thing we generated. bs
+            emb_t = self.embedding_en(y[-1]) # embed the last thing we generated. bs
             dec_h, (h, c) = self.decoder(emb_t.unsqueeze(1), (h, c)) # dec_h is bs,1,hiddensz*ndirections (batch_first=True)
             pred = self.vocab_layer(dec_h) # bs,1,len(EN.vocab)
             _, next_token = pred.max(1) # bs
