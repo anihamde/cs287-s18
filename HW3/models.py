@@ -3,8 +3,6 @@ import torch
 import torch.nn as nn
 from __main__ import *#EN,DE,sos_token,eos_token
 
-print(sos_token)
-
 # TODO: check for better way to specify tokens and BATCH_SIZE
 BATCH_SIZE = 32
 # sos_token = 2
