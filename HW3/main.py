@@ -132,8 +132,8 @@ for epoch in range(n_epochs):
         x_en = batch.trg.transpose(1,0).cuda()
         loss, neg_reward = model.forward(x_de, x_en, attn_type)
         y_pred = model.predict(x_de, attn_type)
-        # lesser_of_two_evils = min(y_pred.size(1),x_en.size(1)) # TODO: temporary fix!!
-        # correct = torch.sum(y_pred[:,1:lesser_of_two_evils]==x_en[:,1:lesser_of_two_evils]) # exclude <s> token in acc calculation
+        lesser_of_two_evils = min(y_pred.size(1),x_en.size(1)) # TODO: temporary fix!!
+        correct = torch.sum(y_pred[:,1:lesser_of_two_evils]==x_en[:,1:lesser_of_two_evils]) # exclude <s> token in acc calculation
         avg_acc = 0.95*avg_acc + 0.05*correct/(x_en.size(0)*x_en.size(1))
         (loss + neg_reward).backward()
         torch.nn.utils.clip_grad_norm(model.parameters(), 1) # TODO: is this right? it didn't work last time
