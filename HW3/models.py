@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+from torch.autograd import Variable
 from __main__ import EN,DE,BATCH_SIZE,MAX_LEN,MIN_FREQ,sos_token,eos_token
 
 # TODO: check for better way to specify tokens and BATCH_SIZE

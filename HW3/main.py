@@ -82,6 +82,8 @@ print("REMINDER!!! Did you create ../../models/HW3?????")
 sos_token = EN.vocab.stoi["<s>"]
 eos_token = EN.vocab.stoi["</s>"]
 
+print("Loaded everything!")
+
 ''' TODO
 Study the data form. In training I assume batch.trg has last column of all </s>. Is this true?
 - If not, how am I gonna handle training on uneven batches, where sentences finish at different lengths?
