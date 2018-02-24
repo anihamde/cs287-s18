@@ -86,21 +86,21 @@ eos_token = EN.vocab.stoi["</s>"]
 print("Loaded everything!")
 
 ''' TODO
-Study the data form. In training I assume batch.trg has last column of all </s>. Is this true?
+Study the data form. In training I assume batch.trg has last column of all </s>. Is this true? NO!
 - If not, how am I gonna handle training on uneven batches, where sentences finish at different lengths?
-Predict function hack ideas? Involving MAX_LEN or eos_token
+How the sentences look: the DE ones are n_de by bs, and end roughly evenly. the EN ones are n_en by bs and end all over the place
+Pass a binary mask to attention module...? 
 
 
-How is ppl calculated with no teacher forcing? I don't think you can. Just abstain from teacher forcing for now
-- Build a section-code-style s2s without teacher forcing
-- If we have time, we can try the tutorial script with and without attn, see if teacher forcing makes a difference
+Create predict2 for s2s
 Yes, there is a German word2vec and I should use it. (And use the English ones too obviously)
+If we have time, we can try the tutorial script with and without attn, see if teacher forcing makes a difference
+Predict function hack ideas? Involving MAX_LEN or eos_token
 BLEU perl script
-What is purpose of baseline reward?
 BSO is for all the models, cause you search through a graph of words. (although searching for z's has been studied)
 Can I throw out the perplexity from predicting on <s>? Who knows what the first word in a sentence is?
 
-Pass a binary mask to attention module...? 
+
 
 Consult papers for hyperparameters
 Multi-layer, bidirectional, LSTM instead of GRU, etc
