@@ -25,7 +25,7 @@ class AttnNetwork(nn.Module):
         self.vocab_layer = nn.Sequential(nn.Linear(hidden_dim*2, hidden_dim),
                                          nn.Tanh(), nn.Linear(hidden_dim, len(EN.vocab)), nn.LogSoftmax())
         # baseline reward, which we initialize with log 1/V
-        self.baseline = Variable(torch.zeros(1).fill_(np.log(1/len(EN.vocab))))            
+        self.baseline = Variable(torch.zeros(1).fill_(np.log(1/len(EN.vocab))).cuda())            
         
     def forward(self, x_de, x_en, attn_type="hard", bs=BATCH_SIZE, update_baseline=True):
         # x_de is bs,n_de. x_en is bs,n_en
@@ -51,7 +51,7 @@ class AttnNetwork(nn.Module):
             if attn_type == "hard":
                 cat = torch.distributions.Categorical(attn_dist) 
                 attn_samples = cat.sample() # bs. each element is a sample from categorical distribution
-                one_hot = Variable(torch.zeros_like(attn_dist.data).scatter_(-1, attn_samples.data.unsqueeze(1), 1)) # bs,n_de
+                one_hot = Variable(torch.zeros_like(attn_dist.data).scatter_(-1, attn_samples.data.unsqueeze(1), 1).cuda()) # bs,n_de
                 # made a bunch of one-hot vectors
                 context = torch.bmm(one_hot.unsqueeze(1), enc_h).squeeze(1)
                 # now we use the one-hot vectors to select correct hidden vectors from enc_h
@@ -93,7 +93,7 @@ class AttnNetwork(nn.Module):
             self.attn.append(attn_dist.data)
             if attn_type == "hard":
                 _, argmax = attn_dist.max(1) # bs. for each batch, select most likely german word to pay attention to
-                one_hot = Variable(torch.zeros_like(attn_dist.data).scatter_(-1, argmax.data.unsqueeze(1), 1))
+                one_hot = Variable(torch.zeros_like(attn_dist.data).scatter_(-1, argmax.data.unsqueeze(1), 1).cuda())
                 context = torch.bmm(one_hot.unsqueeze(1), enc_h).squeeze(1)
             else:
                 context = torch.bmm(attn_dist.unsqueeze(1), enc_h).squeeze(1)
@@ -125,7 +125,7 @@ class AttnNetwork(nn.Module):
             attn_dist = F.softmax(scores,dim=1)
             if attn_type == "hard":
                 _, argmax = attn_dist.max(1) # beamsz for each batch, select most likely german word to pay attention to
-                one_hot = Variable(torch.zeros_like(attn_dist.data).scatter_(-1, argmax.data.unsqueeze(1), 1))
+                one_hot = Variable(torch.zeros_like(attn_dist.data).scatter_(-1, argmax.data.unsqueeze(1), 1).cuda())
                 context = torch.bmm(one_hot.unsqueeze(1), enc_h.expand(beamsz,-1,-1)).squeeze(1)
             else:
                 context = torch.bmm(attn_dist.unsqueeze(1), enc_h.expand(beamsz,-1,-1)).squeeze(1)
@@ -153,7 +153,7 @@ class CandList():
         # attention matrices-- we will concatenate along dimension 1. beamsz,n_en,n_de
         self.wordlist = None
         # wordlist will have dimension beamsz,iter
-        self.probs = torch.zeros(beamsz)
+        self.probs = torch.zeros(beamsz).cuda()
         # vector of probabilities, length beamsz
     def get_prev(self):
         if self.wordlist:
