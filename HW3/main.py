@@ -123,7 +123,7 @@ for epoch in range(n_epochs):
     plot_loss_total = 0  # Reset every plot_every
     for batch in iter(train_iter):
         ctr += 1
-        optim.zero_grad()
+        optimizer.zero_grad()
         x_de = batch.src.cuda()
         x_en = batch.trg.cuda()
         loss, neg_reward = model.forward(x_de, x_en, attn_type)
@@ -133,7 +133,7 @@ for epoch in range(n_epochs):
         avg_acc = 0.95*avg_acc + 0.05*correct/(x_en.size(0)*x_en.size(1))
         (loss + neg_reward).backward()
         torch.nn.utils.clip_grad_norm(model.parameters(), 1) # TODO: is this right? it didn't work last time
-        optim.step()
+        optimizer.step()
         print_loss_total += loss / x_en.size(1)
         plot_loss_total += loss / x_en.size(1)
 
