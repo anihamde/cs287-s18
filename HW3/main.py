@@ -83,8 +83,7 @@ eos_token = EN.vocab.stoi["</s>"]
 ''' TODO
 Study the data form. In training I assume batch.trg has last column of all </s>. Is this true?
 - If not, how am I gonna handle training on uneven batches, where sentences finish at different lengths?
-Predict: just make a new fn with batch size 1, exits after 3, and is more amenable to BSO
-- explain the challenge of predicting bs sentences at once. hack ideas? involving MAX_LEN or </s>
+Predict function hack ideas? Involving MAX_LEN or eos_token
 
 Cuda everything
 
@@ -168,25 +167,8 @@ with open("preds.csv", "w") as f:
         x_de = [DE.vocab.stoi[w] for w in l.split(' ')]
         _,wordlist,_ = model.predict2(x_de,beamsz=100,gen_len=3)
         # wordlist is beamsz,3
-        beams = [EN.vocab.itos[w] for w in beam for beam in out]
-        # not correct but I have to go.. finish later!
-
-        longstr = ""
-
-        rowcntr = 0
-        for row in out:
-            if rowcntr != 0:
-                longstr += " "
-            rowcntr += 1
-            colcntr = 0
-            for column in row:
-                if colcntr != 0:
-                    longstr = longstr + "|"
-                colcntr += 1
-                longstr = longstr + EN.vocab.itos[column]
-
+        longstr = ' '.join(['|'.join([EN.vocab.itos[w] for w in beam]) for beam in out])
         longstr = escape(longstr)
-
         writer.writerow([i,longstr])
 
 torch.save(model.state_dict(), args.model_file)

@@ -66,8 +66,8 @@ class AttnNetwork(nn.Module):
             self.baseline.data = 0.95*self.baseline.data + 0.05*avg_reward
         return loss, neg_reward
     
+    # predict many batches with greedy encoding
     def predict(self, x_de, attn_type = "hard", bs=BATCH_SIZE):
-        # predict with greedy decoding
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
         h = Variable(torch.zeros(1, bs, self.hidden_dim))
         c = Variable(torch.zeros(1, bs, self.hidden_dim))
