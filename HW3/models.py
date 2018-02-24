@@ -1,6 +1,13 @@
 import numpy as np
 import torch
 import torch.nn as nn
+from torch.autograd import Variable
+from __main__ import EN,DE,BATCH_SIZE,MAX_LEN,MIN_FREQ,sos_token,eos_token
+
+# TODO: check for better way to specify tokens and BATCH_SIZE
+# BATCH_SIZE = 32
+# sos_token = 2
+# eos_token = 3
 
 # I thought it might be better to move these unwieldy models into their own file. Feel free to change it back!
 
@@ -15,9 +22,9 @@ class AttnNetwork(nn.Module):
         self.embedding_en = nn.Embedding(len(EN.vocab), word_dim)
         # vocab layer will combine dec hidden state with context vector, and then project out into vocab space 
         self.vocab_layer = nn.Sequential(nn.Linear(hidden_dim*2, hidden_dim),
-                                         nn.Tanh(), nn.Linear(hidden_dim, vocab_size), nn.LogSoftmax())
+                                         nn.Tanh(), nn.Linear(hidden_dim, len(EN.vocab)), nn.LogSoftmax())
         # baseline reward, which we initialize with log 1/V
-        self.baseline = Variable(torch.zeros(1).fill_(np.log(1/vocab_size)))                
+        self.baseline = Variable(torch.zeros(1).fill_(np.log(1/len(EN.vocab))))            
         
     def forward(self, x_de, x_en, attn_type="hard", bs=BATCH_SIZE, update_baseline=True):
         # x_de is bs,n_de. x_en is bs,n_en
@@ -131,16 +138,13 @@ class AttnNetwork(nn.Module):
         
         return masterheap.probs,masterheap.wordlist,masterheap.attentions
 
-# TODO: sos_token, len(EN.vocab) not defined here
-# TODO: make everything cuda
-
 # If we have beamsz 100 and we only go 3 steps, we're guaranteed to have 100 unique trigrams
 # This is written so that, at any time, hiddens/attentions/wordlist/probs all align with each other across the beamsz dimension
 # - We could've enforced this better by packaging together each beam member in an object, but we don't
 # philosophy: we're going to take the dirty variables and reorder them nicely all in here and store them as tensors
 # the inputs to these methods could have beamsz = 1 or beamsz = true beamsz (100)
 class CandList():
-    def __init__(self,beamsz=100,hidden_dim,n_de):
+    def __init__(self,hidden_dim,n_de,beamsz=100):
         self.beamsz = beamsz
         self.hiddens = (torch.zeros(1, 1, hidden_dim).cuda(),torch.zeros(1, 1, hidden_dim).cuda())
         # hidden tensors (initially beamsz 1, later beamsz true beamsz)
@@ -205,7 +209,7 @@ class S2S(nn.Module):
         self.embedding_en = nn.Embedding(len(EN.vocab), word_dim)
         # vocab layer will project dec hidden state out into vocab space 
         self.vocab_layer = nn.Sequential(nn.Linear(hidden_dim, hidden_dim),
-                                         nn.Tanh(), nn.Linear(hidden_dim, vocab_size), nn.LogSoftmax())               
+                                         nn.Tanh(), nn.Linear(hidden_dim, len(EN.vocab)), nn.LogSoftmax())               
         
     def forward(self, x_de, x_en, bs=BATCH_SIZE):
         # x_de is bs,n_de. x_en is bs,n_en

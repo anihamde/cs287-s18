@@ -1,23 +1,22 @@
 import numpy as np
 import torch
+import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.distributions # this package provides a lot of nice abstractions for policy gradients
 from torch.autograd import Variable
 from torchtext import data
 from torchtext import datasets
+from torchtext.vocab import Vectors
 import spacy
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
+# import matplotlib.pyplot as plt
+# import matplotlib.ticker as ticker
 
 import csv
 import time
 import math
 import copy
 import argparse
-
-from models import AttnNetwork, CandList, S2S
-from helpers import asMinutes, timeSince, escape
 
 parser = argparse.ArgumentParser(description='training runner')
 parser.add_argument('--model_file','-m',type=str,default='../../models/HW3/model.pkl',help='Model save target.')
@@ -44,6 +43,8 @@ BOS_WORD = '<s>'
 EOS_WORD = '</s>'
 DE = data.Field(tokenize=tokenize_de)
 EN = data.Field(tokenize=tokenize_en, init_token = BOS_WORD, eos_token = EOS_WORD) # only target needs BOS/EOS
+
+print("Getting datasets!")
 
 MAX_LEN = 20
 train, val, test = datasets.IWSLT.splits(exts=('.de', '.en'), fields=(DE, EN), 
@@ -82,6 +83,8 @@ print("REMINDER!!! Did you create ../../models/HW3?????")
 sos_token = EN.vocab.stoi["<s>"]
 eos_token = EN.vocab.stoi["</s>"]
 
+print("Loaded everything!")
+
 ''' TODO
 Study the data form. In training I assume batch.trg has last column of all </s>. Is this true?
 - If not, how am I gonna handle training on uneven batches, where sentences finish at different lengths?
@@ -104,7 +107,8 @@ Multi-layer, bidirectional, LSTM instead of GRU, etc
 Weight tying, interpolation
 Dropout, embedding max norms, etc
 '''
-
+from models import AttnNetwork, CandList, S2S
+from helpers import asMinutes, timeSince, escape
 
 model = AttnNetwork()
 model.cuda()
@@ -114,7 +118,7 @@ print_every = 100
 plot_every = 100
 plot_losses = []
 avg_acc = 0
-optimizer = optim.SGD(net.parameters(), lr=learning_rate)
+optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
 for epoch in range(n_epochs):
     train_iter.init_epoch()
@@ -123,7 +127,7 @@ for epoch in range(n_epochs):
     plot_loss_total = 0  # Reset every plot_every
     for batch in iter(train_iter):
         ctr += 1
-        optim.zero_grad()
+        optimizer.zero_grad()
         x_de = batch.src.cuda()
         x_en = batch.trg.cuda()
         loss, neg_reward = model.forward(x_de, x_en, attn_type)
@@ -133,7 +137,7 @@ for epoch in range(n_epochs):
         avg_acc = 0.95*avg_acc + 0.05*correct/(x_en.size(0)*x_en.size(1))
         (loss + neg_reward).backward()
         torch.nn.utils.clip_grad_norm(model.parameters(), 1) # TODO: is this right? it didn't work last time
-        optim.step()
+        optimizer.step()
         print_loss_total += loss / x_en.size(1)
         plot_loss_total += loss / x_en.size(1)
 
@@ -178,30 +182,30 @@ with open("preds.csv", "w") as f:
 torch.save(model.state_dict(), args.model_file)
 # showPlot(plot_losses) # TODO: function not added/checked
 
-# visualize only for AttnNetwork
-def visualize(attns,sentence_de,bs,nwords,flname): # attns = (SentLen_EN)x(SentLen_DE), sentence_de = ["German_1",...,"German_(SentLen_DE)"]
-    _,wordlist,attns = model.predict2(sentence_de,beamsz=bs,gen_len=nwords)
+# # visualize only for AttnNetwork
+# def visualize(attns,sentence_de,bs,nwords,flname): # attns = (SentLen_EN)x(SentLen_DE), sentence_de = ["German_1",...,"German_(SentLen_DE)"]
+#     _,wordlist,attns = model.predict2(sentence_de,beamsz=bs,gen_len=nwords)
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    cax = ax.matshow(attns.numpy(), cmap='bone')
-    fig.colorbar(cax)
+#     fig = plt.figure()
+#     ax = fig.add_subplot(111)
+#     cax = ax.matshow(attns.numpy(), cmap='bone')
+#     fig.colorbar(cax)
 
-    # Set up axes
-    ax.set_xticklabels(sentence_de, rotation=90)
-    ax.set_yticklabels(wordlist)
+#     # Set up axes
+#     ax.set_xticklabels(sentence_de, rotation=90)
+#     ax.set_yticklabels(wordlist)
 
-    # Show label at every tick
-    ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
-    ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
+#     # Show label at every tick
+#     ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
+#     ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
 
-    plt.savefig("{}.png".format(flname))
+#     plt.savefig("{}.png".format(flname))
 
-list_of_german_sentences = [[""]]
+# list_of_german_sentences = [[""]]
 
-cntr = 0
-for sentence_de in list_of_german_sentences:
-    flname = "plot_"+"{}".format(cntr)
-    visualize(model,sentence_de,5,10,"{}".format(flname))
-    cntr += 1
+# cntr = 0
+# for sentence_de in list_of_german_sentences:
+#     flname = "plot_"+"{}".format(cntr)
+#     visualize(model,sentence_de,5,10,"{}".format(flname))
+#     cntr += 1
 
