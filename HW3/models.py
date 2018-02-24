@@ -2,6 +2,11 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+BATCH_SIZE = 32
+EN = data.Field(tokenize=tokenize_en, init_token = BOS_WORD, eos_token = EOS_WORD) # only target needs BOS/EOS
+sos_token = EN.vocab.stoi["<s>"]
+eos_token = EN.vocab.stoi["</s>"]
+
 # I thought it might be better to move these unwieldy models into their own file. Feel free to change it back!
 
 class AttnNetwork(nn.Module):
@@ -130,9 +135,6 @@ class AttnNetwork(nn.Module):
         # TODO: can this generate good long sentences with smaller beamsz?
         
         return masterheap.probs,masterheap.wordlist,masterheap.attentions
-
-# TODO: sos_token, len(EN.vocab) not defined here
-# TODO: make everything cuda
 
 # If we have beamsz 100 and we only go 3 steps, we're guaranteed to have 100 unique trigrams
 # This is written so that, at any time, hiddens/attentions/wordlist/probs all align with each other across the beamsz dimension
