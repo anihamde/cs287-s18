@@ -128,8 +128,8 @@ for epoch in range(n_epochs):
     for batch in iter(train_iter):
         ctr += 1
         optimizer.zero_grad()
-        x_de = batch.src.cuda()
-        x_en = batch.trg.cuda()
+        x_de = batch.src.transpose(1,0).cuda()
+        x_en = batch.trg.transpose(1,0).cuda()
         loss, neg_reward = model.forward(x_de, x_en, attn_type)
         y_pred = model.predict(x_de, attn_type)
         # lesser_of_two_evils = min(y_pred.size(1),x_en.size(1)) # TODO: temporary fix!!
@@ -156,8 +156,8 @@ for epoch in range(n_epochs):
 
     val_loss_total = 0 # Validation/early stopping
     for batch in iter(val_iter):
-        x_de = batch.src.cuda()
-        x_en = batch.trg.cuda()
+        x_de = batch.src.transpose(1,0).cuda()
+        x_en = batch.trg.transpose(1,0).cuda()
         loss, neg_reward = model.forward(x_de, x_en, attn_type, update_baseline=False)
         # too lazy to implement reward or accuracy for validation
         val_loss_total += loss / x_en.size(1)
