@@ -91,7 +91,7 @@ Predict function hack ideas? Involving MAX_LEN or eos_token
 How is ppl calculated with no teacher forcing? I don't think you can. Just abstain from teacher forcing for now
 - Build a section-code-style s2s without teacher forcing
 - If we have time, we can try the tutorial script with and without attn, see if teacher forcing makes a difference
-Yes, there is a German word2vec and I should use it
+Yes, there is a German word2vec and I should use it. (And use the English ones too obviously)
 BLEU perl script
 What is purpose of baseline reward?
 BSO is for all the models, cause you search through a graph of words. (although searching for z's has been studied)
@@ -101,6 +101,7 @@ Pass a binary mask to attention module...?
 
 Consult papers for hyperparameters
 Multi-layer, bidirectional, LSTM instead of GRU, etc
+Weight tying, interpolation
 Dropout, embedding max norms, etc
 '''
 
