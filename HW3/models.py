@@ -105,13 +105,12 @@ class AttnNetwork(nn.Module):
         enc_h, _ = self.encoder(emb_de, (h0, c0))
         # hence, enc_h is 1,n_de,hiddensz*ndirections. h and c are both nlayers*ndirections,1,hiddensz
         masterheap = CandList(beamsz,self.hidden_dim,enc_h.size(1))
-        beam = None # TODO why are we not storing this in masterheap?
         for i in range(gen_len):
-            candlist = masterheap.get_candlist() # beamsz
-            enc_h_expand = enc_h.expand(candlist.size(0),-1,-1) # beamsz,n_de,hiddensz*ndirections (beamsz is either 1 or true beamsz)
+            prev = masterheap.get_prev() # beamsz
+            enc_h_expand = enc_h.expand(prev.size(0),-1,-1) # beamsz,n_de,hiddensz*ndirections (beamsz is either 1 or true beamsz)
             h, c = masterheap.get_hiddens() # (nlayers*ndirections,beamsz,hiddensz),(nlayers*ndirections,beamsz,hiddensz)
-            emb_t = self.embedding(candlist) # embed the last thing we generated. beamsz,word_dim
-            dec_h, (h, c) = self.decoder(candlist.unsqueeze(1), (h, c)) # dec_h is beamsz,1,hiddensz*ndirections (batch_first=True)
+            emb_t = self.embedding(prev) # embed the last thing we generated. beamsz,word_dim
+            dec_h, (h, c) = self.decoder(prev.unsqueeze(1), (h, c)) # dec_h is beamsz,1,hiddensz*ndirections (batch_first=True)
             scores = torch.bmm(enc_h_expand, dec_h.transpose(1,2)).squeeze(2)
             # (beamsz,n_de,hiddensz*ndirections) * (beamsz,hiddensz*ndirections,1) = (beamsz,n_de,1). squeeze to beamsz,n_de
             attn_dist = F.softmax(scores,dim=1)
@@ -124,58 +123,64 @@ class AttnNetwork(nn.Module):
             # the difference btwn hard and soft is just whether we use a one_hot or a distribution
             # context is beamsz,hiddensz*ndirections
             pred = self.vocab_layer(torch.cat([dec_h.squeeze(1), context], 1)) # beamsz,len(EN.vocab)
-            beam = masterheap.update_candlist(beam,pred) # (beamsz)x(iter+1)
+            masterheap.update_beam(pred)
             masterheap.update_hiddens(h,c)
             masterheap.update_attns(attn_dist)
+        # TODO: can this generate good long sentences with smaller beamsz?
         
-        # TODO: do you want the attentions too?
-        return beam
-            
-# TODO: not holding onto variables forever?
-        
+        return masterheap.probs,masterheap.wordlist,masterheap.attentions
+
+# TODO: sos_token, len(EN.vocab) not defined here
+# TODO: do a trial run, with both beamsz=1 and beamsz=100
+
 # If we have beamsz 100 and we only go 3 steps, we're guaranteed to have 100 unique trigrams
+# This is written so that, at any time, hiddens/attentions/wordlist/probs all align with each other across the beamsz dimension
+# - We could've enforced this better by packaging together each beam member in an object, but we don't
+# philosophy: we're going to take the dirty variables and reorder them nicely all in here and store them as tensors
 class CandList():
     def __init__(self,beamsz=100,hidden_dim,n_de):
-        self.candlist = [[sos.token]]
         self.hiddens = (torch.zeros(1, beamsz, hidden_dim),torch.zeros(1, beamsz, hidden_dim))
+        # hidden tensors for each beam element
         self.attentions = torch.zeros(beamsz,1,n_de)
-    def get_candlist():
-        return Variable(torch.LongTensor(self.candlist))
-    def get_hiddens():
-        return Variable(self.hiddens[0],self.hiddens[1])
-    def get_attentions():
-        return self.attentions
-    def update_candlist(wordslist,newlogprobs):
-        if wordslist:
-            newlogprobs += self.probs
-            newlogprobs = torch.flatten(newlogprobs)
-            sorte, indices = torch.sort(newlogprobs,[beamsz])
-            self.probs = sorte
-            self.oldbeamindices = indices/len(EN.vocab)            
-            currbeam = indices%len(EN.vocab).unsqueeze(1) # (beamsz)x(1)
-            
-            wlizt = []
-            
-            prevbeam = wordslist[self.oldbeamindices] # (beamsz)x(iter+1)
-            
-            fullbeam = torch.cat([prevbeam,currbeam],1) # (beamsz)x(iter+1)
+        # attention matrices-- we will concatenate along dimension 1
+        self.wordlist = None
+        # wordlist will have dimension beamsz,iter
+        self.probs = torch.zeros(beamsz)
+        # vector of probabilities, length beamsz
+    def get_prev(self):
+        if self.wordlist:
+            return Variable(self.wordlist[-1])
         else:
-            sorte, indices = torch.sort(newlogprobs,[beamsz])
-            self.probs = sorte
-            self.oldbeamindices = None
-
-            fullbeam = indices.unsqueeze(1) # (beamsz)x(1)
-            
-        return fullbeam
-        
-      def update_hiddens(self,h,c):
-          h_new = h[:,self.oldbeamindices,:].data
-          c_new = c[:,self.oldbeamindices,:].data
-          self.hiddens = (h_new,c_new)
-          
-      def update_attentions(self,attn):
-          shuffled = self.attentions[self.oldbeamindices,:,:]
-          self.attentions = torch.cat([shuffled,attn.data],1)
+            return Variable(torch.LongTensor([sos.token]))
+    def get_hiddens(self):
+        return Variable(self.hiddens[0],self.hiddens[1])
+    def update_beam(self,newlogprobs): # newlogprobs is beamsz,len(EN.vocab)
+        newlogprobs = newlogprobs.data
+        newlogprobs += self.probs.unsqueeze(1) # beamsz,len(EN.vocab)
+        newlogprobs = torch.flatten(newlogprobs) # flatten to beamsz*len(EN.vocab) (search across all beams)
+        sorte,indices = torch.topk(newlogprobs,beamsz) 
+        # sorte and indices are beamsz. sorte contains probs, indices represent english word indices
+        self.probs = sorte
+        self.oldbeamindices = indices / len(EN.vocab) # TODO: for first one, this'll be a bunch of zeros right?
+        currbeam = indices % len(EN.vocab) # beamsz
+        self.update_wordlist(currbeam)
+    def update_wordlist(self,currbeam):
+        # currbeam is beamsz vector of english word numbers
+        currbeam = currbeam.unsqueeze(1)
+        if self.wordlist:
+            shuffled = self.wordlist[self.oldbeamindices]
+            self.wordlist = torch.cat([shuffled,currbeam],1)
+        else:
+            sos_tokens = Variable(torch.LongTensor([[sos_token]]*currbeam.sz(0)))
+            self.wordlist = torh.cat([sos_tokens,currbeam],1)
+        # self.wordlist is now beamsz,iter+1
+    def update_hiddens(self,h,c):
+        # no need to save old hidden states
+        self.hiddens = (h_new.data,c_new.data)
+    def update_attentions(self,attn):
+        # attn is beamsz,n_de
+        unshuffled = torch.cat([self.attentions,attn.data],1)
+        self.attentions = unshuffled[self.oldbeamindices]
 
 
 class S2S(nn.Module):

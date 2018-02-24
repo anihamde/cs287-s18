@@ -85,6 +85,9 @@ Study the data form. In training I assume batch.trg has last column of all </s>.
 - If not, how am I gonna handle training on uneven batches, where sentences finish at different lengths?
 Predict: just make a new fn with batch size 1, exits after 3, and is more amenable to BSO
 - explain the challenge of predicting bs sentences at once. hack ideas? involving MAX_LEN or </s>
+
+Cuda everything
+
 How is ppl calculated with no teacher forcing? I don't think you can. Just abstain from teacher forcing for now
 - Build a section-code-style s2s without teacher forcing
 - If we have time, we can try the tutorial script with and without attn, see if teacher forcing makes a difference
@@ -94,9 +97,7 @@ What is purpose of baseline reward?
 BSO is for all the models, cause you search through a graph of words. (although searching for z's has been studied)
 Can I throw out the perplexity from predicting on <s>? Who knows what the first word in a sentence is?
 
-Big Tasks
-BSO- how we gonna implement a heap. this is basically a coding interview question
-Padding- pass a binary mask to attention module...? 
+Pass a binary mask to attention module...? 
 
 Consult papers for hyperparameters
 Multi-layer, bidirectional, LSTM instead of GRU, etc
@@ -164,15 +165,18 @@ with open("preds.csv", "w") as f:
     writer = csv.writer(f)
     writer.writerow(['id','word'])
     for i, l in enumerate(open("source_test.txt"),1):
+        x_de = [DE.vocab.stoi[w] for w in l.split(' ')]
+        _,wordlist,_ = model.predict2(x_de,beamsz=100,gen_len=3)
+        # wordlist is beamsz,3
+        beams = [EN.vocab.itos[w] for w in beam for beam in out]
+        # not correct but I have to go.. finish later!
 
-        out = model.predict2(l) # TODO: wrong
-        
         longstr = ""
 
         rowcntr = 0
         for row in out:
             if rowcntr != 0:
-                longstr = longstr + " "
+                longstr += " "
             rowcntr += 1
             colcntr = 0
             for column in row:
