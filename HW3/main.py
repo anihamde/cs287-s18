@@ -87,7 +87,6 @@ Study the data form. In training I assume batch.trg has last column of all </s>.
 - If not, how am I gonna handle training on uneven batches, where sentences finish at different lengths?
 Predict function hack ideas? Involving MAX_LEN or eos_token
 
-Cuda everything
 
 How is ppl calculated with no teacher forcing? I don't think you can. Just abstain from teacher forcing for now
 - Build a section-code-style s2s without teacher forcing
@@ -107,6 +106,7 @@ Dropout, embedding max norms, etc
 
 
 model = AttnNetwork()
+model.cuda()
 
 start = time.time()
 print_every = 100
@@ -123,12 +123,12 @@ for epoch in range(n_epochs):
     for batch in iter(train_iter):
         ctr += 1
         optim.zero_grad()
-        x_de = batch.src
-        x_en = batch.trg
+        x_de = batch.src.cuda()
+        x_en = batch.trg.cuda()
         loss, neg_reward = model.forward(x_de, x_en, attn_type)
         y_pred = model.predict(x_de, attn_type)
-        lesser_of_two_evils = min(y_pred.size(1),x_en.size(1)) # TODO: temporary fix!!
-        correct = torch.sum(y_pred[:,1:lesser_of_two_evils]==x_en[:,1:lesser_of_two_evils]) # exclude <s> token in acc calculation
+        # lesser_of_two_evils = min(y_pred.size(1),x_en.size(1)) # TODO: temporary fix!!
+        # correct = torch.sum(y_pred[:,1:lesser_of_two_evils]==x_en[:,1:lesser_of_two_evils]) # exclude <s> token in acc calculation
         avg_acc = 0.95*avg_acc + 0.05*correct/(x_en.size(0)*x_en.size(1))
         (loss + neg_reward).backward()
         torch.nn.utils.clip_grad_norm(model.parameters(), 1) # TODO: is this right? it didn't work last time
@@ -151,8 +151,8 @@ for epoch in range(n_epochs):
 
     val_loss_total = 0 # Validation/early stopping
     for batch in iter(val_iter):
-        x_de = batch.src
-        x_en = batch.trg
+        x_de = batch.src.cuda()
+        x_en = batch.trg.cuda()
         loss, neg_reward = model.forward(x_de, x_en, attn_type, update_baseline=False)
         # too lazy to implement reward or accuracy for validation
         val_loss_total += loss / x_en.size(1)
@@ -166,15 +166,16 @@ with open("preds.csv", "w") as f:
     writer = csv.writer(f)
     writer.writerow(['id','word'])
     for i, l in enumerate(open("source_test.txt"),1):
-        x_de = [DE.vocab.stoi[w] for w in l.split(' ')]
+        ls = [[DE.vocab.stoi[w] for w in l.split(' ')]] # no eos or sos. size 1,n_de
+        x_de = Variable(torch.cuda.LongTensor(ls))
         _,wordlist,_ = model.predict2(x_de,beamsz=100,gen_len=3)
         # wordlist is beamsz,3
-        longstr = ' '.join(['|'.join([EN.vocab.itos[w] for w in beam]) for beam in out])
+        longstr = ' '.join(['|'.join([EN.vocab.itos[w] for w in beam]) for beam in wordlist])
         longstr = escape(longstr)
         writer.writerow([i,longstr])
 
 torch.save(model.state_dict(), args.model_file)
-showPlot(plot_losses) # TODO: function not added/checked
+# showPlot(plot_losses) # TODO: function not added/checked
 
 # visualize only for AttnNetwork
 def visualize(attns,sentence_de,bs,nwords,flname): # attns = (SentLen_EN)x(SentLen_DE), sentence_de = ["German_1",...,"German_(SentLen_DE)"]
@@ -202,7 +203,4 @@ for sentence_de in list_of_german_sentences:
     flname = "plot_"+"{}".format(cntr)
     visualize(model,sentence_de,5,10,"{}".format(flname))
     cntr += 1
-
-
-
 
