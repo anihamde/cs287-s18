@@ -6,6 +6,7 @@ import torch.distributions # this package provides a lot of nice abstractions fo
 from torch.autograd import Variable
 from torchtext import data
 from torchtext import datasets
+from torchtext.vocab import Vectors
 import spacy
 # import matplotlib.pyplot as plt
 # import matplotlib.ticker as ticker

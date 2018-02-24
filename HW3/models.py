@@ -1,6 +1,8 @@
 import numpy as np
 import torch
 import torch.nn as nn
+from torchtext import data
+from torchtext import datasets
 
 BATCH_SIZE = 32
 EN = data.Field(tokenize=tokenize_en, init_token = BOS_WORD, eos_token = EOS_WORD) # only target needs BOS/EOS
