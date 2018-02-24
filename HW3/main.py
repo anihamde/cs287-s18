@@ -46,6 +46,8 @@ EOS_WORD = '</s>'
 DE = data.Field(tokenize=tokenize_de)
 EN = data.Field(tokenize=tokenize_en, init_token = BOS_WORD, eos_token = EOS_WORD) # only target needs BOS/EOS
 
+print("Getting datasets!")
+
 MAX_LEN = 20
 train, val, test = datasets.IWSLT.splits(exts=('.de', '.en'), fields=(DE, EN), 
                                          filter_pred=lambda x: len(vars(x)['src']) <= MAX_LEN and 
