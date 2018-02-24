@@ -140,7 +140,7 @@ class AttnNetwork(nn.Module):
 # philosophy: we're going to take the dirty variables and reorder them nicely all in here and store them as tensors
 # the inputs to these methods could have beamsz = 1 or beamsz = true beamsz (100)
 class CandList():
-    def __init__(self,beamsz=100,hidden_dim,n_de):
+    def __init__(self,hidden_dim,n_de,beamsz=100):
         self.beamsz = beamsz
         self.hiddens = (torch.zeros(1, 1, hidden_dim).cuda(),torch.zeros(1, 1, hidden_dim).cuda())
         # hidden tensors (initially beamsz 1, later beamsz true beamsz)
