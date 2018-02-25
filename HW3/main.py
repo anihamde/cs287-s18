@@ -135,7 +135,7 @@ from helpers import asMinutes, timeSince, escape, flip
 
 if model_type == 0:
     model = AttnNetwork(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size,
-                        vocab_layer_dim=args.vocab_layer_dim, weight_tying=args.weight_tying)
+                        vocab_layer_dim=args.vocab_layer_dim, weight_tying=args.weight_tying,bidirectional=args.bidirectional)
 elif model_type == 1:
     model = S2S()
 model.cuda()
