@@ -121,7 +121,7 @@ class AttnNetwork(nn.Module):
                 context = torch.bmm(attn_dist.unsqueeze(1), enc_h).squeeze(1) # same dimensions
             # context is bs,hidden_size*ndirections
             # the rnn output and the context together make the decoder "hidden state", which is bs,2*hidden_size*ndirections
-            pred = self.vocab_layer(torch.cat([dec_h[:, t], context], 1)) # bs,len(EN.vocab) # TODO: this might be wrong but i have to eat lunch
+            pred = self.vocab_layer(torch.cat([dec_h[:,t,:], context], 1)) # bs,len(EN.vocab)
             y = x_en[:, t+1] # bs. these are our labels
             no_pad = (y != pad_token) # exclude english padding tokens
             reward = torch.gather(pred, 1, y.unsqueeze(1)) # bs,1
@@ -148,7 +148,7 @@ class AttnNetwork(nn.Module):
         self.attn = []
         n_en = MAX_LEN+1 # to be safe
         for t in range(n_en): # generate some english.
-            emb_t = self.embedding_en(y[-1]) # embed the last thing we generated. bs
+            emb_t = self.embedding_en(y[-1]) # embed the last thing we generated. bs,word_dim
             dec_h, (h, c) = self.decoder(emb_t.unsqueeze(1), (h, c)) # dec_h is bs,1,hiddensz*ndirections (batch_first=True)
             scores = torch.bmm(enc_h, dec_h.transpose(1,2)).squeeze(2)
             # (bs,n_de,hiddensz*ndirections) * (bs,hiddensz*ndirections,1) = (bs,n_de,1). squeeze to bs,n_de
