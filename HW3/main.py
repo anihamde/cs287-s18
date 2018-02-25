@@ -125,7 +125,7 @@ Justin's piazza post: speedup by batching over time?
 What's purpose of baseline? Your code is wrong- subtract something averaged over bs & n_de from something averaged over bs?
 '''
 from models import AttnNetwork, CandList, S2S
-from helpers import asMinutes, timeSince, escape
+from helpers import asMinutes, timeSince, escape, flip
 
 if model_type == 0:
     model = AttnNetwork()
@@ -151,14 +151,13 @@ for epoch in range(n_epochs):
         x_de = batch.src.transpose(1,0).cuda() # bs,n_de
         x_en = batch.trg.transpose(1,0).cuda() # bs,n_en
         if model_type == 1:
-            f = np.flip(x_de.data.numpy(),1).copy() # reverse
-            x_de = Variable(torch.cuda.LongTensor(f))
+            x_de = flip(x_de,1) # reverse direction
         loss, reinforce_loss = model.forward(x_de, x_en, attn_type)
         print_loss_total += loss.data[0] / x_en.size(1)
         plot_loss_total += loss.data[0] / x_en.size(1)
         # TODO: this is underestimating PPL! It divides by x_en when it should divide by no_pad
 
-        # JUST COMMENTING THIS OUT TO TEST S2S!
+        # JUST COMMENTING THIS OUT TO TEST S2S! TODO: uncomment this once s2s predict methods are surgically replaced
         # y_pred,_ = model.predict(x_de, x_en, attn_type) # bs,n_en
         # correct = (y_pred == x_en)
         # no_pad = (x_en != pad_token) & (x_en != sos_token)
