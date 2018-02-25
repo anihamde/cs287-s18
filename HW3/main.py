@@ -148,13 +148,11 @@ for epoch in range(n_epochs):
         loss, reinforce_loss = model.forward(x_de, x_en, attn_type)
         print_loss_total += loss.data[0] / x_en.size(1)
         plot_loss_total += loss.data[0] / x_en.size(1)
-        # TODO: this is wrong! It divides by x_en when it should divide by no_pad
+        # TODO: this is underestimating PPL! It divides by x_en when it should divide by no_pad
 
-        y_pred = model.predict(x_de, attn_type) # bs,max_len
-        y_pred = y_pred[:,1:x_en.size(1)] # bs,n_en
-        x_en = x_en[:,1:]
+        y_pred,_ = model.predict(x_de, x_en, attn_type) # bs,n_en
         correct = (y_pred == x_en)
-        no_pad = (x_en != pad_token)
+        no_pad = (x_en != pad_token) & (x_en != sos_token)
         print_acc_total += (correct & no_pad).data.sum() / no_pad.data.sum()
 
         (loss + reinforce_loss).backward()

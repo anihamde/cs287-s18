@@ -138,22 +138,22 @@ class AttnNetwork(nn.Module):
             self.baseline = Variable(0.95*self.baseline.data + 0.05*avg_reward)
         return loss, reinforce_loss
     # teacher forcing predict
-    def predict(model, x_de, x_en, attn_type = "hard"):
+    def predict(self, x_de, x_en, attn_type = "hard"):
         bs = x_de.size(0)
-        emb_de = model.embedding_de(x_de) # bs,n_de,word_dim
-        emb_en = model.embedding_en(x_en) # bs,n_en,word_dim
-        h = Variable(torch.zeros(1, bs, model.hidden_dim).cuda())
-        c = Variable(torch.zeros(1, bs, model.hidden_dim).cuda())
-        enc_h, _ = model.encoder(emb_de, (h, c))
-        dec_h, _ = model.decoder(emb_en, (h, c))
+        emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
+        emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
+        h = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())
+        c = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())
+        enc_h, _ = self.encoder(emb_de, (h, c))
+        dec_h, _ = self.decoder(emb_en, (h, c))
         # all the same. enc_h is bs,n_de,hiddensz*ndirections. h and c are both nlayers*ndirections,bs,hiddensz
         scores = torch.bmm(enc_h, dec_h.transpose(1,2))
         # (bs,n_de,hiddensz*ndirections) * (bs,hiddensz*ndirections,n_en) = (bs,n_de,n_en)
-        y = [] # bs
-        attn = []
-        for t in range(x_en.size(1)): # generate some english.
+        y = [Variable(torch.cuda.LongTensor([sos_token]*bs))] # bs
+        self.attn = []
+        for t in range(x_en.size(1)-1): # iterate over english words, with teacher forcing
             attn_dist = F.softmax(scores[:,:,t],dim=1) # bs,n_de
-            attn.append(attn_dist.data)
+            self.attn.append(attn_dist.data)
             if attn_type == "hard":
                 _, argmax = attn_dist.max(1) # bs. for each batch, select most likely german word to pay attention to
                 one_hot = Variable(torch.zeros_like(attn_dist.data).scatter_(-1, argmax.data.unsqueeze(1), 1).cuda())
@@ -162,10 +162,10 @@ class AttnNetwork(nn.Module):
                 context = torch.bmm(attn_dist.unsqueeze(1), enc_h).squeeze(1)
             # the difference btwn hard and soft is just whether we use a one_hot or a distribution
             # context is bs,hiddensz*ndirections
-            pred = model.vocab_layer(torch.cat([dec_h[:,t,:], context], 1)) # bs,len(EN.vocab)
+            pred = self.vocab_layer(torch.cat([dec_h[:,t,:], context], 1)) # bs,len(EN.vocab)
             _, next_token = pred.max(1) # bs
             y.append(next_token)
-        attn = torch.stack(attn, 0).transpose(0, 1) # bs,n_en,n_de (for visualization!)
+        self.attn = torch.stack(self.attn, 0).transpose(0, 1) # bs,n_en,n_de (for visualization!)
         y = torch.stack(y,0).transpose(0,1) # bs,n_en
         return y,attn
     # Singleton batch with BSO
