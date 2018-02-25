@@ -24,6 +24,11 @@ parser.add_argument('--learning_rate','-lr',type=float,default=0.01,help='set le
 parser.add_argument('--attn_type','-at',type=str,default='soft',help='attention type')
 parser.add_argument('--clip_constraint','-cc',type=float,default=5.0,help='weight norm clip constraint')
 parser.add_argument('--word2vec','-w',type=bool,default=False,help='whether to initialize with word2vec embeddings')
+parser.add_argument('--embedding_dims','-ed',type=int,default=300,help='dims for word2vec embeddings')
+parser.add_argument('--hidden_depth','-hd',type=int,default=1,help='Number of hidden layers in encoder/decoder')
+parser.add_argument('--hidden_size','-hs',type=int,default=500,help='Size of each hidden layer in encoder/decoder')
+parser.add_argument('--vocab_layer_dim','-vd',type=int,default=500,help='Size of hidden vocab layer transformation')
+parser.add_argument('--weight_tying','-wt',action='store_true',help='Raise flag to engage weight tying')
 args = parser.parse_args()
 # You can add MIN_FREQ, MAX_LEN, and BATCH_SIZE as args too
 
@@ -128,7 +133,8 @@ from models import AttnNetwork, CandList, S2S
 from helpers import asMinutes, timeSince, escape, flip
 
 if model_type == 0:
-    model = AttnNetwork()
+    model = AttnNetwork(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size,
+                        vocab_layer_dim=args.vocab_layer_dim, weight_tying=args.weight_tying)
 elif model_type == 1:
     model = S2S()
 model.cuda()
@@ -166,6 +172,8 @@ for epoch in range(n_epochs):
         (loss + reinforce_loss).backward()
         torch.nn.utils.clip_grad_norm(model.parameters(), clip_constraint) # TODO: is this right? it didn't work last time
         optimizer.step()
+        if args.weight_tying:
+            model.vocab_layer.e2v.weight.data.copy_(model.embedding_en.weight.data)
         
         if ctr % print_every == 0:
             print_loss_avg = print_loss_total / print_every
