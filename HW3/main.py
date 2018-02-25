@@ -91,7 +91,7 @@ pad_token = EN.vocab.stoi["<pad>"]
 
 ''' TODO
 ELBY
-Resolve segfault! Debug predict and predict2!!!! What's going on?
+Step through forward, predict, predict2!!! Why isn't it actually translating?
 Memory issues, detaching, volatile=True. What's going on with baseline (why is it not moving)?
 Padding?
 - Explain target padding strategy (don't include pad predictions in loss/accuracy) and ask about it.
