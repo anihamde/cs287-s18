@@ -3,7 +3,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-from __main__ import EN,DE,BATCH_SIZE,MAX_LEN,MIN_FREQ,sos_token,eos_token
+from __main__ import *
+# I use EN,DE,BATCH_SIZE,MAX_LEN,sos_token,eos_token,word2vec
 
 # I thought it might be better to move these unwieldy models into their own file. Feel free to change it back!
 
@@ -78,6 +79,9 @@ class AttnNetwork(nn.Module):
         self.decoder = nn.LSTM(word_dim, hidden_dim, num_layers = 1, batch_first = True)
         self.embedding_de = nn.Embedding(len(DE.vocab), word_dim)
         self.embedding_en = nn.Embedding(len(EN.vocab), word_dim)
+        if word2vec:
+            self.embedding_de.weight.data.copy_(DE.vocab.vectors)
+            self.embedding_en.weight.data.copy_(EN.vocab.vectors)
         # vocab layer will combine dec hidden state with context vector, and then project out into vocab space 
         self.vocab_layer = nn.Sequential(nn.Linear(hidden_dim*2, hidden_dim),
                                          nn.Tanh(), nn.Linear(hidden_dim, len(EN.vocab)), nn.LogSoftmax(dim=-1))
@@ -204,6 +208,9 @@ class S2S(nn.Module):
         self.decoder = nn.LSTM(word_dim, hidden_dim, num_layers = 1, batch_first = True)
         self.embedding_de = nn.Embedding(len(DE.vocab), word_dim)
         self.embedding_en = nn.Embedding(len(EN.vocab), word_dim)
+        if word2vec:
+            self.embedding_de.weight.data.copy_(DE.vocab.vectors)
+            self.embedding_en.weight.data.copy_(EN.vocab.vectors)
         # vocab layer will project dec hidden state out into vocab space 
         self.vocab_layer = nn.Sequential(nn.Linear(hidden_dim, hidden_dim),
                                          nn.Tanh(), nn.Linear(hidden_dim, len(EN.vocab)), nn.LogSoftmax(dim=-1))               

@@ -24,6 +24,7 @@ parser.add_argument('--n_epochs','-e',type=int,default=5,help='set the number of
 parser.add_argument('--learning_rate','-lr',type=float,default=0.01,help='set learning rate.')
 parser.add_argument('--attn_type','-at',type=str,default='hard',help='attention type')
 parser.add_argument('--clip_constraint','-cc',type=float,default=1.0,help='weight norm clip constraint')
+parser.add_argument('--word2vec','-w',type=bool,default=False,help='whether to initialize with word2vec embeddings')
 args = parser.parse_args()
 # You can add MIN_FREQ, MAX_LEN, and BATCH_SIZE as args too
 
@@ -31,6 +32,7 @@ n_epochs = args.n_epochs
 learning_rate = args.learning_rate
 attn_type = args.attn_type
 clip_constraint = args.clip_constraint
+word2vec = args.word2vec
 
 spacy_de = spacy.load('de')
 spacy_en = spacy.load('en')
@@ -76,10 +78,15 @@ print(batch.src.size())
 print("Target size")
 print(batch.trg.size())
 
-url = 'https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.simple.vec'
-EN.vocab.load_vectors(vectors=Vectors('wiki.simple.vec', url=url)) # feel free to alter path
-print("Word embeddings size ", EN.vocab.vectors.size())
-word2vec = EN.vocab.vectors
+# https://github.com/facebookresearch/fastText/blob/master/pretrained-vectors.md
+if word2vec:
+    url = 'https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.simple.vec'
+    EN.vocab.load_vectors(vectors=Vectors('wiki.simple.vec', url=url)) # feel free to alter path
+    print("Simple English embeddings size", EN.vocab.vectors.size())
+    url = 'https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.de.vec'
+    DE.vocab.load_vectors(vectors=Vectors('wiki.de.vec', url=url)) # feel free to alter path
+    print("German embeddings size", DE.vocab.vectors.size())
+
 print("REMINDER!!! Did you create ../../models/HW3?????")
 
 sos_token = EN.vocab.stoi["<s>"]
@@ -91,16 +98,16 @@ Debug predict and predict2
 Memory issues, detaching, volatile=True.
 Study the data form. In training I assume batch.trg has last column of all </s>. Is this true? NO!
 - If not, how am I gonna handle training on uneven batches, where sentences finish at different lengths?
-How the sentences look: the DE ones are n_de by bs, and end roughly evenly. the EN ones are n_en by bs and end all over the place
+- How the sentences look: the DE ones are n_de by bs, and end roughly evenly. the EN ones are n_en by bs and end all over the place
 Pass a binary mask to attention module...?
 Create predict2 for s2s, and run s2s
-Yes, there is a German word2vec and I should try it. (And use the English ones too obviously)
 Softmax is deprecated error?
 Plot attention
 
 EXTENSIONS
 Consult papers for hyperparameters
-Multi-layer, bidirectional, LSTM instead of GRU, etc
+Multi-layer, bidirectional, GRU instead of LSTM
+Pretrained embeddings
 Weight tying, interpolation
 Dropout, embedding max norms, weight clipping, learning rate scheduling, residual connections
 Hard attention, with updating baseline
