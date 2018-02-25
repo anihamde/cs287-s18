@@ -83,7 +83,8 @@ class AttnNetwork(nn.Module):
                                          nn.Tanh(), nn.Linear(hidden_dim, len(EN.vocab)), nn.LogSoftmax(dim=-1))
         # baseline reward, which we initialize with log 1/V
         self.baseline = Variable(torch.zeros(1).fill_(np.log(1/len(EN.vocab))).cuda())          
-    def forward(self, x_de, x_en, attn_type="hard", bs=BATCH_SIZE, update_baseline=True):
+    def forward(self, x_de, x_en, attn_type="hard", update_baseline=True):
+        bs = x_de.size(0)
         # x_de is bs,n_de. x_en is bs,n_en
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
         emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
@@ -130,7 +131,8 @@ class AttnNetwork(nn.Module):
             self.baseline.data = 0.95*self.baseline.data + 0.05*avg_reward
         return loss, neg_reward
     # predict many batches with greedy encoding
-    def predict(self, x_de, attn_type = "hard", bs=BATCH_SIZE):
+    def predict(self, x_de, attn_type = "hard"):
+        bs = x_de.size(0)
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
         h = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())
         c = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())
@@ -160,8 +162,8 @@ class AttnNetwork(nn.Module):
         self.attn = torch.stack(self.attn, 0).transpose(0, 1) # bs,n_en,n_de (for visualization!)
         return torch.stack(y, 0).transpose(0, 1) # bs,n_en
     # Singleton batch with BSO
-    def predict2(self, x_de, beamsz, gen_len=3, attn_type = "hard"):
-        emb_de = self.embedding_de(x_de) # bs,n_de,word_dim, but bs is 1 in this case-- singleton batch!
+    def predict2(self, x_de, beamsz, gen_len, attn_type = "hard"):
+        emb_de = self.embedding_de(x_de) # "batch size",n_de,word_dim, but "batch size" is 1 in this case!
         h0 = Variable(torch.zeros(1, 1, self.hidden_dim).cuda())
         c0 = Variable(torch.zeros(1, 1, self.hidden_dim).cuda())
         enc_h, _ = self.encoder(emb_de, (h0, c0))
@@ -190,7 +192,6 @@ class AttnNetwork(nn.Module):
             masterheap.update_hiddens(h,c)
             masterheap.update_attentions(attn_dist)
             masterheap.firstloop = False
-                # TODO: can this generate good long sentences with smaller beamsz?
         return masterheap.probs,masterheap.wordlist,masterheap.attentions
 
 
@@ -207,7 +208,8 @@ class S2S(nn.Module):
         self.vocab_layer = nn.Sequential(nn.Linear(hidden_dim, hidden_dim),
                                          nn.Tanh(), nn.Linear(hidden_dim, len(EN.vocab)), nn.LogSoftmax(dim=-1))               
         
-    def forward(self, x_de, x_en, bs=BATCH_SIZE):
+    def forward(self, x_de, x_en):
+        bs = x_de.size(0)
         # x_de is bs,n_de. x_en is bs,n_en
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
         emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
@@ -227,8 +229,9 @@ class S2S(nn.Module):
         # TODO: to be consistent with the other network i'm not dividing by n_en here. Can we change this?
         return loss, 0 # passing back an invisible "negative reward"
     
+    # predict with greedy decoding
     def predict(self, x_de, bs=BATCH_SIZE):
-        # predict with greedy decoding
+        bs = x_de.size(0)
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
         h = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())
         c = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())

@@ -99,7 +99,7 @@ BLEU perl script
 BSO is for all the models, cause you search through a graph of words. (although searching for z's has been studied)
 Can I throw out the perplexity from predicting on <s>? Who knows what the first word in a sentence is?
 How to run jupyter notebooks in cloud?
-
+Generate longer full sentences with small beams. Not fixed-length.
 
 Consult papers for hyperparameters
 Multi-layer, bidirectional, LSTM instead of GRU, etc
@@ -158,9 +158,9 @@ for epoch in range(n_epochs):
     for batch in iter(val_iter):
         x_de = batch.src.transpose(1,0).cuda()
         x_en = batch.trg.transpose(1,0).cuda()
-        loss, neg_reward = model.forward(x_de, x_en, attn_type, update_baseline=False)
+        loss, neg_reward = model.forward(x_de, x_en, attn_type)
         # too lazy to implement reward or accuracy for validation
-        val_loss_total += loss / x_en.size(1)
+        val_loss_total += loss.data[0] / x_en.size(1)
     val_loss_avg = val_loss_total / len(val_iter)
     timenow = timeSince(start)
     print('Validation. Time %s, PPL: %.2f' %(timenow, np.exp(val_loss_avg)))
