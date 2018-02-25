@@ -69,12 +69,13 @@ class CandList():
             self.attentions = unshuffled[self.oldbeamindices]
 
 class AttnNetwork(nn.Module):
-    def __init__(self, word_dim=300, hidden_dim=500):
+    def __init__(self, word_dim=300, n_layers=1, hidden_dim=500, vocab_layer_dim=500, weight_tying=False):
         super(AttnNetwork, self).__init__()
         self.hidden_dim = hidden_dim
-        # LSTM initialization params: inputsz,hiddensz,nlayers,bias,batch_first,bidirectional
-        self.encoder = nn.LSTM(word_dim, hidden_dim, num_layers = 1, batch_first = True)
-        self.decoder = nn.LSTM(word_dim, hidden_dim, num_layers = 1, batch_first = True)
+        self.n_layers = n_layers
+         # LSTM initialization params: inputsz,hiddensz,nlayers,bias,batch_first,bidirectional
+        self.encoder = nn.LSTM(word_dim, hidden_dim, num_layers = n_layers, batch_first = True)
+        self.decoder = nn.LSTM(word_dim, hidden_dim, num_layers = n_layers, batch_first = True)
         self.embedding_de = nn.Embedding(len(DE.vocab), word_dim)
         self.embedding_en = nn.Embedding(len(EN.vocab), word_dim)
         if word2vec:
@@ -82,8 +83,14 @@ class AttnNetwork(nn.Module):
             self.embedding_en.weight.data.copy_(EN.vocab.vectors)
         # vocab layer will combine dec hidden state with context vector, and then project out into vocab space 
         # TODO: maybe put the weight tying here... Linear(hidden_dim*2,word_dim)
-        self.vocab_layer = nn.Sequential(nn.Linear(hidden_dim*2, hidden_dim),
-                                         nn.Tanh(), nn.Linear(hidden_dim, len(EN.vocab)), nn.LogSoftmax(dim=-1))
+        self.vocab_layer = nn.Sequential(OrderedDict([
+            ('h2e',nn.Linear(hidden_dim*n_layers*2, vocab_layer_dim)),
+            ('tanh',nn.Tanh()),
+            ('e2v',nn.Linear(vocab_layer_dim, len(EN.vocab))),
+            ('lsft',nn.LogSoftmax(dim=-1))
+        ]))
+        if weight_tying:
+            self.vocab_layer.e2v.weight.data.copy_(self.embedding_en.weight.data)
         # baseline reward, which we initialize with log 1/V
         self.baseline = Variable(torch.cuda.FloatTensor([np.log(1/len(EN.vocab))]))
         # self.baseline = Variable(torch.zeros(1).fill_(np.log(1/len(EN.vocab))).cuda()) # yoon's way
