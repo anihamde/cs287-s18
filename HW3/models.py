@@ -74,6 +74,7 @@ class AttnNetwork(nn.Module):
         super(AttnNetwork, self).__init__()
         self.hidden_dim = hidden_dim
         self.n_layers = n_layers
+        self.vocab_layer_dim = (vocab_layer_dim,word_dim)[weight_tying == True]
          # LSTM initialization params: inputsz,hiddensz,nlayers,bias,batch_first,bidirectional
         self.encoder = nn.LSTM(word_dim, hidden_dim, num_layers = n_layers, batch_first = True)
         self.decoder = nn.LSTM(word_dim, hidden_dim, num_layers = n_layers, batch_first = True)
@@ -85,9 +86,9 @@ class AttnNetwork(nn.Module):
         # vocab layer will combine dec hidden state with context vector, and then project out into vocab space 
         # TODO: maybe put the weight tying here... Linear(hidden_dim*2,word_dim)
         self.vocab_layer = nn.Sequential(OrderedDict([
-            ('h2e',nn.Linear(hidden_dim*n_layers*2, vocab_layer_dim)),
+            ('h2e',nn.Linear(hidden_dim*n_layers*2, self.vocab_layer_dim)),
             ('tanh',nn.Tanh()),
-            ('e2v',nn.Linear(vocab_layer_dim, len(EN.vocab))),
+            ('e2v',nn.Linear(self.vocab_layer_dim, len(EN.vocab))),
             ('lsft',nn.LogSoftmax(dim=-1))
         ]))
         if weight_tying:
