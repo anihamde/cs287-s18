@@ -218,6 +218,7 @@ class S2S(nn.Module):
         # vocab layer will project dec hidden state out into vocab space 
         self.vocab_layer = nn.Sequential(nn.Linear(hidden_dim, hidden_dim),
                                          nn.Tanh(), nn.Linear(hidden_dim, len(EN.vocab)), nn.LogSoftmax(dim=-1))
+        self.baseline = Variable(torch.zeros(1)) # just doing this (and attn_type below) so I can reuse some code lol
     def forward(self, x_de, x_en, attn_type):
         bs = x_de.size(0)
         # x_de is bs,n_de. x_en is bs,n_en
