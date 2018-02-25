@@ -17,7 +17,8 @@ import time
 import argparse
 
 parser = argparse.ArgumentParser(description='training runner')
-parser.add_argument('--model_file','-m',type=str,default='../../models/HW3/model.pkl',help='Model save target.')
+parser.add_argument('--model_type','-m',type=int,default=0,help='Model type (0 for Attn, 1 for S2S)')
+parser.add_argument('--model_file','-mf',type=str,default='../../models/HW3/model.pkl',help='Model save target.')
 parser.add_argument('--n_epochs','-e',type=int,default=3,help='set the number of training epochs.')
 parser.add_argument('--learning_rate','-lr',type=float,default=0.01,help='set learning rate.')
 parser.add_argument('--attn_type','-at',type=str,default='soft',help='attention type')
@@ -26,6 +27,7 @@ parser.add_argument('--word2vec','-w',type=bool,default=False,help='whether to i
 args = parser.parse_args()
 # You can add MIN_FREQ, MAX_LEN, and BATCH_SIZE as args too
 
+model_type = args.model_type
 n_epochs = args.n_epochs
 learning_rate = args.learning_rate
 attn_type = args.attn_type
@@ -91,17 +93,17 @@ pad_token = EN.vocab.stoi["<pad>"]
 
 ''' TODO
 ELBY
-Step through forward, predict, predict2!!! Why isn't it actually translating?
-Memory issues, detaching, volatile=True. What's going on with baseline (why is it not moving)?
+volatile=True
 Padding?
-- Explain target padding strategy (don't include pad predictions in loss/accuracy) and ask about it.
+- Test NLLLoss with ignore_index and size_average=False
+- Simplify loss (target) masking with cross entropy
 - Use a binary mask to zero out attention to paddings in the source.
-Create predict2 for s2s, and run s2s
+Evaluate S2S, create predict2 for S2S.
 Plot attention
 
 EXTENSIONS
 Consult papers for hyperparameters
-Multi-layer, bidirectional, GRU instead of LSTM
+Multi-layer, bidirectional (see Piazza), GRU instead of LSTM
 Pretrained embeddings
 Weight tying, interpolation
 Dropout, embedding max norms, weight clipping, learning rate scheduling, residual connections
@@ -109,7 +111,7 @@ Hard attention, with updating baseline
 More complex regularization techniques (Yoon piazza)
 Checkout openNMT for inspiration
 
-LONGSHOT
+ANCILLARY
 If we have time, we can try the pytorch tutorial script with and without attn, to see if teacher forcing makes a difference
 Predict function hack ideas? Involving MAX_LEN or eos_token
 BLEU perl script
@@ -125,7 +127,10 @@ What's purpose of baseline? Your code is wrong- subtract something averaged over
 from models import AttnNetwork, CandList, S2S
 from helpers import asMinutes, timeSince, escape
 
-model = AttnNetwork()
+if model_type == 0:
+    model = AttnNetwork()
+elif model_type == 1:
+    model = S2S()
 model.cuda()
 
 start = time.time()
@@ -145,15 +150,19 @@ for epoch in range(n_epochs):
         optimizer.zero_grad()
         x_de = batch.src.transpose(1,0).cuda() # bs,n_de
         x_en = batch.trg.transpose(1,0).cuda() # bs,n_en
+        if model_type == 1:
+            f = np.flip(x_de.data.numpy(),1).copy() # reverse
+            x_de = Variable(torch.cuda.LongTensor(f))
         loss, reinforce_loss = model.forward(x_de, x_en, attn_type)
         print_loss_total += loss.data[0] / x_en.size(1)
         plot_loss_total += loss.data[0] / x_en.size(1)
         # TODO: this is underestimating PPL! It divides by x_en when it should divide by no_pad
 
-        y_pred,_ = model.predict(x_de, x_en, attn_type) # bs,n_en
-        correct = (y_pred == x_en)
-        no_pad = (x_en != pad_token) & (x_en != sos_token)
-        print_acc_total += (correct & no_pad).data.sum() / no_pad.data.sum()
+        # JUST COMMENTING THIS OUT TO TEST S2S!
+        # y_pred,_ = model.predict(x_de, x_en, attn_type) # bs,n_en
+        # correct = (y_pred == x_en)
+        # no_pad = (x_en != pad_token) & (x_en != sos_token)
+        # print_acc_total += (correct & no_pad).data.sum() / no_pad.data.sum()
 
         (loss + reinforce_loss).backward()
         torch.nn.utils.clip_grad_norm(model.parameters(), clip_constraint) # TODO: is this right? it didn't work last time

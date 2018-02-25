@@ -195,6 +195,7 @@ class AttnNetwork(nn.Module):
             # the difference btwn hard and soft is just whether we use a one_hot or a distribution
             # context is beamsz,hiddensz*ndirections
             pred = self.vocab_layer(torch.cat([dec_h.squeeze(1), context], 1)) # beamsz,len(EN.vocab)
+            # TODO: set the columns corresponding to <pad>,<unk>,</s>,etc to 0
             masterheap.update_beam(pred)
             masterheap.update_hiddens(h,c)
             masterheap.update_attentions(attn_dist)
@@ -216,14 +217,13 @@ class S2S(nn.Module):
             self.embedding_en.weight.data.copy_(EN.vocab.vectors)
         # vocab layer will project dec hidden state out into vocab space 
         self.vocab_layer = nn.Sequential(nn.Linear(hidden_dim, hidden_dim),
-                                         nn.Tanh(), nn.Linear(hidden_dim, len(EN.vocab)), nn.LogSoftmax(dim=-1))               
-        
+                                         nn.Tanh(), nn.Linear(hidden_dim, len(EN.vocab)), nn.LogSoftmax(dim=-1))
     def forward(self, x_de, x_en):
         bs = x_de.size(0)
         # x_de is bs,n_de. x_en is bs,n_en
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
         emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
-        h = Variable(torch.zeros(1, bs, self.hidden_dim).cuda()) 
+        h = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())
         c = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())
         # hidden vars have dimension nlayers*ndirections,bs,hiddensz
         enc_h, (h,c) = self.encoder(emb_de, (h, c))
@@ -231,16 +231,15 @@ class S2S(nn.Module):
         dec_h, _ = self.decoder(emb_en, (h, c))
         # dec_h is bs,n_en,hidden_size*ndirections
         pred = self.vocab_layer(dec_h) # bs,n_en,len(EN.vocab)
-        pred = pred[:,:-1,:]
-        y = x_en[:,1:] # bs,n_en-1
+        pred = pred[:,:-1,:] # alignment
+        y = x_en[:,1:]
         no_pad = (y != pad_token)
         reward = torch.gather(pred,2,y.unsqueeze(2))
         # reward[i,j,1] = pred[i,j,y[i,j]]
         reward = reward.squeeze(2)[no_pad] # less than bs,n_en
-        loss = -reward.sum()/bs
-        # NOTE: to be consistent with the other network i'm not dividing by n_en here.
+        loss = -reward.sum() / no_pad.data.sum() * bs
+        # NOTE: to be consistent with the other network i'm normalizing loss by time only (not by batch) 
         return loss, 0 # passing back an invisible "negative reward"
-    
     # predict with greedy decoding
     def predict(self, x_de, bs=BATCH_SIZE):
         bs = x_de.size(0)
