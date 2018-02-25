@@ -30,7 +30,7 @@ class CandList():
         else:
             return Variable(self.wordlist[:,-1])
     def get_hiddens(self):
-        return tuple(Variable(self.hiddens[0]),Variable(self.hiddens[1]))
+        return (Variable(self.hiddens[0]),Variable(self.hiddens[1]))
     def update_beam(self,newlogprobs): # newlogprobs is beamsz,len(EN.vocab)
         newlogprobs = newlogprobs.data
         newlogprobs += self.probs.unsqueeze(1) # beamsz,len(EN.vocab)
@@ -84,7 +84,7 @@ class AttnNetwork(nn.Module):
         self.vocab_layer = nn.Sequential(nn.Linear(hidden_dim*2, hidden_dim),
                                          nn.Tanh(), nn.Linear(hidden_dim, len(EN.vocab)), nn.LogSoftmax(dim=-1))
         # baseline reward, which we initialize with log 1/V
-        self.baseline = torch.cuda.FloatTensor([np.log(1/len(EN.vocab))])
+        self.baseline = Variable(torch.cuda.FloatTensor([np.log(1/len(EN.vocab))]))
         # self.baseline = Variable(torch.zeros(1).fill_(np.log(1/len(EN.vocab))).cuda()) # yoon's way
     def forward(self, x_de, x_en, attn_type="hard", update_baseline=True):
         bs = x_de.size(0)
@@ -101,14 +101,13 @@ class AttnNetwork(nn.Module):
         # we've gotten our encoder/decoder hidden states so we are ready to do attention
         # first let's get all our scores, which we can do easily since we are using dot-prod attention
         scores = torch.bmm(enc_h, dec_h.transpose(1,2))
-        scores = F.softmax(scores,dim=1)
         # (bs,n_de,hiddensz*ndirections) * (bs,hiddensz*ndirections,n_en) = (bs,n_de,n_en)
         reinforce_loss = 0 # we only use this variable for hard attention
         loss = 0
         avg_reward = 0
         # we just iterate to dec_h.size(1)-1, since there's </s> at the end of each sentence
         for t in range(dec_h.size(1)-1): # iterate over english words, with teacher forcing
-            attn_dist = scores[:, :, t] # bs,n_de. these are the alphas (attention scores for each german word)
+            attn_dist = F.softmax(scores[:, :, t],dim=1) # bs,n_de. these are the alphas (attention scores for each german word)
             if attn_type == "hard":
                 cat = torch.distributions.Categorical(attn_dist) 
                 attn_samples = cat.sample() # bs. each element is a sample from categorical distribution
