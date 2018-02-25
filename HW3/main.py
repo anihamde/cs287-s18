@@ -23,12 +23,14 @@ parser.add_argument('--model_file','-m',type=str,default='../../models/HW3/model
 parser.add_argument('--n_epochs','-e',type=int,default=5,help='set the number of training epochs.')
 parser.add_argument('--learning_rate','-lr',type=float,default=0.01,help='set learning rate.')
 parser.add_argument('--attn_type','-at',type=str,default='hard',help='attention type')
+parser.add_argument('--clip_constraint','-cc',type=float,default=1.0,help='weight norm clip constraint')
 args = parser.parse_args()
 # You can add MIN_FREQ, MAX_LEN, and BATCH_SIZE as args too
 
 n_epochs = args.n_epochs
 learning_rate = args.learning_rate
 attn_type = args.attn_type
+clip_constraint = args.clip_constraint
 
 spacy_de = spacy.load('de')
 spacy_en = spacy.load('en')
@@ -90,13 +92,12 @@ Study the data form. In training I assume batch.trg has last column of all </s>.
 How the sentences look: the DE ones are n_de by bs, and end roughly evenly. the EN ones are n_en by bs and end all over the place
 Pass a binary mask to attention module...?
 Create predict2 for s2s
-Yes, there is a German word2vec and I should use it. (And use the English ones too obviously)
+Yes, there is a German word2vec and I should try it. (And use the English ones too obviously)
 Softmax is deprecated. Finish testing predict2
 
-If we have time, we can try the tutorial script with and without attn, see if teacher forcing makes a difference
+If we have time, we can try the pytorch tutorial script with and without attn, to see if teacher forcing makes a difference
 Predict function hack ideas? Involving MAX_LEN or eos_token
 BLEU perl script
-BSO is for all the models, cause you search through a graph of words. (although searching for z's has been studied)
 Can I throw out the perplexity from predicting on <s>? Who knows what the first word in a sentence is?
 How to run jupyter notebooks in cloud?
 Generate longer full sentences with small beams. Not fixed-length.
@@ -104,7 +105,11 @@ Generate longer full sentences with small beams. Not fixed-length.
 Consult papers for hyperparameters
 Multi-layer, bidirectional, LSTM instead of GRU, etc
 Weight tying, interpolation
-Dropout, embedding max norms, etc
+Dropout, embedding max norms, weight clipping, learning rate scheduling
+Hard attention
+More complex regularization techniques (Yoon piazza)
+Checkout openNMT for inspiration
+Justin's thing: speedup by batching over time
 '''
 from models import AttnNetwork, CandList, S2S
 from helpers import asMinutes, timeSince, escape
@@ -135,7 +140,7 @@ for epoch in range(n_epochs):
         correct = torch.sum(y_pred[:,1:lesser_of_two_evils]==x_en[:,1:lesser_of_two_evils]) # exclude <s> token in acc calculation
         avg_acc = 0.95*avg_acc + 0.05*correct.data[0]/(x_en.size(0)*x_en.size(1))
         (loss + neg_reward).backward()
-        torch.nn.utils.clip_grad_norm(model.parameters(), 1) # TODO: is this right? it didn't work last time
+        torch.nn.utils.clip_grad_norm(model.parameters(), clip_constraint) # TODO: is this right? it didn't work last time
         optimizer.step()
         print_loss_total += loss.data[0] / x_en.size(1)
         plot_loss_total += loss.data[0] / x_en.size(1)
