@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from __main__ import *
-# I use EN,DE,BATCH_SIZE,MAX_LEN,sos_token,eos_token,word2vec
+# I use EN,DE,BATCH_SIZE,MAX_LEN,pad_token,sos_token,eos_token,word2vec
 
 # I thought it might be better to move these unwieldy models into their own file. Feel free to change it back!
 
@@ -123,9 +123,10 @@ class AttnNetwork(nn.Module):
             # the rnn output and the context together make the decoder "hidden state", which is bs,2*hidden_size*ndirections
             pred = self.vocab_layer(torch.cat([dec_h[:, t], context], 1)) # bs,len(EN.vocab)
             y = x_en[:, t+1] # bs. these are our labels
+            no_pad = y != pad_token # exclude english padding tokens
             reward = torch.gather(pred, 1, y.unsqueeze(1)) # bs,1
             # reward[i] = pred[i,y[i]]. this gets log prob of correct word for each batch. similar to -crossentropy
-            avg_reward += reward.data.mean()
+            avg_reward += reward[no_pad].data.mean()
             if attn_type == "hard":
                 reinforce_loss -= (cat.log_prob(attn_samples) * (reward.detach()-self.baseline.detach())).mean() 
                 # reinforce rule (just read the formula), with special baseline
@@ -144,7 +145,7 @@ class AttnNetwork(nn.Module):
         # all the same. enc_h is bs,n_de,hiddensz*ndirections. h and c are both nlayers*ndirections,bs,hiddensz
         y = [Variable(torch.cuda.LongTensor([sos_token]*bs))] # bs
         self.attn = []
-        n_en = MAX_LEN # this will change
+        n_en = MAX_LEN+1 # to be safe
         for t in range(n_en): # generate some english.
             emb_t = self.embedding_en(y[-1]) # embed the last thing we generated. bs
             dec_h, (h, c) = self.decoder(emb_t.unsqueeze(1), (h, c)) # dec_h is bs,1,hiddensz*ndirections (batch_first=True)
@@ -229,10 +230,11 @@ class S2S(nn.Module):
         # dec_h is bs,n_en,hidden_size*ndirections
         pred = self.vocab_layer(dec_h) # bs,n_en,len(EN.vocab)
         pred = pred[:,:-1]
-        y = x_en[:,1:] # bs,n_en
+        y = x_en[:,1:] # bs,n_en-1
+        no_pad = y != pad_token
         reward = torch.gather(pred,2,y.unsqueeze(2))
         # reward[i][j][k] = pred[i][j][y[i][j][k]]
-        loss = -reward.sum()/bs
+        loss = -reward[no_pad].sum()/bs
         # NOTE: to be consistent with the other network i'm not dividing by n_en here.
         return loss, 0 # passing back an invisible "negative reward"
     

@@ -91,15 +91,15 @@ print("REMINDER!!! Did you create ../../models/HW3?????")
 
 sos_token = EN.vocab.stoi["<s>"]
 eos_token = EN.vocab.stoi["</s>"]
+pad_token = EN.vocab.stoi["<pad>"]
 
 ''' TODO
-CRUCIAL
+ELBY
 Debug predict and predict2
-Memory issues, detaching, volatile=True.
-Study the data form. In training I assume batch.trg has last column of all </s>. Is this true? NO!
-- If not, how am I gonna handle training on uneven batches, where sentences finish at different lengths?
-- How the sentences look: the DE ones are n_de by bs, and end roughly evenly. the EN ones are n_en by bs and end all over the place
-Pass a binary mask to attention module...?
+Memory issues, detaching, volatile=True. What's going on with baseline (why is it not moving)?
+Padding?
+- Explain target padding strategy (don't include pad predictions in loss/accuracy) and ask about it.
+- Use a binary mask to zero out attention to paddings in the source.
 Create predict2 for s2s, and run s2s
 Softmax is deprecated error?
 Plot attention
@@ -155,9 +155,10 @@ for epoch in range(n_epochs):
         plot_loss_total += loss.data[0] / x_en.size(1)
 
         y_pred = model.predict(x_de, attn_type)
-        lesser_of_two_evils = min(y_pred.size(1),x_en.size(1))
-        correct = torch.sum(y_pred[:,1:lesser_of_two_evils]==x_en[:,1:lesser_of_two_evils]) # exclude <s> token in acc calculation
-        print_acc_total += correct.data[0] / x_en.size(0) / lesser_of_two_evils
+        y_pred = y_pred[:,:x_en.size(1)] # we guarantee that y_pred is geq x_en
+        correct = y_pred == x_en
+        no_pad = x_en != pad_token
+        print_acc_total += (correct & no_pad).sum().data[0] / no_pad.sum().data[0]
 
         (loss + reinforce_loss).backward()
         torch.nn.utils.clip_grad_norm(model.parameters(), clip_constraint) # TODO: is this right? it didn't work last time
