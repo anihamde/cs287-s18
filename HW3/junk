@@ -3,3 +3,6 @@ from helpers import asMinutes, timeSince, escape
 model = AttnNetwork()
 model.cuda()
 model.load_state_dict(torch.load('../../models/HW3/model.pkl'))
+
+x_de = batch.src.transpose(1,0).cuda() # bs,n_de
+x_en = batch.trg.transpose(1,0).cuda() # bs,n_en

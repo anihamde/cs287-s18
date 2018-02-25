@@ -6,8 +6,6 @@ from torch.autograd import Variable
 from __main__ import *
 # I use EN,DE,BATCH_SIZE,MAX_LEN,pad_token,sos_token,eos_token,word2vec
 
-# I thought it might be better to move these unwieldy models into their own file. Feel free to change it back!
-
 
 # If we have beamsz 100 and we only go 3 steps, we're guaranteed to have 100 unique trigrams
 # This is written so that, at any time, hiddens/attentions/wordlist/probs all align with each other across the beamsz dimension
@@ -86,7 +84,8 @@ class AttnNetwork(nn.Module):
         self.vocab_layer = nn.Sequential(nn.Linear(hidden_dim*2, hidden_dim),
                                          nn.Tanh(), nn.Linear(hidden_dim, len(EN.vocab)), nn.LogSoftmax(dim=-1))
         # baseline reward, which we initialize with log 1/V
-        self.baseline = Variable(torch.zeros(1).fill_(np.log(1/len(EN.vocab))).cuda())          
+        self.baseline = torch.cuda.FloatTensor([np.log(1/len(EN.vocab))])
+        # self.baseline = Variable(torch.zeros(1).fill_(np.log(1/len(EN.vocab))).cuda()) # yoon's way
     def forward(self, x_de, x_en, attn_type="hard", update_baseline=True):
         bs = x_de.size(0)
         # x_de is bs,n_de. x_en is bs,n_en
@@ -101,14 +100,15 @@ class AttnNetwork(nn.Module):
         # dec_h is bs,n_en,hidden_size*ndirections
         # we've gotten our encoder/decoder hidden states so we are ready to do attention
         # first let's get all our scores, which we can do easily since we are using dot-prod attention
-        scores = torch.bmm(enc_h, dec_h.transpose(1,2)) 
+        scores = torch.bmm(enc_h, dec_h.transpose(1,2))
+        scores = F.softmax(scores,dim=1)
         # (bs,n_de,hiddensz*ndirections) * (bs,hiddensz*ndirections,n_en) = (bs,n_de,n_en)
         reinforce_loss = 0 # we only use this variable for hard attention
         loss = 0
         avg_reward = 0
         # we just iterate to dec_h.size(1)-1, since there's </s> at the end of each sentence
         for t in range(dec_h.size(1)-1): # iterate over english words, with teacher forcing
-            attn_dist = F.softmax(scores[:, :, t], dim=1) # bs,n_de. these are the alphas (attention scores for each german word)
+            attn_dist = scores[:, :, t] # bs,n_de. these are the alphas (attention scores for each german word)
             if attn_type == "hard":
                 cat = torch.distributions.Categorical(attn_dist) 
                 attn_samples = cat.sample() # bs. each element is a sample from categorical distribution
@@ -121,7 +121,7 @@ class AttnNetwork(nn.Module):
                 context = torch.bmm(attn_dist.unsqueeze(1), enc_h).squeeze(1) # same dimensions
             # context is bs,hidden_size*ndirections
             # the rnn output and the context together make the decoder "hidden state", which is bs,2*hidden_size*ndirections
-            pred = self.vocab_layer(torch.cat([dec_h[:, t], context], 1)) # bs,len(EN.vocab)
+            pred = self.vocab_layer(torch.cat([dec_h[:, t], context], 1)) # bs,len(EN.vocab) # TODO: this might be wrong but i have to eat lunch
             y = x_en[:, t+1] # bs. these are our labels
             no_pad = (y != pad_token) # exclude english padding tokens
             reward = torch.gather(pred, 1, y.unsqueeze(1)) # bs,1
@@ -129,12 +129,12 @@ class AttnNetwork(nn.Module):
             reward = reward.squeeze(1)[no_pad] # less than bs
             avg_reward += reward.data.mean()
             if attn_type == "hard":
-                reinforce_loss -= (cat.log_prob(attn_samples) * (reward.detach()-self.baseline.detach())).mean() 
+                reinforce_loss -= (cat.log_prob(attn_samples[no_pad]) * (reward-self.baseline).detach()).mean() 
                 # reinforce rule (just read the formula), with special baseline
             loss -= reward.mean() # minimizing loss is maximizing reward
         avg_reward = avg_reward/dec_h.size(1)
         if update_baseline: # update baseline as a moving average
-            self.baseline.data = 0.95*self.baseline.data + 0.05*avg_reward
+            self.baseline = Variable(0.95*self.baseline.data + 0.05*avg_reward)
         return loss, reinforce_loss
     # predict many batches with greedy encoding
     def predict(self, x_de, attn_type = "hard"):

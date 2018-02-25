@@ -14,16 +14,14 @@ import spacy
 
 import csv
 import time
-import math
-import copy
 import argparse
 
 parser = argparse.ArgumentParser(description='training runner')
 parser.add_argument('--model_file','-m',type=str,default='../../models/HW3/model.pkl',help='Model save target.')
-parser.add_argument('--n_epochs','-e',type=int,default=5,help='set the number of training epochs.')
+parser.add_argument('--n_epochs','-e',type=int,default=3,help='set the number of training epochs.')
 parser.add_argument('--learning_rate','-lr',type=float,default=0.01,help='set learning rate.')
-parser.add_argument('--attn_type','-at',type=str,default='hard',help='attention type')
-parser.add_argument('--clip_constraint','-cc',type=float,default=1.0,help='weight norm clip constraint')
+parser.add_argument('--attn_type','-at',type=str,default='soft',help='attention type')
+parser.add_argument('--clip_constraint','-cc',type=float,default=5.0,help='weight norm clip constraint')
 parser.add_argument('--word2vec','-w',type=bool,default=False,help='whether to initialize with word2vec embeddings')
 args = parser.parse_args()
 # You can add MIN_FREQ, MAX_LEN, and BATCH_SIZE as args too
@@ -73,10 +71,8 @@ train_iter, val_iter = data.BucketIterator.splits((train, val), batch_size=BATCH
                                                   repeat=False, sort_key=lambda x: len(x.src))
 
 batch = next(iter(train_iter))
-print("Source size")
-print(batch.src.size())
-print("Target size")
-print(batch.trg.size())
+print("Source size", batch.src.size())
+print("Target size", batch.trg.size())
 
 # https://github.com/facebookresearch/fastText/blob/master/pretrained-vectors.md
 if word2vec:
@@ -148,16 +144,17 @@ for epoch in range(n_epochs):
         ctr += 1
         optimizer.zero_grad()
         x_de = batch.src.transpose(1,0).cuda() # bs,n_de
-        x_en = batch.trg.transpose(1,0).cuda()
+        x_en = batch.trg.transpose(1,0).cuda() # bs,n_en
         loss, reinforce_loss = model.forward(x_de, x_en, attn_type)
         print_loss_total += loss.data[0] / x_en.size(1)
         plot_loss_total += loss.data[0] / x_en.size(1)
         # TODO: this is wrong! It divides by x_en when it should divide by no_pad
 
-        y_pred = model.predict(x_de, attn_type)
-        y_pred = y_pred[:,:x_en.size(1)] # we guarantee that y_pred is geq x_en
-        correct = y_pred == x_en
-        no_pad = x_en != pad_token
+        y_pred = model.predict(x_de, attn_type) # bs,max_len
+        y_pred = y_pred[:,1:x_en.size(1)] # bs,n_en
+        x_en = x_en[:,1:]
+        correct = (y_pred == x_en)
+        no_pad = (x_en != pad_token)
         print_acc_total += (correct & no_pad).data.sum() / no_pad.data.sum()
 
         (loss + reinforce_loss).backward()
@@ -190,8 +187,10 @@ for epoch in range(n_epochs):
     val_loss_avg = val_loss_total / len(val_iter)
     timenow = timeSince(start)
     print('Validation. Time %s, PPL: %.2f' %(timenow, np.exp(val_loss_avg)))
-    
+
 # NOTE: AttnNetwork averages loss within batches, but neither over sentences nor across batches. thus, rescaling is necessary
+
+torch.save(model.state_dict(), args.model_file)
 
 with open("preds.csv", "w") as f:
     writer = csv.writer(f)
@@ -201,13 +200,11 @@ with open("preds.csv", "w") as f:
         x_de = Variable(torch.cuda.LongTensor(ls))
         _,wordlist,_ = model.predict2(x_de,beamsz=100,gen_len=3)
         # wordlist is beamsz,3
-        longstr = ' '.join(['|'.join([EN.vocab.itos[w] for w in beam]) for beam in wordlist])
+        longstr = ' '.join(['|'.join([EN.vocab.itos[w] for w in trigram]) for trigram in wordlist])
         longstr = escape(longstr)
         writer.writerow([i,longstr])
 
-torch.save(model.state_dict(), args.model_file)
 # showPlot(plot_losses) # TODO: function not added/checked
-
 # # visualize only for AttnNetwork
 # def visualize(attns,sentence_de,bs,nwords,flname): # attns = (SentLen_EN)x(SentLen_DE), sentence_de = ["German_1",...,"German_(SentLen_DE)"]
 #     _,wordlist,attns = model.predict2(sentence_de,beamsz=bs,gen_len=nwords)
