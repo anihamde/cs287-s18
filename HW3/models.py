@@ -84,7 +84,7 @@ class AttnNetwork(nn.Module):
         self.vocab_layer = nn.Sequential(nn.Linear(hidden_dim*2, hidden_dim),
                                          nn.Tanh(), nn.Linear(hidden_dim, len(EN.vocab)), nn.LogSoftmax(dim=-1))
         # baseline reward, which we initialize with log 1/V
-        self.baseline = torch.cuda.FloatTensor([np.log(1/len(EN.vocab))])
+        self.baseline = Variable(torch.cuda.FloatTensor([np.log(1/len(EN.vocab))]))
         # self.baseline = Variable(torch.zeros(1).fill_(np.log(1/len(EN.vocab))).cuda()) # yoon's way
     def forward(self, x_de, x_en, attn_type="hard", update_baseline=True):
         bs = x_de.size(0)
