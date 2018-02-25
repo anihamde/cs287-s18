@@ -29,6 +29,7 @@ parser.add_argument('--hidden_depth','-hd',type=int,default=1,help='Number of hi
 parser.add_argument('--hidden_size','-hs',type=int,default=500,help='Size of each hidden layer in encoder/decoder')
 parser.add_argument('--vocab_layer_dim','-vd',type=int,default=500,help='Size of hidden vocab layer transformation')
 parser.add_argument('--weight_tying','-wt',action='store_true',help='Raise flag to engage weight tying')
+parser.add_argument('--bidirectional','-b',action='store_true',help='Raise to make encoder bidirectional')
 args = parser.parse_args()
 # You can add MIN_FREQ, MAX_LEN, and BATCH_SIZE as args too
 
