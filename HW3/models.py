@@ -31,7 +31,7 @@ class CandList():
         else:
             return Variable(self.wordlist[:,-1])
     def get_hiddens(self):
-        return (Variable(self.hiddens[0]),Variable(self.hiddens[1]))
+        return tuple(Variable(self.hiddens[0]),Variable(self.hiddens[1]))
     def update_beam(self,newlogprobs): # newlogprobs is beamsz,len(EN.vocab)
         newlogprobs = newlogprobs.data
         newlogprobs += self.probs.unsqueeze(1) # beamsz,len(EN.vocab)
@@ -99,7 +99,7 @@ class AttnNetwork(nn.Module):
         # first let's get all our scores, which we can do easily since we are using dot-prod attention
         scores = torch.bmm(enc_h, dec_h.transpose(1,2)) 
         # (bs,n_de,hiddensz*ndirections) * (bs,hiddensz*ndirections,n_en) = (bs,n_de,n_en)
-        neg_reward = 0 # we only use this variable for hard attention
+        reinforce_loss = 0 # we only use this variable for hard attention
         loss = 0
         avg_reward = 0
         # we just iterate to dec_h.size(1)-1, since there's </s> at the end of each sentence
@@ -123,13 +123,13 @@ class AttnNetwork(nn.Module):
             # reward[i] = pred[i,y[i]]. this gets log prob of correct word for each batch. similar to -crossentropy
             avg_reward += reward.data.mean()
             if attn_type == "hard":
-                neg_reward -= (cat.log_prob(attn_samples) * (reward.detach()-self.baseline.detach())).mean() 
+                reinforce_loss -= (cat.log_prob(attn_samples) * (reward.detach()-self.baseline.detach())).mean() 
                 # reinforce rule (just read the formula), with special baseline
             loss -= reward.mean() # minimizing loss is maximizing reward
         avg_reward = avg_reward/dec_h.size(1)
         if update_baseline: # update baseline as a moving average
             self.baseline.data = 0.95*self.baseline.data + 0.05*avg_reward
-        return loss, neg_reward
+        return loss, reinforce_loss
     # predict many batches with greedy encoding
     def predict(self, x_de, attn_type = "hard"):
         bs = x_de.size(0)
@@ -226,7 +226,7 @@ class S2S(nn.Module):
         reward = torch.gather(pred,2,y.unsqueeze(2))
         # reward[i][j][k] = pred[i][j][y[i][j][k]]
         loss = -reward.sum()/bs
-        # TODO: to be consistent with the other network i'm not dividing by n_en here. Can we change this?
+        # NOTE: to be consistent with the other network i'm not dividing by n_en here.
         return loss, 0 # passing back an invisible "negative reward"
     
     # predict with greedy decoding

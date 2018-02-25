@@ -86,15 +86,28 @@ sos_token = EN.vocab.stoi["<s>"]
 eos_token = EN.vocab.stoi["</s>"]
 
 ''' TODO
-Memory issues, detaching, volatile=True. I fixed the worst, but need to fix the baseline and test with hard attention.
+CRUCIAL
+Debug predict and predict2
+Memory issues, detaching, volatile=True.
 Study the data form. In training I assume batch.trg has last column of all </s>. Is this true? NO!
 - If not, how am I gonna handle training on uneven batches, where sentences finish at different lengths?
 How the sentences look: the DE ones are n_de by bs, and end roughly evenly. the EN ones are n_en by bs and end all over the place
 Pass a binary mask to attention module...?
-Create predict2 for s2s
+Create predict2 for s2s, and run s2s
 Yes, there is a German word2vec and I should try it. (And use the English ones too obviously)
-Softmax is deprecated. Finish testing predict2
+Softmax is deprecated error?
+Plot attention
 
+EXTENSIONS
+Consult papers for hyperparameters
+Multi-layer, bidirectional, LSTM instead of GRU, etc
+Weight tying, interpolation
+Dropout, embedding max norms, weight clipping, learning rate scheduling, residual connections
+Hard attention, with updating baseline
+More complex regularization techniques (Yoon piazza)
+Checkout openNMT for inspiration
+
+LONGSHOT
 If we have time, we can try the pytorch tutorial script with and without attn, to see if teacher forcing makes a difference
 Predict function hack ideas? Involving MAX_LEN or eos_token
 BLEU perl script
@@ -102,14 +115,10 @@ Can I throw out the perplexity from predicting on <s>? Who knows what the first 
 How to run jupyter notebooks in cloud?
 Generate longer full sentences with small beams. Not fixed-length.
 
-Consult papers for hyperparameters
-Multi-layer, bidirectional, LSTM instead of GRU, etc
-Weight tying, interpolation
-Dropout, embedding max norms, weight clipping, learning rate scheduling
-Hard attention
-More complex regularization techniques (Yoon piazza)
-Checkout openNMT for inspiration
-Justin's thing: speedup by batching over time
+QUESTIONS
+Yoon: why do you average loss over minibatches but not over time?
+Justin's piazza post: speedup by batching over time?
+What's purpose of baseline? Your code is wrong- subtract something averaged over bs & n_de from something averaged over bs?
 '''
 from models import AttnNetwork, CandList, S2S
 from helpers import asMinutes, timeSince, escape
@@ -121,7 +130,6 @@ start = time.time()
 print_every = 100
 plot_every = 100
 plot_losses = []
-avg_acc = 0
 optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
 for epoch in range(n_epochs):
@@ -129,41 +137,46 @@ for epoch in range(n_epochs):
     ctr = 0
     print_loss_total = 0  # Reset every print_every
     plot_loss_total = 0  # Reset every plot_every
+    print_acc_total = 0 # Reset every print_every
     for batch in iter(train_iter):
         ctr += 1
         optimizer.zero_grad()
-        x_de = batch.src.transpose(1,0).cuda()
+        x_de = batch.src.transpose(1,0).cuda() # bs,n_de
         x_en = batch.trg.transpose(1,0).cuda()
-        loss, neg_reward = model.forward(x_de, x_en, attn_type, update_baseline=False) # TODO: just figuring out memory error!
-        y_pred = model.predict(x_de, attn_type)
-        lesser_of_two_evils = min(y_pred.size(1),x_en.size(1)) # TODO: temporary fix!!
-        correct = torch.sum(y_pred[:,1:lesser_of_two_evils]==x_en[:,1:lesser_of_two_evils]) # exclude <s> token in acc calculation
-        avg_acc = 0.95*avg_acc + 0.05*correct.data[0]/(x_en.size(0)*x_en.size(1))
-        (loss + neg_reward).backward()
-        torch.nn.utils.clip_grad_norm(model.parameters(), clip_constraint) # TODO: is this right? it didn't work last time
-        optimizer.step()
+        loss, reinforce_loss = model.forward(x_de, x_en, attn_type)
         print_loss_total += loss.data[0] / x_en.size(1)
         plot_loss_total += loss.data[0] / x_en.size(1)
 
+        y_pred = model.predict(x_de, attn_type)
+        lesser_of_two_evils = min(y_pred.size(1),x_en.size(1))
+        correct = torch.sum(y_pred[:,1:lesser_of_two_evils]==x_en[:,1:lesser_of_two_evils]) # exclude <s> token in acc calculation
+        print_acc_total += correct.data[0] / x_en.size(0) / lesser_of_two_evils
+
+        (loss + reinforce_loss).backward()
+        torch.nn.utils.clip_grad_norm(model.parameters(), clip_constraint) # TODO: is this right? it didn't work last time
+        optimizer.step()
+        
         if ctr % print_every == 0:
             print_loss_avg = print_loss_total / print_every
             print_loss_total = 0
+            print_acc_avg = print_acc_total / print_every
+            print_acc_total = 0
             timenow = timeSince(start)
             print ('Time %s, Epoch [%d/%d], Iter [%d/%d], Loss: %.4f, Reward: %.2f, Accuracy: %.2f, PPL: %.2f' 
                 %(timenow, epoch+1, n_epochs, ctr, len(train_iter), print_loss_avg,
-                    model.baseline.data[0], avg_acc, np.exp(print_loss_avg)))
+                    model.baseline.data[0], print_acc_avg, np.exp(print_loss_avg)))
 
         if ctr % plot_every == 0:
             plot_loss_avg = plot_loss_total / plot_every
-            plot_losses.append(plot_loss_avg)
             plot_loss_total = 0
+            plot_losses.append(plot_loss_avg)
 
     torch.save(model.state_dict(), args.model_file) # I'm Paranoid!!!!!!!!!!!!!!!!
     val_loss_total = 0 # Validation/early stopping
     for batch in iter(val_iter):
         x_de = batch.src.transpose(1,0).cuda()
         x_en = batch.trg.transpose(1,0).cuda()
-        loss, neg_reward = model.forward(x_de, x_en, attn_type)
+        loss, reinforce_loss = model.forward(x_de, x_en, attn_type)
         # too lazy to implement reward or accuracy for validation
         val_loss_total += loss.data[0] / x_en.size(1)
     val_loss_avg = val_loss_total / len(val_iter)
