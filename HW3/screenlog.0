@@ -176,3 +176,130 @@ Untracked files:
 no changes added to commit (use "git add" and/or "git commit -a")
 [01;32melbertgong@nlpfinal[00m:[01;34m/mnt/trunk/cs287-s18/HW3[00m$ exit
 exit
+[01;32melbertgong@nlpfinal[00m:[01;34m/mnt/trunk/cs287-s18/HW3[00m$ python3 main.py[K[K[K[K[K[K[K[K[K[K[K[K[K[K[Kecho "wtf"[K[K[K[K[K[K[K[K[K[Kexit
+exit
+[01;32melbertgong@nlpfinal[00m:[01;34m/mnt/trunk/cs287-s18/HW3[00m$ echo "s2s shot in dark"
+s2s shot in dark
+[01;32melbertgong@nlpfinal[00m:[01;34m/mnt/trunk/cs287-s18/HW3[00m$ python main.py
+Traceback (most recent call last):
+  File "main.py", line 1, in <module>
+    import numpy as np
+ImportError: No module named numpy
+[01;32melbertgong@nlpfinal[00m:[01;34m/mnt/trunk/cs287-s18/HW3[00m$ python3 main.y[Kpy
+Getting datasets!
+{'src': <torchtext.data.field.Field object at 0x7f59d93156d8>, 'trg': <torchtext.data.field.Field object at 0x7f59d93159e8>}
+119076
+{'src': ['David', 'Gallo', ':', 'Das', 'ist', 'Bill', 'Lange', '.', 'Ich', 'bin', 'Dave', 'Gallo', '.'], 'trg': ['David', 'Gallo', ':', 'This', 'is', 'Bill', 'Lange', '.', 'I', "'m", 'Dave', 'Gallo', '.']}
+[('.', 113253), (',', 67237), ('ist', 24189), ('die', 23778), ('das', 17102), ('der', 15727), ('und', 15622), ('Sie', 15085), ('es', 13197), ('ich', 12946)]
+Size of German vocab 13353
+[('.', 113433), (',', 59512), ('the', 46029), ('to', 29177), ('a', 27548), ('of', 26794), ('I', 24887), ('is', 21775), ("'s", 20630), ('that', 19814)]
+Size of English vocab 11560
+2 3
+Source size torch.Size([9, 32])
+Target size torch.Size([15, 32])
+REMINDER!!! Did you create ../../models/HW3?????
+Traceback (most recent call last):
+  File "main.py", line 148, in <module>
+    loss, reinforce_loss = model.forward(x_de, x_en, attn_type)
+TypeError: forward() takes 3 positional arguments but 4 were given
+[01;32melbertgong@nlpfinal[00m:[01;34m/mnt/trunk/cs287-s18/HW3[00m$ exit
+exit
+[01;32melbertgong@nlpfinal[00m:[01;34m/mnt/trunk/cs287-s18/HW3[00m$ echo "tryna s2s again"
+tryna s2s again
+[01;32melbertgong@nlpfinal[00m:[01;34m/mnt/trunk/cs287-s18/HW3[00m$ python3 main.py -m 1 [K
+Getting datasets!
+{'src': <torchtext.data.field.Field object at 0x7fc555b437f0>, 'trg': <torchtext.data.field.Field object at 0x7fc555b43898>}
+119076
+{'src': ['David', 'Gallo', ':', 'Das', 'ist', 'Bill', 'Lange', '.', 'Ich', 'bin', 'Dave', 'Gallo', '.'], 'trg': ['David', 'Gallo', ':', 'This', 'is', 'Bill', 'Lange', '.', 'I', "'m", 'Dave', 'Gallo', '.']}
+[('.', 113253), (',', 67237), ('ist', 24189), ('die', 23778), ('das', 17102), ('der', 15727), ('und', 15622), ('Sie', 15085), ('es', 13197), ('ich', 12946)]
+Size of German vocab 13353
+[('.', 113433), (',', 59512), ('the', 46029), ('to', 29177), ('a', 27548), ('of', 26794), ('I', 24887), ('is', 21775), ("'s", 20630), ('that', 19814)]
+Size of English vocab 11560
+2 3
+Source size torch.Size([15, 32])
+Target size torch.Size([22, 32])
+REMINDER!!! Did you create ../../models/HW3?????
+Traceback (most recent call last):
+  File "main.py", line 154, in <module>
+    f = np.flip(x_de.data.numpy(),1).copy() # reverse
+RuntimeError: can't convert CUDA tensor to numpy (it doesn't support GPU arrays). Use .cpu() to move the tensor to host memory first.
+Exception ignored in: <bound method DropoutDescriptor.__del__ of <torch.backends.cudnn.DropoutDescriptor object at 0x7fc54d2d12e8>>
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.5/dist-packages/torch/backends/cudnn/__init__.py", line 238, in __del__
+AttributeError: 'NoneType' object has no attribute 'cudnnDestroyDropoutDescriptor'
+Exception ignored in: <bound method DropoutDescriptor.__del__ of <torch.backends.cudnn.DropoutDescriptor object at 0x7fc54d2d1828>>
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.5/dist-packages/torch/backends/cudnn/__init__.py", line 238, in __del__
+AttributeError: 'NoneType' object has no attribute 'cudnnDestroyDropoutDescriptor'
+Exception ignored in: <bound method CuDNNHandle.__del__ of <torch.backends.cudnn.CuDNNHandle object at 0x7fc54d2d1710>>
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.5/dist-packages/torch/backends/cudnn/__init__.py", line 114, in __del__
+AttributeError: 'NoneType' object has no attribute 'cudnnDestroy'
+[01;32melbertgong@nlpfinal[00m:[01;34m/mnt/trunk/cs287-s18/HW3[00m$ exit
+exit
+[01;32melbertgong@nlpfinal[00m:[01;34m/mnt/trunk/cs287-s18/HW3[00m$ git [K[K[K[Kecho "trying again with flip bug fix"
+trying again with flip bug fix
+[01;32melbertgong@nlpfinal[00m:[01;34m/mnt/trunk/cs287-s18/HW3[00m$ python3 main.py -m 1
+Getting datasets!
+{'trg': <torchtext.data.field.Field object at 0x7fcc782605c0>, 'src': <torchtext.data.field.Field object at 0x7fcc78260860>}
+119076
+{'trg': ['David', 'Gallo', ':', 'This', 'is', 'Bill', 'Lange', '.', 'I', "'m", 'Dave', 'Gallo', '.'], 'src': ['David', 'Gallo', ':', 'Das', 'ist', 'Bill', 'Lange', '.', 'Ich', 'bin', 'Dave', 'Gallo', '.']}
+[('.', 113253), (',', 67237), ('ist', 24189), ('die', 23778), ('das', 17102), ('der', 15727), ('und', 15622), ('Sie', 15085), ('es', 13197), ('ich', 12946)]
+Size of German vocab 13353
+[('.', 113433), (',', 59512), ('the', 46029), ('to', 29177), ('a', 27548), ('of', 26794), ('I', 24887), ('is', 21775), ("'s", 20630), ('that', 19814)]
+Size of English vocab 11560
+2 3
+Source size torch.Size([13, 32])
+Target size torch.Size([22, 32])
+REMINDER!!! Did you create ../../models/HW3?????
+Traceback (most recent call last):
+  File "main.py", line 154, in <module>
+    x_de = flip(x_de,1) # reverse direction
+  File "/mnt/trunk/cs287-s18/HW3/helpers.py", line 24, in flip
+    x = x.view(x.size(0), x.size(1), -1)[:, getattr(torch.arange(x.size(1)-1, 
+NameError: name 'torch' is not defined
+[01;32melbertgong@nlpfinal[00m:[01;34m/mnt/trunk/cs287-s18/HW3[00m$ vi helpers.py
+[?1049h[?1h=[2;1H▽[6n[2;1H  [1;1H[1;30r[?12;25h[?12l[?25h[27m[24m[0m[H[2J[?25l[30;1H"helpers.py" [noeol] 26L, 682C[1;1H[35mimport[0m time
+[35mimport[0m math
+
+[38;5;130mdef[0m [36masMinutes[0m(s):
+    m = math.floor(s / [31m60[0m)
+    s -= m * [31m60[0m
+    [38;5;130mreturn[0m [31m'%dm %ds'[0m % (m, s)
+
+[38;5;130mdef[0m [36mtimeSince[0m(since):
+    now = time.time()
+    s = now - since
+    [34m# es = s / (percent)
+[0m    [34m# rs = es - s[0m
+    [38;5;130mreturn[0m [31m'%s'[0m % (asMinutes(s))
+
+[38;5;130mdef[0m [36mescape[0m(l):
+    [38;5;130mreturn[0m l.replace([31m"[0m[35m\"[0m[31m"[0m, [31m"<quote>"[0m).replace([31m","[0m, [31m"<comma>"[0m)
+
+[34m# source: https://github.com/pytorch/pytorch/issues/229[0m
+[38;5;130mdef[0m [36mflip[0m(x, dim):
+    xsize = x.size()
+    dim = x.dim() + dim [38;5;130mif[0m dim < [31m0[0m [38;5;130melse[0m dim
+    x = x.view(-[31m1[0m, *xsize[dim:])
+    x = x.view(x.size([31m0[0m), x.size([31m1[0m), -[31m1[0m)[:, [36mgetattr[0m(torch.arange(x.size([31m1[0m)-[31m1[0m,[25;23H-[31m1[0m, -[31m1[0m), ([31m'cpu'[0m,[31m'cuda'[0m)[x.is_cuda])().long(), :]
+    [38;5;130mreturn[0m x.view(xsize)
+[94m~                                                                                                                       [28;1H~                                                                                                                       [29;1H~                                                                                                                       [0m[30;103H1,1[11CAll[1;1H[?12l[?25h[?25l[30;1H[1m-- INSERT --[0m[30;14H[K[30;103H1,1[11CAll[1;1H[?12l[?25h[?25liimport time[30;105H2[1;2H[?12l[?25h[?25lmimport time[30;105H3[1;3H[?12l[?25h[?25lpimport time[30;105H4[1;4H[?12l[?25h[?25loimport time[30;105H5[1;5H[?12l[?25h[?25lrimport time[30;105H6[1;6H[?12l[?25h[?25ltimport time[30;105H7[1;7H[?12l[?25h[?25l[35mimport[0m [35mimport[0m time[30;105H8[1;8H[?12l[?25h[?25ltimport time[30;105H9[1;9H[?12l[?25h[?25loimport time[30;105H10[1;10H[?12l[?25h[?25lrimport time[30;106H1[1;11H[?12l[?25h[?25lcimport time[30;106H2[1;12H[?12l[?25h[?25lhimport time[30;106H3[1;13H[?12l[?25h[?25l[2;29r[2;1H[L[1;30r[1;13H[K[2;1H[35mimport[0m time[30;103H[K[30;103H2,1[11CAll[2;1H[?12l[?25h[30;1H[K[2;1H[?25l[30;103H2,1[11CAll[2;1H[?12l[?25h[?25l[30;103H[K[30;1H:[?12l[?25hw[?25l[?12l[?25hq[?25l[?12l[?25h[?25l"helpers.py" 27L, 696C written
+[?1l>[?12l[?25h[?1049l[01;32melbertgong@nlpfinal[00m:[01;34m/mnt/trunk/cs287-s18/HW3[00m$ vi helpers.pypython3 main.py -m 1
+Getting datasets!
+{'trg': <torchtext.data.field.Field object at 0x7f4e7da0d6d8>, 'src': <torchtext.data.field.Field object at 0x7f4e7da0d898>}
+119076
+{'trg': ['David', 'Gallo', ':', 'This', 'is', 'Bill', 'Lange', '.', 'I', "'m", 'Dave', 'Gallo', '.'], 'src': ['David', 'Gallo', ':', 'Das', 'ist', 'Bill', 'Lange', '.', 'Ich', 'bin', 'Dave', 'Gallo', '.']}
+[('.', 113253), (',', 67237), ('ist', 24189), ('die', 23778), ('das', 17102), ('der', 15727), ('und', 15622), ('Sie', 15085), ('es', 13197), ('ich', 12946)]
+Size of German vocab 13353
+[('.', 113433), (',', 59512), ('the', 46029), ('to', 29177), ('a', 27548), ('of', 26794), ('I', 24887), ('is', 21775), ("'s", 20630), ('that', 19814)]
+Size of English vocab 11560
+2 3
+Source size torch.Size([16, 32])
+Target size torch.Size([22, 32])
+REMINDER!!! Did you create ../../models/HW3?????
+Traceback (most recent call last):
+  File "main.py", line 155, in <module>
+    loss, reinforce_loss = model.forward(x_de, x_en, attn_type)
+TypeError: forward() takes 3 positional arguments but 4 were given
+[01;32melbertgong@nlpfinal[00m:[01;34m/mnt/trunk/cs287-s18/HW3[00m$ git add --al[K[K[K[K[K[K[K[K[K add -
