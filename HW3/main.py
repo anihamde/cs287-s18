@@ -95,13 +95,12 @@ pad_token = EN.vocab.stoi["<pad>"]
 
 ''' TODO
 ELBY
-Debug predict and predict2
+Resolve segfault! Debug predict and predict2!!!! What's going on?
 Memory issues, detaching, volatile=True. What's going on with baseline (why is it not moving)?
 Padding?
 - Explain target padding strategy (don't include pad predictions in loss/accuracy) and ask about it.
 - Use a binary mask to zero out attention to paddings in the source.
 Create predict2 for s2s, and run s2s
-Softmax is deprecated error?
 Plot attention
 
 EXTENSIONS
@@ -153,6 +152,7 @@ for epoch in range(n_epochs):
         loss, reinforce_loss = model.forward(x_de, x_en, attn_type)
         print_loss_total += loss.data[0] / x_en.size(1)
         plot_loss_total += loss.data[0] / x_en.size(1)
+        # TODO: this is wrong! It divides by x_en when it should divide by no_pad
 
         y_pred = model.predict(x_de, attn_type)
         y_pred = y_pred[:,:x_en.size(1)] # we guarantee that y_pred is geq x_en
