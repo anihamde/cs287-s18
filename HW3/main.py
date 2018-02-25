@@ -23,7 +23,7 @@ parser.add_argument('--n_epochs','-e',type=int,default=3,help='set the number of
 parser.add_argument('--learning_rate','-lr',type=float,default=0.01,help='set learning rate.')
 parser.add_argument('--attn_type','-at',type=str,default='soft',help='attention type')
 parser.add_argument('--clip_constraint','-cc',type=float,default=5.0,help='weight norm clip constraint')
-parser.add_argument('--word2vec','-w',type=bool,default=False,help='whether to initialize with word2vec embeddings')
+parser.add_argument('--word2vec','-w',action='store_true',help='Raise flag to initialize with word2vec embeddings')
 parser.add_argument('--embedding_dims','-ed',type=int,default=300,help='dims for word2vec embeddings')
 parser.add_argument('--hidden_depth','-hd',type=int,default=1,help='Number of hidden layers in encoder/decoder')
 parser.add_argument('--hidden_size','-hs',type=int,default=500,help='Size of each hidden layer in encoder/decoder')
