@@ -99,8 +99,8 @@ class AttnNetwork(nn.Module):
         # x_de is bs,n_de. x_en is bs,n_en
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
         emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
-        h0 = torch.zeros(1, bs, self.hidden_dim).cuda()
-        c0 = torch.zeros(1, bs, self.hidden_dim).cuda()
+        h0 = torch.zeros(1, bs, self.hidden_dim*self.n_layers).cuda()
+        c0 = torch.zeros(1, bs, self.hidden_dim*self.n_layers).cuda()
         # hidden vars have dimension nlayers*ndirections,bs,hiddensz
         enc_h, _ = self.encoder(emb_de, (Variable(h0), Variable(c0)))
         # enc_h is bs,n_de,hiddensz*ndirections. ordering is different from last week because batch_first=True
