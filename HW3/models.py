@@ -123,10 +123,11 @@ class AttnNetwork(nn.Module):
             # the rnn output and the context together make the decoder "hidden state", which is bs,2*hidden_size*ndirections
             pred = self.vocab_layer(torch.cat([dec_h[:, t], context], 1)) # bs,len(EN.vocab)
             y = x_en[:, t+1] # bs. these are our labels
-            no_pad = y != pad_token # exclude english padding tokens
+            no_pad = (y != pad_token) # exclude english padding tokens
             reward = torch.gather(pred, 1, y.unsqueeze(1)) # bs,1
-            # reward[i] = pred[i,y[i]]. this gets log prob of correct word for each batch. similar to -crossentropy
-            avg_reward += reward[no_pad].data.mean()
+            # reward[i,1] = pred[i,y[i]]. this gets log prob of correct word for each batch. similar to -crossentropy
+            reward = reward.squeeze(1)[no_pad] # less than bs
+            avg_reward += reward.data.mean()
             if attn_type == "hard":
                 reinforce_loss -= (cat.log_prob(attn_samples) * (reward.detach()-self.baseline.detach())).mean() 
                 # reinforce rule (just read the formula), with special baseline
@@ -231,10 +232,11 @@ class S2S(nn.Module):
         pred = self.vocab_layer(dec_h) # bs,n_en,len(EN.vocab)
         pred = pred[:,:-1]
         y = x_en[:,1:] # bs,n_en-1
-        no_pad = y != pad_token
+        no_pad = (y != pad_token)
         reward = torch.gather(pred,2,y.unsqueeze(2))
-        # reward[i][j][k] = pred[i][j][y[i][j][k]]
-        loss = -reward[no_pad].sum()/bs
+        # reward[i,j,1] = pred[i,j,y[i,j]]
+        reward = reward.squeeze(2)[no_pad] # less than bs,n_en
+        loss = -reward.sum()/bs
         # NOTE: to be consistent with the other network i'm not dividing by n_en here.
         return loss, 0 # passing back an invisible "negative reward"
     

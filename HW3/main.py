@@ -158,7 +158,7 @@ for epoch in range(n_epochs):
         y_pred = y_pred[:,:x_en.size(1)] # we guarantee that y_pred is geq x_en
         correct = y_pred == x_en
         no_pad = x_en != pad_token
-        print_acc_total += (correct & no_pad).sum().data[0] / no_pad.sum().data[0]
+        print_acc_total += (correct & no_pad).data.sum() / no_pad.data.sum()
 
         (loss + reinforce_loss).backward()
         torch.nn.utils.clip_grad_norm(model.parameters(), clip_constraint) # TODO: is this right? it didn't work last time
