@@ -218,7 +218,7 @@ class S2S(nn.Module):
         # vocab layer will project dec hidden state out into vocab space 
         self.vocab_layer = nn.Sequential(nn.Linear(hidden_dim, hidden_dim),
                                          nn.Tanh(), nn.Linear(hidden_dim, len(EN.vocab)), nn.LogSoftmax(dim=-1))
-    def forward(self, x_de, x_en):
+    def forward(self, x_de, x_en, attn_type):
         bs = x_de.size(0)
         # x_de is bs,n_de. x_en is bs,n_en
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
@@ -241,7 +241,7 @@ class S2S(nn.Module):
         # NOTE: to be consistent with the other network i'm normalizing loss by time only (not by batch) 
         return loss, 0 # passing back an invisible "negative reward"
     # predict with greedy decoding
-    def predict(self, x_de, bs=BATCH_SIZE):
+    def predict(self, x_de, attn_type):
         bs = x_de.size(0)
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
         h = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())
