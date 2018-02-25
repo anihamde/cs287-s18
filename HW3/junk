@@ -9,37 +9,38 @@ x_en = batch.trg.transpose(1,0).cuda() # bs,n_en
 
 y_pred = model.predict(x_de, attn_type) # bs,max_len
 
-# teacher forcing predict
-def predicttf(self, x_de, x_en attn_type = "hard"):
-    bs = x_de.size(0)
-    emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
-    emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
-    h = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())
-    c = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())
-    enc_h, _ = self.encoder(emb_de, (h, c))
-    dec_h, _ = self.decoder(emb_en, (h, c))
-    # all the same. enc_h is bs,n_de,hiddensz*ndirections. h and c are both nlayers*ndirections,bs,hiddensz
-    scores = torch.bmm(enc_h, dec_h.transpose(1,2))
-    # (bs,n_de,hiddensz*ndirections) * (bs,hiddensz*ndirections,n_en) = (bs,n_de,n_en)
-    y = [Variable(torch.cuda.LongTensor([sos_token]*bs))] # bs
-    self.attn = []
-    n_en = MAX_LEN+1 # to be safe
-    for t in range(n_en): # generate some english.
-        attn_dist = F.softmax(scores[:,:,t],dim=1) # bs,n_de
-        self.attn.append(attn_dist.data)
-        if attn_type == "hard":
-            _, argmax = attn_dist.max(1) # bs. for each batch, select most likely german word to pay attention to
-            one_hot = Variable(torch.zeros_like(attn_dist.data).scatter_(-1, argmax.data.unsqueeze(1), 1).cuda())
-            context = torch.bmm(one_hot.unsqueeze(1), enc_h).squeeze(1)
-        else:
-            context = torch.bmm(attn_dist.unsqueeze(1), enc_h).squeeze(1)
-        # the difference btwn hard and soft is just whether we use a one_hot or a distribution
-        # context is bs,hiddensz*ndirections
-        pred = self.vocab_layer(torch.cat([dec_h[:,t,:], context], 1)) # bs,len(EN.vocab)
-        _, next_token = pred.max(1) # bs
-        y.append(next_token)
-    self.attn = torch.stack(self.attn, 0).transpose(0, 1) # bs,n_en,n_de (for visualization!)
-    return torch.stack(y, 0).transpose(0, 1) # bs,n_en
+
+    # predict many batches with greedy encoding
+    def predict(self, x_de, attn_type = "hard"):
+        bs = x_de.size(0)
+        emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
+        h = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())
+        c = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())
+        enc_h, _ = self.encoder(emb_de, (h, c))
+        # all the same. enc_h is bs,n_de,hiddensz*ndirections. h and c are both nlayers*ndirections,bs,hiddensz
+        y = [Variable(torch.cuda.LongTensor([sos_token]*bs))] # bs
+        self.attn = []
+        n_en = MAX_LEN+1 # to be safe
+        for t in range(n_en): # generate some english.
+            emb_t = self.embedding_en(y[-1]) # embed the last thing we generated. bs,word_dim
+            dec_h, (h, c) = self.decoder(emb_t.unsqueeze(1), (h, c)) # dec_h is bs,1,hiddensz*ndirections (batch_first=True)
+            scores = torch.bmm(enc_h, dec_h.transpose(1,2)).squeeze(2)
+            # (bs,n_de,hiddensz*ndirections) * (bs,hiddensz*ndirections,1) = (bs,n_de,1). squeeze to bs,n_de
+            attn_dist = F.softmax(scores,dim=1)
+            self.attn.append(attn_dist.data)
+            if attn_type == "hard":
+                _, argmax = attn_dist.max(1) # bs. for each batch, select most likely german word to pay attention to
+                one_hot = Variable(torch.zeros_like(attn_dist.data).scatter_(-1, argmax.data.unsqueeze(1), 1).cuda())
+                context = torch.bmm(one_hot.unsqueeze(1), enc_h).squeeze(1)
+            else:
+                context = torch.bmm(attn_dist.unsqueeze(1), enc_h).squeeze(1)
+            # the difference btwn hard and soft is just whether we use a one_hot or a distribution
+            # context is bs,hiddensz*ndirections
+            pred = self.vocab_layer(torch.cat([dec_h.squeeze(1), context], 1)) # bs,len(EN.vocab)
+            _, next_token = pred.max(1) # bs
+            y.append(next_token)
+        self.attn = torch.stack(self.attn, 0).transpose(0, 1) # bs,n_en,n_de (for visualization!)
+        return torch.stack(y, 0).transpose(0, 1) # bs,n_en
 
 
 bs = x_de.size(0)
@@ -114,7 +115,7 @@ else:
     context = torch.bmm(attn_dist.unsqueeze(1), enc_h).squeeze(1) # same dimensions
 # context is bs,hidden_size*ndirections
 # the rnn output and the context together make the decoder "hidden state", which is bs,2*hidden_size*ndirections
-pred = self.vocab_layer(torch.cat([dec_h[:,t,:], context], 1)) # bs,len(EN.vocab)
+pred = model.vocab_layer(torch.cat([dec_h[:,t,:], context], 1)) # bs,len(EN.vocab)
 y = x_en[:, t+1] # bs. these are our labels
 no_pad = (y != pad_token) # exclude english padding tokens
 reward = torch.gather(pred, 1, y.unsqueeze(1)) # bs,1
@@ -122,6 +123,6 @@ reward = torch.gather(pred, 1, y.unsqueeze(1)) # bs,1
 reward = reward.squeeze(1)[no_pad] # less than bs
 avg_reward += reward.data.mean()
 if attn_type == "hard":
-    reinforce_loss -= (cat.log_prob(attn_samples[no_pad]) * (reward-self.baseline).detach()).mean() 
+    reinforce_loss -= (cat.log_prob(attn_samples[no_pad]) * (reward-model.baseline).detach()).mean() 
     # reinforce rule (just read the formula), with special baseline
 loss -= reward.mean() # minimizing loss is maximizing reward

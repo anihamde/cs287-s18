@@ -81,6 +81,7 @@ class AttnNetwork(nn.Module):
             self.embedding_de.weight.data.copy_(DE.vocab.vectors)
             self.embedding_en.weight.data.copy_(EN.vocab.vectors)
         # vocab layer will combine dec hidden state with context vector, and then project out into vocab space 
+        # TODO: maybe put the weight tying here... Linear(hidden_dim*2,word_dim)
         self.vocab_layer = nn.Sequential(nn.Linear(hidden_dim*2, hidden_dim),
                                          nn.Tanh(), nn.Linear(hidden_dim, len(EN.vocab)), nn.LogSoftmax(dim=-1))
         # baseline reward, which we initialize with log 1/V
@@ -91,12 +92,12 @@ class AttnNetwork(nn.Module):
         # x_de is bs,n_de. x_en is bs,n_en
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
         emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
-        h0 = Variable(torch.zeros(1, bs, self.hidden_dim).cuda()) 
-        c0 = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())
+        h0 = torch.zeros(1, bs, self.hidden_dim).cuda()
+        c0 = torch.zeros(1, bs, self.hidden_dim).cuda()
         # hidden vars have dimension nlayers*ndirections,bs,hiddensz
-        enc_h, _ = self.encoder(emb_de, (h0, c0))
+        enc_h, _ = self.encoder(emb_de, (Variable(h0), Variable(c0)))
         # enc_h is bs,n_de,hiddensz*ndirections. ordering is different from last week because batch_first=True
-        dec_h, _ = self.decoder(emb_en, (h0, c0))
+        dec_h, _ = self.decoder(emb_en, (Variable(h0), Variable(c0)))
         # dec_h is bs,n_en,hidden_size*ndirections
         # we've gotten our encoder/decoder hidden states so we are ready to do attention
         # first let's get all our scores, which we can do easily since we are using dot-prod attention
@@ -118,6 +119,7 @@ class AttnNetwork(nn.Module):
                 # (bs,1,n_de) * (bs,n_de,hiddensz*ndirections) = (bs,1,hiddensz*ndirections). squeeze to bs,hiddensz*ndirections
             else:
                 context = torch.bmm(attn_dist.unsqueeze(1), enc_h).squeeze(1) # same dimensions
+                # (bs,1,n_de) * (bs,n_de,hiddensz*ndirections) = (bs,1,hiddensz*ndirections)
             # context is bs,hidden_size*ndirections
             # the rnn output and the context together make the decoder "hidden state", which is bs,2*hidden_size*ndirections
             pred = self.vocab_layer(torch.cat([dec_h[:,t,:], context], 1)) # bs,len(EN.vocab)
@@ -135,24 +137,23 @@ class AttnNetwork(nn.Module):
         if update_baseline: # update baseline as a moving average
             self.baseline = Variable(0.95*self.baseline.data + 0.05*avg_reward)
         return loss, reinforce_loss
-    # predict many batches with greedy encoding
-    def predict(self, x_de, attn_type = "hard"):
+    # teacher forcing predict
+    def predict(model, x_de, x_en, attn_type = "hard"):
         bs = x_de.size(0)
-        emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
-        h = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())
-        c = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())
-        enc_h, _ = self.encoder(emb_de, (h, c))
+        emb_de = model.embedding_de(x_de) # bs,n_de,word_dim
+        emb_en = model.embedding_en(x_en) # bs,n_en,word_dim
+        h = Variable(torch.zeros(1, bs, model.hidden_dim).cuda())
+        c = Variable(torch.zeros(1, bs, model.hidden_dim).cuda())
+        enc_h, _ = model.encoder(emb_de, (h, c))
+        dec_h, _ = model.decoder(emb_en, (h, c))
         # all the same. enc_h is bs,n_de,hiddensz*ndirections. h and c are both nlayers*ndirections,bs,hiddensz
-        y = [Variable(torch.cuda.LongTensor([sos_token]*bs))] # bs
-        self.attn = []
-        n_en = MAX_LEN+1 # to be safe
-        for t in range(n_en): # generate some english.
-            emb_t = self.embedding_en(y[-1]) # embed the last thing we generated. bs,word_dim
-            dec_h, (h, c) = self.decoder(emb_t.unsqueeze(1), (h, c)) # dec_h is bs,1,hiddensz*ndirections (batch_first=True)
-            scores = torch.bmm(enc_h, dec_h.transpose(1,2)).squeeze(2)
-            # (bs,n_de,hiddensz*ndirections) * (bs,hiddensz*ndirections,1) = (bs,n_de,1). squeeze to bs,n_de
-            attn_dist = F.softmax(scores,dim=1)
-            self.attn.append(attn_dist.data)
+        scores = torch.bmm(enc_h, dec_h.transpose(1,2))
+        # (bs,n_de,hiddensz*ndirections) * (bs,hiddensz*ndirections,n_en) = (bs,n_de,n_en)
+        y = [] # bs
+        attn = []
+        for t in range(x_en.size(1)): # generate some english.
+            attn_dist = F.softmax(scores[:,:,t],dim=1) # bs,n_de
+            attn.append(attn_dist.data)
             if attn_type == "hard":
                 _, argmax = attn_dist.max(1) # bs. for each batch, select most likely german word to pay attention to
                 one_hot = Variable(torch.zeros_like(attn_dist.data).scatter_(-1, argmax.data.unsqueeze(1), 1).cuda())
@@ -161,11 +162,12 @@ class AttnNetwork(nn.Module):
                 context = torch.bmm(attn_dist.unsqueeze(1), enc_h).squeeze(1)
             # the difference btwn hard and soft is just whether we use a one_hot or a distribution
             # context is bs,hiddensz*ndirections
-            pred = self.vocab_layer(torch.cat([dec_h.squeeze(1), context], 1)) # bs,len(EN.vocab)
+            pred = model.vocab_layer(torch.cat([dec_h[:,t,:], context], 1)) # bs,len(EN.vocab)
             _, next_token = pred.max(1) # bs
             y.append(next_token)
-        self.attn = torch.stack(self.attn, 0).transpose(0, 1) # bs,n_en,n_de (for visualization!)
-        return torch.stack(y, 0).transpose(0, 1) # bs,n_en
+        attn = torch.stack(attn, 0).transpose(0, 1) # bs,n_en,n_de (for visualization!)
+        y = torch.stack(y,0).transpose(0,1) # bs,n_en
+        return y,attn
     # Singleton batch with BSO
     def predict2(self, x_de, beamsz, gen_len, attn_type = "hard"):
         emb_de = self.embedding_de(x_de) # "batch size",n_de,word_dim, but "batch size" is 1 in this case!
@@ -229,7 +231,7 @@ class S2S(nn.Module):
         dec_h, _ = self.decoder(emb_en, (h, c))
         # dec_h is bs,n_en,hidden_size*ndirections
         pred = self.vocab_layer(dec_h) # bs,n_en,len(EN.vocab)
-        pred = pred[:,:-1]
+        pred = pred[:,:-1,:]
         y = x_en[:,1:] # bs,n_en-1
         no_pad = (y != pad_token)
         reward = torch.gather(pred,2,y.unsqueeze(2))
