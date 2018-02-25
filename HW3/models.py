@@ -70,23 +70,26 @@ class CandList():
             self.attentions = unshuffled[self.oldbeamindices]
 
 class AttnNetwork(nn.Module):
-    def __init__(self, word_dim=300, n_layers=1, hidden_dim=500, vocab_layer_dim=500, weight_tying=False):
+    def __init__(self, word_dim=300, n_layers=1, hidden_dim=500, vocab_layer_dim=500, weight_tying=False, bidirectional=False):
         super(AttnNetwork, self).__init__()
         self.hidden_dim = hidden_dim
         self.n_layers = n_layers
         self.vocab_layer_dim = (vocab_layer_dim,word_dim)[weight_tying == True]
+        self.directions = (1,2)[bidirectional == True]
          # LSTM initialization params: inputsz,hiddensz,nlayers,bias,batch_first,bidirectional
-        self.encoder = nn.LSTM(word_dim, hidden_dim, num_layers = n_layers, batch_first = True)
+        self.encoder = nn.LSTM(word_dim, hidden_dim, num_layers = n_layers, batch_first = True, bidirectional=bidirectional)
         self.decoder = nn.LSTM(word_dim, hidden_dim, num_layers = n_layers, batch_first = True)
         self.embedding_de = nn.Embedding(len(DE.vocab), word_dim)
         self.embedding_en = nn.Embedding(len(EN.vocab), word_dim)
+        if bidirectional:
+            self.dim_reduce = nn.Linear(hidden_dim*2,hidden_dim)
         if word2vec:
             self.embedding_de.weight.data.copy_(DE.vocab.vectors)
             self.embedding_en.weight.data.copy_(EN.vocab.vectors)
         # vocab layer will combine dec hidden state with context vector, and then project out into vocab space 
         # TODO: maybe put the weight tying here... Linear(hidden_dim*2,word_dim)
         self.vocab_layer = nn.Sequential(OrderedDict([
-            ('h2e',nn.Linear(hidden_dim*n_layers*2, self.vocab_layer_dim)),
+            ('h2e',nn.Linear(hidden_dim*(self.directions+1), self.vocab_layer_dim)),
             ('tanh',nn.Tanh()),
             ('e2v',nn.Linear(self.vocab_layer_dim, len(EN.vocab))),
             ('lsft',nn.LogSoftmax(dim=-1))
@@ -101,15 +104,19 @@ class AttnNetwork(nn.Module):
         # x_de is bs,n_de. x_en is bs,n_en
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
         emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
-        h0 = torch.zeros(1, bs, self.hidden_dim*self.n_layers).cuda()
-        c0 = torch.zeros(1, bs, self.hidden_dim*self.n_layers).cuda()
+        h0_enc = torch.zeros(self.n_layers*self.directions, bs, self.hidden_dim).cuda()
+        c0_enc = torch.zeros(self.n_layers*self.directions, bs, self.hidden_dim).cuda()
+        h0_dec = torch.zeros(self.n_layers, bs, self.hidden_dim).cuda()
+        c0_dec = torch.zeros(self.n_layers, bs, self.hidden_dim).cuda()
         # hidden vars have dimension nlayers*ndirections,bs,hiddensz
-        enc_h, _ = self.encoder(emb_de, (Variable(h0), Variable(c0)))
+        enc_h, _ = self.encoder(emb_de, (Variable(h0_enc), Variable(c0_enc)))
         # enc_h is bs,n_de,hiddensz*ndirections. ordering is different from last week because batch_first=True
-        dec_h, _ = self.decoder(emb_en, (Variable(h0), Variable(c0)))
+        dec_h, _ = self.decoder(emb_en, (Variable(h0_dec), Variable(c0_dec)))
         # dec_h is bs,n_en,hidden_size*ndirections
         # we've gotten our encoder/decoder hidden states so we are ready to do attention
         # first let's get all our scores, which we can do easily since we are using dot-prod attention
+        if bidirectional:
+            enc_h = self.dim_reduce(enc_h)
         scores = torch.bmm(enc_h, dec_h.transpose(1,2))
         # (bs,n_de,hiddensz*ndirections) * (bs,hiddensz*ndirections,n_en) = (bs,n_de,n_en)
         reinforce_loss = 0 # we only use this variable for hard attention
