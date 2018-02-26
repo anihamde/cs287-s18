@@ -140,7 +140,7 @@ class AttnNetwork(nn.Module):
         # hard attn requires stacking to fit into torch.distributions.Categorical
         context = torch.bmm(attn_dist.transpose(2,1), enc_h)
         # (bs,n_en,n_de) * (bs,n_de,hiddensz) = (bs,n_en,hiddensz)
-        pred = self.vocab_layer(torch.cat([dec_h,context]),2) # bs,n_en,len(EN.vocab)
+        pred = self.vocab_layer(torch.cat([dec_h,context],2)) # bs,n_en,len(EN.vocab)
         pred = pred[:,:-1,:] # alignment
         y = x_en[:,1:]
         reward = torch.gather(pred,2,y.unsqueeze(2)) # bs,n_en,1
@@ -172,7 +172,7 @@ class AttnNetwork(nn.Module):
         attn_dist = F.softmax(scores,dim=1) # bs,n_de,n_en
         context = torch.bmm(attn_dist.transpose(2,1),enc_h)
         # (bs,n_en,n_de) * (bs,n_de,hiddensz*2) = (bs,n_en,hiddensz*2)
-        pred = self.vocab_layer(torch.cat([dec_h,context]),2) # bs,n_en,len(EN.vocab)
+        pred = self.vocab_layer(torch.cat([dec_h,context],2)) # bs,n_en,len(EN.vocab)
         pred = pred[:,:-1,:] # alignment
         _, tokens = pred.max(2) # bs,n_en
         sauce = Variable(torch.cuda.LongTensor([[sos_token]]*bs)) # bs
