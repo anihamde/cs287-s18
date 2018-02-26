@@ -72,8 +72,9 @@ class CandList():
 
 class AttnNetwork(nn.Module):
     def __init__(self, word_dim=300, n_layers=1, hidden_dim=500, LSTM_dropout=0.0, vocab_layer_dropout=0.0, 
-                 weight_tying=False, bidirectional=False):
+                 weight_tying=False, bidirectional=False, attn_type="soft"):
         super(AttnNetwork, self).__init__()
+        self.attn_type = attn_type
         self.hidden_dim = hidden_dim
         self.n_layers = n_layers
         self.vocab_layer_dim = (hidden_dim,word_dim)[weight_tying == True]
@@ -101,7 +102,7 @@ class AttnNetwork(nn.Module):
         # baseline reward, which we initialize with log 1/V
         self.baseline = Variable(torch.cuda.FloatTensor([np.log(1/len(EN.vocab))]))
         # self.baseline = Variable(torch.zeros(1).fill_(np.log(1/len(EN.vocab))).cuda()) # yoon's way
-    def forward(self, x_de, x_en, attn_type="soft", update_baseline=True):
+    def forward(self, x_de, x_en, update_baseline=True):
         bs = x_de.size(0)
         # x_de is bs,n_de. x_en is bs,n_en
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
@@ -128,7 +129,7 @@ class AttnNetwork(nn.Module):
         # we just iterate to dec_h.size(1)-1, since there's </s> at the end of each sentence
         for t in range(dec_h.size(1)-1): # iterate over english words, with teacher forcing
             attn_dist = F.softmax(scores[:, :, t],dim=1) # bs,n_de. these are the alphas (attention scores for each german word)
-            if attn_type == "hard":
+            if self.attn_type == "hard":
                 cat = torch.distributions.Categorical(attn_dist) 
                 attn_samples = cat.sample() # bs. each element is a sample from categorical distribution
                 one_hot = Variable(torch.zeros_like(attn_dist.data).scatter_(-1, attn_samples.data.unsqueeze(1), 1).cuda()) # bs,n_de
@@ -147,17 +148,19 @@ class AttnNetwork(nn.Module):
             reward = torch.gather(pred, 1, y.unsqueeze(1)) # bs,1
             # reward[i,1] = pred[i,y[i]]. this gets log prob of correct word for each batch. similar to -crossentropy
             reward = reward.squeeze(1)[no_pad] # less than bs
-            avg_reward += reward.data.mean()
-            if attn_type == "hard":
-                reinforce_loss -= (cat.log_prob(attn_samples[no_pad]) * (reward-self.baseline).detach()).mean() 
+            if self.attn_type == "hard":
+                reinforce_loss -= (cat.log_prob(attn_samples[no_pad]) * (reward-self.baseline).detach()).sum() 
                 # reinforce rule (just read the formula), with special baseline
-            loss -= reward.mean() # minimizing loss is maximizing reward
-        avg_reward = avg_reward/dec_h.size(1)
+            loss -= reward.sum() # minimizing loss is maximizing reward
+        no_pad_total = (x_en[:,:-1] != pad_token).data[0]
+        loss /= no_pad_total
+        reinforce_loss =/ no_pad_total
+        avg_reward = -loss.data[0]
         if update_baseline: # update baseline as a moving average
             self.baseline = Variable(0.95*self.baseline.data + 0.05*avg_reward)
-        return loss, reinforce_loss
+        return loss, reinforce_loss,avg_reward
     # predict with greedy decoding and teacher forcing
-    def predict(self, x_de, x_en, attn_type = "soft"):
+    def predict(self, x_de, x_en):
         bs = x_de.size(0)
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
         emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
@@ -175,7 +178,7 @@ class AttnNetwork(nn.Module):
         for t in range(x_en.size(1)-1): # iterate over english words, with teacher forcing
             attn_dist = F.softmax(scores[:,:,t],dim=1) # bs,n_de
             self.attn.append(attn_dist.data)
-            if attn_type == "hard":
+            if self.attn_type == "hard":
                 _, argmax = attn_dist.max(1) # bs. for each batch, select most likely german word to pay attention to
                 one_hot = Variable(torch.zeros_like(attn_dist.data).scatter_(-1, argmax.data.unsqueeze(1), 1).cuda())
                 context = torch.bmm(one_hot.unsqueeze(1), enc_h).squeeze(1)
@@ -190,7 +193,7 @@ class AttnNetwork(nn.Module):
         y = torch.stack(y,0).transpose(0,1) # bs,n_en
         return y,self.attn
     # Singleton batch with BSO
-    def predict2(self, x_de, beamsz, gen_len, attn_type = "soft"):
+    def predict2(self, x_de, beamsz, gen_len):
         emb_de = self.embedding_de(x_de) # "batch size",n_de,word_dim, but "batch size" is 1 in this case!
         h0 = Variable(torch.zeros(self.n_layers*self.directions, 1, self.hidden_dim).cuda())
         c0 = Variable(torch.zeros(self.n_layers*self.directions, 1, self.hidden_dim).cuda())
@@ -210,7 +213,7 @@ class AttnNetwork(nn.Module):
             scores = torch.bmm(enc_h_expand, dec_h.transpose(1,2)).squeeze(2)
             # (beamsz,n_de,hiddensz) * (beamsz,hiddensz,1) = (beamsz,n_de,1). squeeze to beamsz,n_de
             attn_dist = F.softmax(scores,dim=1)
-            if attn_type == "hard":
+            if self.attn_type == "hard":
                 _, argmax = attn_dist.max(1) # beamsz for each batch, select most likely german word to pay attention to
                 one_hot = Variable(torch.zeros_like(attn_dist.data).scatter_(-1, argmax.data.unsqueeze(1), 1).cuda())
                 context = torch.bmm(one_hot.unsqueeze(1), enc_h_expand).squeeze(1)
@@ -242,8 +245,8 @@ class S2S(nn.Module):
         # vocab layer will project dec hidden state out into vocab space 
         self.vocab_layer = nn.Sequential(nn.Linear(hidden_dim, hidden_dim),
                                          nn.Tanh(), nn.Linear(hidden_dim, len(EN.vocab)), nn.LogSoftmax(dim=-1))
-        self.baseline = Variable(torch.zeros(1)) # just doing this (and attn_type below) so I can reuse some code lol
-    def forward(self, x_de, x_en, attn_type="soft"):
+        self.baseline = Variable(torch.zeros(1)) # just to be consistent
+    def forward(self, x_de, x_en):
         bs = x_de.size(0)
         # x_de is bs,n_de. x_en is bs,n_en
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
@@ -262,11 +265,10 @@ class S2S(nn.Module):
         reward = torch.gather(pred,2,y.unsqueeze(2))
         # reward[i,j,1] = pred[i,j,y[i,j]]
         reward = reward.squeeze(2)[no_pad] # less than bs,n_en
-        loss = -reward.sum() / no_pad.data.sum() * bs
-        # NOTE: to be consistent with the other network i'm normalizing loss by time only (not by batch) 
-        return loss, 0 # passing back an invisible "negative reward"
+        loss = -reward.sum() / no_pad.data.sum()
+        return loss, 0, -loss # passing back things just to be consistent
     # predict with greedy decoding and teacher forcing
-    def predict(self, x_de, x_en, attn_type="soft"):
+    def predict(self, x_de, x_en):
         bs = x_de.size(0)
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
         emb_en = self.embedding_en(x_en)

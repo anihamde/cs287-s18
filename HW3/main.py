@@ -23,7 +23,7 @@ parser.add_argument('--n_epochs','-e',type=int,default=3,help='set the number of
 parser.add_argument('--adadelta','-ada',action='store_true',help='Use Adadelta optimizer')
 parser.add_argument('--learning_rate','-lr',type=float,default=0.01,help='set learning rate.')
 parser.add_argument('--rho','-r',type=float,default=0.95,help='rho for Adadelta optimizer')
-parser.add_argument('--weight_decay','-wd',type=float,default=0.0,help='Weight decay constant for optimziser')
+parser.add_argument('--weight_decay','-wd',type=float,default=0.0,help='Weight decay constant for optimizer')
 parser.add_argument('--attn_type','-at',type=str,default='soft',help='attention type')
 parser.add_argument('--clip_constraint','-cc',type=float,default=5.0,help='weight norm clip constraint')
 parser.add_argument('--word2vec','-w',action='store_true',help='Raise flag to initialize with word2vec embeddings')
@@ -106,13 +106,13 @@ pad_token = EN.vocab.stoi["<pad>"]
 
 ''' TODO
 ELBY
+Try baseline, with embeddings, and with weight tying
 volatile=True
-Padding?
-- Test NLLLoss with ignore_index and size_average=False
-- Simplify loss (target) masking with cross entropy
-- Use a binary mask to zero out attention to paddings in the source.
-Evaluate S2S, fix predict and predict2 for S2S.
+Fix predict and predict2 for S2S. Make S2S multi-layer and bidirectional. Run.
+Hard attention, with updating baseline
+Batch over time?
 Plot attention
+
 
 EXTENSIONS
 Consult papers for hyperparameters
@@ -120,12 +120,12 @@ Multi-layer, bidirectional (see Piazza), GRU instead of LSTM
 Pretrained embeddings
 Weight tying, interpolation
 Dropout, embedding max norms, weight clipping, learning rate scheduling, residual connections
-Hard attention, with updating baseline
 More complex regularization techniques (Yoon piazza)
 Checkout openNMT for inspiration
-Make S2S multi-layer and bidirectional
+
 
 ANCILLARY
+Use a binary mask to zero out attention to paddings in the source.
 If we have time, we can try the pytorch tutorial script with and without attn, to see if teacher forcing makes a difference
 Predict function hack ideas? Involving MAX_LEN or eos_token
 BLEU perl script
@@ -134,10 +134,10 @@ How to run jupyter notebooks in cloud?
 Generate longer full sentences with small beams. Not fixed-length.
 
 QUESTIONS
-Yoon: why do you average loss over minibatches but not over time?
+Yoon: y u avg loss over batches but not time? Did u know diff batches are diff sizes cuz padding?
 How do bidirectional RNNs really work (in linear time)? Can the decoder of attention be bidirectional?
 Justin's piazza post: speedup by batching over time?
-What's purpose of baseline? Your code is wrong- subtract something averaged over bs & n_de from something averaged over bs?
+What's purpose of baseline? Ur code is wrong- subtract something averaged over bs & n_de from something averaged over bs?
 '''
 from models import AttnNetwork, CandList, S2S
 from helpers import asMinutes, timeSince, escape, flip
@@ -145,7 +145,7 @@ from helpers import asMinutes, timeSince, escape, flip
 if model_type == 0:
     model = AttnNetwork(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size,
                         LSTM_dropout=args.LSTM_dropout, vocab_layer_dropout=args.vocab_layer_dropout, 
-                        weight_tying=args.weight_tying,bidirectional=args.bidirectional)
+                        weight_tying=args.weight_tying, bidirectional=args.bidirectional, attn_type=attn_type)
 elif model_type == 1:
     model = S2S()
 model.cuda()
@@ -173,19 +173,21 @@ for epoch in range(n_epochs):
         x_en = batch.trg.transpose(1,0).cuda() # bs,n_en
         if model_type == 1:
             x_de = flip(x_de,1) # reverse direction
-        loss, reinforce_loss = model.forward(x_de, x_en, attn_type)
-        print_loss_total += loss.data[0] / x_en.size(1)
-        plot_loss_total += loss.data[0] / x_en.size(1)
-        # TODO: this is underestimating PPL! It divides by x_en when it should divide by no_pad
+        loss, reinforce_loss, avg_reward = model.forward(x_de, x_en)
+        print_loss_total -= avg_reward
+        plot_loss_total -= avg_reward
 
+        # TODO: what happens if i don't multiply by x_en.size(1)
+        loss *= x_en.size(1) # scaling purposes, ask yoon!
+        reinforce_loss *= x_en.size(1)
         (loss + reinforce_loss).backward()
-        torch.nn.utils.clip_grad_norm(model.parameters(), clip_constraint) # TODO: is this right? it didn't work last time
+        torch.nn.utils.clip_grad_norm(model.parameters(), clip_constraint)
         optimizer.step()
         if args.weight_tying:
             model.vocab_layer.e2v.weight.data.copy_(model.embedding_en.weight.data)
 
         model.eval()
-        y_pred,_ = model.predict(x_de, x_en, attn_type) # bs,n_en
+        y_pred,_ = model.predict(x_de, x_en) # bs,n_en
         correct = (y_pred == x_en) # these are the same shape and both contain a sos_token row
         no_pad = (x_en != pad_token) & (x_en != sos_token)
         print_acc_total += (correct & no_pad).data.sum() / no_pad.data.sum()
@@ -211,14 +213,14 @@ for epoch in range(n_epochs):
     for batch in iter(val_iter):
         x_de = batch.src.transpose(1,0).cuda()
         x_en = batch.trg.transpose(1,0).cuda()
-        loss, reinforce_loss = model.forward(x_de, x_en, attn_type)
+        if model_type == 1:
+            x_de = flip(x_de,1) # reverse direction
+        loss, reinforce_loss, avg_reward = model.forward(x_de, x_en)
         # too lazy to implement reward or accuracy for validation
         val_loss_total += loss.data[0] / x_en.size(1)
     val_loss_avg = val_loss_total / len(val_iter)
     timenow = timeSince(start)
     print('Validation. Time %s, PPL: %.2f' %(timenow, np.exp(val_loss_avg)))
-
-# NOTE: AttnNetwork averages loss within batches, but neither over sentences nor across batches. thus, rescaling is necessary
 
 torch.save(model.state_dict(), args.model_file)
 
