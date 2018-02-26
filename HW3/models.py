@@ -187,7 +187,7 @@ class AttnNetwork(nn.Module):
             y.append(next_token)
         self.attn = torch.stack(self.attn, 0).transpose(0, 1) # bs,n_en,n_de (for visualization!)
         y = torch.stack(y,0).transpose(0,1) # bs,n_en
-        return y,attn
+        return y,self.attn
     # Singleton batch with BSO
     def predict2(self, x_de, beamsz, gen_len, attn_type = "soft"):
         emb_de = self.embedding_de(x_de) # "batch size",n_de,word_dim, but "batch size" is 1 in this case!
