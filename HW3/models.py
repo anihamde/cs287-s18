@@ -160,8 +160,8 @@ class AttnNetwork(nn.Module):
         c_enc = Variable(torch.zeros(self.n_layers*self.directions, bs, self.hidden_dim).cuda())
         h_dec = Variable(torch.zeros(self.n_layers, bs, self.hidden_dim).cuda())
         c_dec = Variable(torch.zeros(self.n_layers, bs, self.hidden_dim).cuda())
-        enc_h, _ = self.encoder(emb_de, (h_enc, c_enc))
-        dec_h, _ = self.decoder(emb_en, (h_dec, c_dec))
+        enc_h, _ = self.encoder(emb_de, (h_enc, c_enc)) # (bs,n_de,hiddensz*2)
+        dec_h, _ = self.decoder(emb_en, (h_dec, c_dec)) # (bs,n_en,hiddensz)
         # all the same. enc_h is bs,n_de,hiddensz*n_directions. h and c are both n_layers*n_directions,bs,hiddensz
         if self.directions == 2:
             scores = torch.bmm(self.dim_reduce(enc_h), dec_h.transpose(1,2))
@@ -171,7 +171,7 @@ class AttnNetwork(nn.Module):
         self.attn = []
         attn_dist = F.softmax(scores,dim=1) # bs,n_de,n_en
         context = torch.bmm(attn_dist.transpose(2,1),enc_h)
-        # (bs,n_en,n_de) * (bs,n_de,hiddensz) = (bs,n_en,hiddensz)
+        # (bs,n_en,n_de) * (bs,n_de,hiddensz*ndirections) = (bs,n_en,hiddensz*ndirections)
         pred = self.vocab_layer(torch.cat([dec_h,context],2)) # bs,n_en,len(EN.vocab)
         pred = pred[:,:-1,:] # alignment
         _, tokens = pred.max(2) # bs,n_en-1
@@ -186,11 +186,7 @@ class AttnNetwork(nn.Module):
         c0_dec = Variable(torch.zeros(self.n_layers, 1, self.hidden_dim).cuda())
         enc_h, _ = self.encoder(emb_de, (h0_enc, c0_enc))
         # since enc batch size=1, enc_h is 1,n_de,hiddensz*n_directions
-        if self.directions == 2:
-            #enc_h = self.dim_reduce(enc_h) # 1,n_de,hiddensz
-            masterheap = CandList(self.n_layers,self.hidden_dim,enc_h.size(1),beamsz)
-        else:
-            masterheap = CandList(self.n_layers,self.hidden_dim,enc_h.size(1),beamsz)
+        masterheap = CandList(self.n_layers,self.hidden_dim,enc_h.size(1),beamsz)
         # in the following loop, beamsz is length 1 for first iteration, length true beamsz (100) afterward
         for i in range(gen_len):
             prev = masterheap.get_prev() # beamsz
