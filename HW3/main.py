@@ -98,7 +98,7 @@ Padding?
 - Test NLLLoss with ignore_index and size_average=False
 - Simplify loss (target) masking with cross entropy
 - Use a binary mask to zero out attention to paddings in the source.
-Evaluate S2S, create predict2 for S2S.
+Evaluate S2S, fix predict and predict2 for S2S.
 Plot attention
 
 EXTENSIONS
