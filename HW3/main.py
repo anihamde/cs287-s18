@@ -187,7 +187,8 @@ for epoch in range(n_epochs):
         torch.nn.utils.clip_grad_norm(model.parameters(), clip_constraint)
         optimizer.step()
         if args.weight_tying:
-            model.vocab_layer.e2v.weight.data.copy_(model.embedding_en.weight.data)
+            #model.vocab_layer.e2v.weight.data.copy_(model.embedding_en.weight.data)
+            model.embedding_en.weight.data.copy_(model.vocab_layer.e2v.weight.data)
 
         if args.accuracy:
             model.eval()
