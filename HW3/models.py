@@ -79,13 +79,14 @@ class CandList():
             self.attentions = unshuffled[self.oldbeamindices]
 
 class AttnNetwork(nn.Module):
-    def __init__(self, word_dim=300, n_layers=1, hidden_dim=500, LSTM_dropout=0.0, vocab_layer_dropout=0.0, 
+    def __init__(self, word_dim=300, n_layers=1, hidden_dim=500, vocab_layer_size=500, 
+                 LSTM_dropout=0.0, vocab_layer_dropout=0.0, 
                  weight_tying=False, bidirectional=False, attn_type="soft"):
         super(AttnNetwork, self).__init__()
         self.attn_type = attn_type
         self.hidden_dim = hidden_dim
         self.n_layers = n_layers
-        self.vocab_layer_dim = (hidden_dim,word_dim)[weight_tying == True]
+        self.vocab_layer_dim = (vocab_layer_size,word_dim)[weight_tying == True]
         self.directions = (1,2)[bidirectional == True]
          # LSTM initialization params: inputsz,hiddensz,n_layers,bias,batch_first,bidirectional
         self.encoder = nn.LSTM(word_dim, hidden_dim, num_layers = n_layers, batch_first = True, dropout=LSTM_dropout, bidirectional=bidirectional)
@@ -155,14 +156,17 @@ class AttnNetwork(nn.Module):
         bs = x_de.size(0)
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
         emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
-        h = Variable(torch.zeros(self.n_layers*self.directions, bs, self.hidden_dim).cuda())
-        c = Variable(torch.zeros(self.n_layers*self.directions, bs, self.hidden_dim).cuda())
-        enc_h, _ = self.encoder(emb_de, (h, c))
-        dec_h, _ = self.decoder(emb_en, (h, c))
+        h_enc = Variable(torch.zeros(self.n_layers*self.directions, bs, self.hidden_dim).cuda())
+        c_enc = Variable(torch.zeros(self.n_layers*self.directions, bs, self.hidden_dim).cuda())
+        h_dec = Variable(torch.zeros(self.n_layers, bs, self.hidden_dim).cuda())
+        c_dec = Variable(torch.zeros(self.n_layers, bs, self.hidden_dim).cuda())
+        enc_h, _ = self.encoder(emb_de, (h_enc, c_enc))
+        dec_h, _ = self.decoder(emb_en, (h_dec, c_dec))
         # all the same. enc_h is bs,n_de,hiddensz*n_directions. h and c are both n_layers*n_directions,bs,hiddensz
         if self.directions == 2:
-            enc_h = self.dim_reduce(enc_h) # bs,n_de,hiddensz
-        scores = torch.bmm(enc_h, dec_h.transpose(1,2))
+            scores = torch.bmm(self.dim_reduce(enc_h), dec_h.transpose(1,2))
+        else:
+            scores = torch.bmm(enc_h, dec_h.transpose(1,2))
         # (bs,n_de,hiddensz) * (bs,hiddensz,n_en) = (bs,n_de,n_en)
         self.attn = []
         attn_dist = F.softmax(scores,dim=1) # bs,n_de,n_en
