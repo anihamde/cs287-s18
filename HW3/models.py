@@ -127,9 +127,10 @@ class AttnNetwork(nn.Module):
         # we've gotten our encoder/decoder hidden states so we are ready to do attention
         # first let's get all our scores, which we can do easily since we are using dot-prod attention
         if self.directions == 2:
-            enc_h = self.dim_reduce(enc_h)
+            scores = torch.bmm(self.dim_reduce(enc_h), dec_h.transpose(1,2))
             # TODO: any easier ways to reduce dimension?
-        scores = torch.bmm(enc_h, dec_h.transpose(1,2))
+        else:
+            scores = torch.bmm(enc_h, dec_h.transpose(1,2))
         # (bs,n_de,hiddensz*n_directions) * (bs,hiddensz*n_directions,n_en) = (bs,n_de,n_en)
         reinforce_loss = 0 # we only use this variable for hard attention
         loss = 0
@@ -262,3 +263,4 @@ class S2S(nn.Module):
         _, tokens = pred.max(2) # bs,n_en
         sauce = Variable(torch.cuda.LongTensor([[sos_token]]*bs)) # bs
         return torch.cat([sauce,tokens],1),0 # no attention to return
+
