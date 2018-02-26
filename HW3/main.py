@@ -121,6 +121,7 @@ Dropout, embedding max norms, weight clipping, learning rate scheduling, residua
 Hard attention, with updating baseline
 More complex regularization techniques (Yoon piazza)
 Checkout openNMT for inspiration
+Make S2S multi-layer and bidirectional
 
 ANCILLARY
 If we have time, we can try the pytorch tutorial script with and without attn, to see if teacher forcing makes a difference
@@ -174,7 +175,7 @@ for epoch in range(n_epochs):
         # TODO: this is underestimating PPL! It divides by x_en when it should divide by no_pad
 
         y_pred,_ = model.predict(x_de, x_en, attn_type) # bs,n_en
-        correct = (y_pred == x_en)
+        correct = (y_pred == x_en) # these are the same shape and both contain a sos_token row
         no_pad = (x_en != pad_token) & (x_en != sos_token)
         print_acc_total += (correct & no_pad).data.sum() / no_pad.data.sum()
 

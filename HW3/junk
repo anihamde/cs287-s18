@@ -10,6 +10,7 @@ x_en = batch.trg.transpose(1,0).cuda() # bs,n_en
 y_pred = model.predict(x_de, attn_type) # bs,max_len
 
 
+# Can make these into functions that take a model?
     # predict many batches with greedy encoding. no teacher forcing
     def predict(self, x_de, attn_type = "hard"):
         bs = x_de.size(0)
@@ -40,6 +41,24 @@ y_pred = model.predict(x_de, attn_type) # bs,max_len
             _, next_token = pred.max(1) # bs
             y.append(next_token)
         self.attn = torch.stack(self.attn, 0).transpose(0, 1) # bs,n_en,n_de (for visualization!)
+        return torch.stack(y, 0).transpose(0, 1) # bs,n_en
+
+    # predict with greedy decoding S2S
+    def predict(self, x_de, attn_type="soft"):
+        bs = x_de.size(0)
+        emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
+        h = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())
+        c = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())
+        enc_h, (h,c) = self.encoder(emb_de, (h, c))
+        # all the same. enc_h is bs,n_de,hiddensz*n_directions. h and c are both n_layers*n_directions,bs,hiddensz
+        y = [Variable(torch.cuda.LongTensor([sos_token]*bs))] # bs
+        n_en = MAX_LEN # this will change
+        for t in range(n_en): # generate some english.
+            emb_t = self.embedding_en(y[-1]) # embed the last thing we generated. bs,word_dim
+            dec_h, (h, c) = self.decoder(emb_t.unsqueeze(1), (h, c)) # dec_h is bs,1,hiddensz*n_directions (batch_first=True)
+            pred = self.vocab_layer(dec_h).squeeze(1) # bs,len(EN.vocab)
+            _, next_token = pred.max(1) # bs
+            y.append(next_token)
         return torch.stack(y, 0).transpose(0, 1) # bs,n_en
 
 

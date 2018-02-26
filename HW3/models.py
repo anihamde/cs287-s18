@@ -153,7 +153,7 @@ class AttnNetwork(nn.Module):
         if update_baseline: # update baseline as a moving average
             self.baseline = Variable(0.95*self.baseline.data + 0.05*avg_reward)
         return loss, reinforce_loss
-    # teacher forcing predict
+    # predict with greedy decoding and teacher forcing
     def predict(self, x_de, x_en, attn_type = "soft"):
         bs = x_de.size(0)
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
@@ -262,20 +262,17 @@ class S2S(nn.Module):
         loss = -reward.sum() / no_pad.data.sum() * bs
         # NOTE: to be consistent with the other network i'm normalizing loss by time only (not by batch) 
         return loss, 0 # passing back an invisible "negative reward"
-    # predict with greedy decoding
-    def predict(self, x_de, attn_type="soft"):
+    # predict with greedy decoding and teacher forcing
+    def predict(self, x_de, x_en, attn_type="soft"):
         bs = x_de.size(0)
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
+        emb_en = self.embedding_en(x_en)
         h = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())
         c = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())
         enc_h, (h,c) = self.encoder(emb_de, (h, c))
+        dec_h, _ = self.decoder(emb_en, (h, c))
         # all the same. enc_h is bs,n_de,hiddensz*n_directions. h and c are both n_layers*n_directions,bs,hiddensz
-        y = [Variable(torch.cuda.LongTensor([sos_token]*bs))] # bs
-        n_en = MAX_LEN # this will change
-        for t in range(n_en): # generate some english.
-            emb_t = self.embedding_en(y[-1]) # embed the last thing we generated. bs,word_dim
-            dec_h, (h, c) = self.decoder(emb_t.unsqueeze(1), (h, c)) # dec_h is bs,1,hiddensz*n_directions (batch_first=True)
-            pred = self.vocab_layer(dec_h).squeeze(1) # bs,len(EN.vocab)
-            _, next_token = pred.max(1) # bs
-            y.append(next_token)
-        return torch.stack(y, 0).transpose(0, 1) # bs,n_en
+        pred = self.vocab_layer(dec_h) # bs,n_en,len(EN.vocab)
+        _, tokens = pred.max(2) # bs,n_en
+        sauce = Variable(torch.cuda.LongTensor([[sos_token]]*bs)) # bs
+        return torch.cat([sauce,tokens[:,:-1]],1)
