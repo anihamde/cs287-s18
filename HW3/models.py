@@ -152,7 +152,7 @@ class AttnNetwork(nn.Module):
                 reinforce_loss -= (cat.log_prob(attn_samples[no_pad]) * (reward-self.baseline).detach()).sum() 
                 # reinforce rule (just read the formula), with special baseline
             loss -= reward.sum() # minimizing loss is maximizing reward
-        no_pad_total = (x_en[:,:-1] != pad_token).sum().data[0]
+        no_pad_total = (x_en[:,:-1] != pad_token).data.sum()
         loss /= no_pad_total
         reinforce_loss /= no_pad_total
         avg_reward = -loss.data[0]
