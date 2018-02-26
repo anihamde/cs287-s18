@@ -140,7 +140,7 @@ class AttnNetwork(nn.Module):
         # hard attn requires stacking to fit into torch.distributions.Categorical
         context = torch.bmm(attn_dist.transpose(2,1), enc_h)
         # (bs,n_en,n_de) * (bs,n_de,hiddensz) = (bs,n_en,hiddensz)
-        pred = self.vocab_layer(torch.cat([dec_h,context]),2) # bs,n_en,len(EN.vocab)
+        pred = self.vocab_layer(torch.cat([dec_h,context],2)) # bs,n_en,len(EN.vocab)
         pred = pred[:,:-1,:] # alignment
         y = x_en[:,1:]
         reward = torch.gather(pred,2,y.unsqueeze(2)) # bs,n_en,1
@@ -172,11 +172,11 @@ class AttnNetwork(nn.Module):
         attn_dist = F.softmax(scores,dim=1) # bs,n_de,n_en
         context = torch.bmm(attn_dist.transpose(2,1),enc_h)
         # (bs,n_en,n_de) * (bs,n_de,hiddensz) = (bs,n_en,hiddensz)
-        pred = self.vocab_layer(torch.cat([dec_h,context]),2) # bs,n_en,len(EN.vocab)
+        pred = self.vocab_layer(torch.cat([dec_h,context],2)) # bs,n_en,len(EN.vocab)
         pred = pred[:,:-1,:] # alignment
-        _, tokens = pred.max(2) # bs,n_en
+        _, tokens = pred.max(2) # bs,n_en-1
         sauce = Variable(torch.cuda.LongTensor([[sos_token]]*bs)) # bs
-        return torch.cat([sauce,tokens[:,:-1]],1), attn_dist
+        return torch.cat([sauce,tokens],1), attn_dist
     # Singleton batch with BSO
     def predict2(self, x_de, beamsz, gen_len):
         emb_de = self.embedding_de(x_de) # "batch size",n_de,word_dim, but "batch size" is 1 in this case!

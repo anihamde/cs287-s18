@@ -109,8 +109,6 @@ ELBY
 Try baseline, with embeddings, and with weight tying
 volatile=True
 Fix predict and predict2 for S2S. Make S2S multi-layer and bidirectional. Run.
-Hard attention, with updating baseline
-Batch over time?
 Plot attention
 
 
@@ -121,6 +119,7 @@ Pretrained embeddings
 Weight tying, interpolation
 Dropout, embedding max norms, weight clipping, learning rate scheduling, residual connections
 More complex regularization techniques (Yoon piazza)
+Hard attention, with updating baseline
 Checkout openNMT for inspiration
 
 
@@ -136,7 +135,7 @@ Generate longer full sentences with small beams. Not fixed-length.
 QUESTIONS
 Yoon: y u avg loss over batches but not time? Did u know diff batches are diff sizes cuz padding?
 How do bidirectional RNNs really work (in linear time)? Can the decoder of attention be bidirectional?
-Justin's piazza post: speedup by batching over time?
+Can you batch over time for hard attention, or without teacher forcing?
 What's purpose of baseline? Ur code is wrong- subtract something averaged over bs & n_de from something averaged over bs?
 '''
 from models import AttnNetwork, CandList, S2S
