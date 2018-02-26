@@ -7,6 +7,7 @@ from collections import OrderedDict
 from __main__ import *
 # I use EN,DE,BATCH_SIZE,MAX_LEN,pad_token,sos_token,eos_token,word2vec
 
+criterion = nn.NLLLoss(size_average=False,ignore_index=pad_token)
 
 # If we have beamsz 100 and we only go 3 steps, we're guaranteed to have 100 unique trigrams
 # This is written so that, at any time, hiddens/attentions/wordlist/probs all align with each other across the beamsz dimension
@@ -277,4 +278,4 @@ class S2S(nn.Module):
         pred = self.vocab_layer(dec_h) # bs,n_en,len(EN.vocab)
         _, tokens = pred.max(2) # bs,n_en
         sauce = Variable(torch.cuda.LongTensor([[sos_token]]*bs)) # bs
-        return torch.cat([sauce,tokens[:,:-1]],1)
+        return torch.cat([sauce,tokens[:,:-1]],1),0 # no attention to return
