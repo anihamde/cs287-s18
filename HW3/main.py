@@ -33,6 +33,8 @@ parser.add_argument('--hidden_size','-hs',type=int,default=500,help='Size of eac
 # parser.add_argument('--vocab_layer_dim','-vd',type=int,default=500,help='Size of hidden vocab layer transformation')
 parser.add_argument('--weight_tying','-wt',action='store_true',help='Raise flag to engage weight tying')
 parser.add_argument('--bidirectional','-b',action='store_true',help='Raise to make encoder bidirectional')
+parser.add_argument('--LSTM_dropout','-ld',type=float,default=0.0,help='Dropout rate inside encoder/decoder LSTMs')
+parser.add_argument('--vocab_layer_dropout','-vd',type=float,default=0.0,help='Dropout rate in vocab layer')
 args = parser.parse_args()
 # You can add MIN_FREQ, MAX_LEN, and BATCH_SIZE as args too
 
@@ -142,6 +144,7 @@ from helpers import asMinutes, timeSince, escape, flip
 
 if model_type == 0:
     model = AttnNetwork(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size,
+                        LSTM_dropout=args.LSTM_dropout, vocab_layer_dropout=args.vocab_layer_dropout, 
                         weight_tying=args.weight_tying,bidirectional=args.bidirectional)
 elif model_type == 1:
     model = S2S()
