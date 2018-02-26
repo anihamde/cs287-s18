@@ -30,7 +30,7 @@ parser.add_argument('--word2vec','-w',action='store_true',help='Raise flag to in
 parser.add_argument('--embedding_dims','-ed',type=int,default=300,help='dims for word2vec embeddings')
 parser.add_argument('--hidden_depth','-hd',type=int,default=1,help='Number of hidden layers in encoder/decoder')
 parser.add_argument('--hidden_size','-hs',type=int,default=500,help='Size of each hidden layer in encoder/decoder')
-# parser.add_argument('--vocab_layer_dim','-vd',type=int,default=500,help='Size of hidden vocab layer transformation')
+parser.add_argument('--vocab_layer_size','-vs',type=int,default=500,help='Size of hidden vocab layer transformation')
 parser.add_argument('--weight_tying','-wt',action='store_true',help='Raise flag to engage weight tying')
 parser.add_argument('--bidirectional','-b',action='store_true',help='Raise to make encoder bidirectional')
 parser.add_argument('--LSTM_dropout','-ld',type=float,default=0.0,help='Dropout rate inside encoder/decoder LSTMs')
@@ -144,7 +144,7 @@ from helpers import asMinutes, timeSince, escape, flip
 
 if model_type == 0:
     model = AttnNetwork(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size,
-                        LSTM_dropout=args.LSTM_dropout, vocab_layer_dropout=args.vocab_layer_dropout, 
+                        vocab_layer_size=args.vocab_layer_size,LSTM_dropout=args.LSTM_dropout, vocab_layer_dropout=args.vocab_layer_dropout, 
                         weight_tying=args.weight_tying, bidirectional=args.bidirectional, attn_type=attn_type)
 elif model_type == 1:
     model = S2S()
