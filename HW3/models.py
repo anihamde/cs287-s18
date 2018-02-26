@@ -180,13 +180,17 @@ class AttnNetwork(nn.Module):
     # Singleton batch with BSO
     def predict2(self, x_de, beamsz, gen_len):
         emb_de = self.embedding_de(x_de) # "batch size",n_de,word_dim, but "batch size" is 1 in this case!
-        h0 = Variable(torch.zeros(self.n_layers*self.directions, 1, self.hidden_dim).cuda())
-        c0 = Variable(torch.zeros(self.n_layers*self.directions, 1, self.hidden_dim).cuda())
-        enc_h, _ = self.encoder(emb_de, (h0, c0))
+        h0_enc = Variable(torch.zeros(self.n_layers*self.directions, 1, self.hidden_dim).cuda())
+        c0_enc = Variable(torch.zeros(self.n_layers*self.directions, 1, self.hidden_dim).cuda())
+        h0_dec = Variable(torch.zeros(self.n_layers, 1, self.hidden_dim).cuda())
+        c0_dec = Variable(torch.zeros(self.n_layers, 1, self.hidden_dim).cuda())
+        enc_h, _ = self.encoder(emb_de, (h0_enc, c0_enc))
         # since enc batch size=1, enc_h is 1,n_de,hiddensz*n_directions
         if self.directions == 2:
-            enc_h = self.dim_reduce(enc_h) # 1,n_de,hiddensz
-        masterheap = CandList(self.n_layers,self.hidden_dim,enc_h.size(1),beamsz)
+            #enc_h = self.dim_reduce(enc_h) # 1,n_de,hiddensz
+            masterheap = CandList(self.n_layers,self.hidden_dim,enc_h.size(1),beamsz)
+        else:
+            masterheap = CandList(self.n_layers,self.hidden_dim,enc_h.size(1),beamsz)
         # in the following loop, beamsz is length 1 for first iteration, length true beamsz (100) afterward
         for i in range(gen_len):
             prev = masterheap.get_prev() # beamsz
@@ -195,7 +199,10 @@ class AttnNetwork(nn.Module):
             
             h, c = masterheap.get_hiddens() # (n_layers,beamsz,hiddensz),(n_layers,beamsz,hiddensz)
             dec_h, (h, c) = self.decoder(emb_t.unsqueeze(1), (h, c)) # dec_h is beamsz,1,hiddensz (batch_first=True)
-            scores = torch.bmm(enc_h_expand, dec_h.transpose(1,2)).squeeze(2)
+            if self.directions == 2:
+                scores = torch.bmm(self.dim_reduce(enc_h_expand), dec_h.transpose(1,2)).squeeze(2)
+            else:
+                scores = torch.bmm(enc_h_expand, dec_h.transpose(1,2)).squeeze(2)
             # (beamsz,n_de,hiddensz) * (beamsz,hiddensz,1) = (beamsz,n_de,1). squeeze to beamsz,n_de
             attn_dist = F.softmax(scores,dim=1)
             if self.attn_type == "hard":
