@@ -167,6 +167,7 @@ for epoch in range(n_epochs):
     print_acc_total = 0 # Reset every print_every
     for batch in iter(train_iter):
         ctr += 1
+        model.train()
         optimizer.zero_grad()
         x_de = batch.src.transpose(1,0).cuda() # bs,n_de
         x_en = batch.trg.transpose(1,0).cuda() # bs,n_en
@@ -177,16 +178,17 @@ for epoch in range(n_epochs):
         plot_loss_total += loss.data[0] / x_en.size(1)
         # TODO: this is underestimating PPL! It divides by x_en when it should divide by no_pad
 
-        y_pred,_ = model.predict(x_de, x_en, attn_type) # bs,n_en
-        correct = (y_pred == x_en) # these are the same shape and both contain a sos_token row
-        no_pad = (x_en != pad_token) & (x_en != sos_token)
-        print_acc_total += (correct & no_pad).data.sum() / no_pad.data.sum()
-
         (loss + reinforce_loss).backward()
         torch.nn.utils.clip_grad_norm(model.parameters(), clip_constraint) # TODO: is this right? it didn't work last time
         optimizer.step()
         if args.weight_tying:
             model.vocab_layer.e2v.weight.data.copy_(model.embedding_en.weight.data)
+
+        model.eval()
+        y_pred,_ = model.predict(x_de, x_en, attn_type) # bs,n_en
+        correct = (y_pred == x_en) # these are the same shape and both contain a sos_token row
+        no_pad = (x_en != pad_token) & (x_en != sos_token)
+        print_acc_total += (correct & no_pad).data.sum() / no_pad.data.sum()
         
         if ctr % print_every == 0:
             print_loss_avg = print_loss_total / print_every
@@ -205,6 +207,7 @@ for epoch in range(n_epochs):
 
     torch.save(model.state_dict(), args.model_file) # I'm Paranoid!!!!!!!!!!!!!!!!
     val_loss_total = 0 # Validation/early stopping
+    model.eval()
     for batch in iter(val_iter):
         x_de = batch.src.transpose(1,0).cuda()
         x_en = batch.trg.transpose(1,0).cuda()
@@ -219,6 +222,7 @@ for epoch in range(n_epochs):
 
 torch.save(model.state_dict(), args.model_file)
 
+model.eval()
 with open("preds.csv", "w") as f:
     writer = csv.writer(f)
     writer.writerow(['id','word'])
