@@ -24,6 +24,8 @@ parser.add_argument('--adadelta','-ada',action='store_true',help='Use Adadelta o
 parser.add_argument('--learning_rate','-lr',type=float,default=0.01,help='set learning rate.')
 parser.add_argument('--rho','-r',type=float,default=0.95,help='rho for Adadelta optimizer')
 parser.add_argument('--weight_decay','-wd',type=float,default=0.0,help='Weight decay constant for optimizer')
+parser.add_argument('--accuracy','-acc',action='store_true',help='Calculate accuracy during training loop.')
+
 parser.add_argument('--attn_type','-at',type=str,default='soft',help='attention type')
 parser.add_argument('--clip_constraint','-cc',type=float,default=5.0,help='weight norm clip constraint')
 parser.add_argument('--word2vec','-w',action='store_true',help='Raise flag to initialize with word2vec embeddings')
@@ -105,10 +107,6 @@ eos_token = EN.vocab.stoi["</s>"]
 pad_token = EN.vocab.stoi["<pad>"]
 
 ''' TODO
-ELBY
-Try baseline, with embeddings, and with weight tying
-volatile=True
-Fix predict and predict2 for S2S. Make S2S multi-layer and bidirectional. Run.
 Plot attention
 
 
@@ -116,24 +114,25 @@ EXTENSIONS
 Consult papers for hyperparameters
 Multi-layer, bidirectional (see Piazza), GRU instead of LSTM
 Pretrained embeddings
-Weight tying, interpolation
+Weight tying
 Dropout, embedding max norms, weight clipping, learning rate scheduling, residual connections
 More complex regularization techniques (Yoon piazza)
+Interpolation
 Hard attention, with updating baseline
+Make S2S bidirectional
 Checkout openNMT for inspiration
 
 
 ANCILLARY
 Use a binary mask to zero out attention to paddings in the source.
 If we have time, we can try the pytorch tutorial script with and without attn, to see if teacher forcing makes a difference
-Predict function hack ideas? Involving MAX_LEN or eos_token
 BLEU perl script
 Can I throw out the perplexity from predicting on <s>? Who knows what the first word in a sentence is?
 How to run jupyter notebooks in cloud?
 Generate longer full sentences with small beams. Not fixed-length.
 
 QUESTIONS
-Yoon: y u avg loss over batches but not time? Did u know diff batches are diff sizes cuz padding?
+Yoon: y u avg loss over batches but not time? Did u know diff batches are diff sizes cuz padding? Is my way ok?
 How do bidirectional RNNs really work (in linear time)? Can the decoder of attention be bidirectional?
 Can you batch over time for hard attention, or without teacher forcing?
 What's purpose of baseline? Ur code is wrong- subtract something averaged over bs & n_de from something averaged over bs?
@@ -142,11 +141,14 @@ from models import AttnNetwork, CandList, S2S
 from helpers import asMinutes, timeSince, escape, flip
 
 if model_type == 0:
-    model = AttnNetwork(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size,
-                        vocab_layer_size=args.vocab_layer_size,LSTM_dropout=args.LSTM_dropout, vocab_layer_dropout=args.vocab_layer_dropout, 
+    model = AttnNetwork(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size, word2vec=args.word2vec,
+                        vocab_layer_size=args.vocab_layer_size, LSTM_dropout=args.LSTM_dropout, vocab_layer_dropout=args.vocab_layer_dropout, 
                         weight_tying=args.weight_tying, bidirectional=args.bidirectional, attn_type=attn_type)
 elif model_type == 1:
-    model = S2S()
+    model = S2S(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size, word2vec=args.word2vec,
+                vocab_layer_size=args.vocab_layer_size, LSTM_dropout=args.LSTM_dropout, vocab_layer_dropout=args.vocab_layer_dropout, 
+                weight_tying=args.weight_tying)
+
 model.cuda()
 
 start = time.time()
@@ -185,11 +187,13 @@ for epoch in range(n_epochs):
         if args.weight_tying:
             model.vocab_layer.e2v.weight.data.copy_(model.embedding_en.weight.data)
 
-        model.eval()
-        y_pred,_ = model.predict(x_de, x_en) # bs,n_en
-        correct = (y_pred == x_en) # these are the same shape and both contain a sos_token row
-        no_pad = (x_en != pad_token) & (x_en != sos_token)
-        print_acc_total += (correct & no_pad).data.sum() / no_pad.data.sum()
+        if args.accuracy:
+            model.eval()
+            x_de.volatile = True # "inference mode" supposedly speeds up
+            y_pred,_ = model.predict(x_de, x_en) # bs,n_en
+            correct = (y_pred == x_en) # these are the same shape and both contain a sos_token row
+            no_pad = (x_en != pad_token) & (x_en != sos_token)
+            print_acc_total += (correct & no_pad).data.sum() / no_pad.data.sum()
         
         if ctr % print_every == 0:
             print_loss_avg = print_loss_total / print_every
@@ -206,7 +210,6 @@ for epoch in range(n_epochs):
             plot_loss_total = 0
             plot_losses.append(plot_loss_avg)
 
-    torch.save(model.state_dict(), args.model_file) # I'm Paranoid!!!!!!!!!!!!!!!!
     val_loss_total = 0 # Validation/early stopping
     model.eval()
     for batch in iter(val_iter):
@@ -214,12 +217,14 @@ for epoch in range(n_epochs):
         x_en = batch.trg.transpose(1,0).cuda()
         if model_type == 1:
             x_de = flip(x_de,1) # reverse direction
+        x_de.volatile = True # "inference mode" supposedly speeds up
         loss, reinforce_loss, avg_reward = model.forward(x_de, x_en)
         # too lazy to implement reward or accuracy for validation
         val_loss_total -= avg_reward
     val_loss_avg = val_loss_total / len(val_iter)
     timenow = timeSince(start)
     print('Validation. Time %s, PPL: %.2f' %(timenow, np.exp(val_loss_avg)))
+    torch.save(model.state_dict(), args.model_file) # I'm Paranoid!!!!!!!!!!!!!!!!
 
 torch.save(model.state_dict(), args.model_file)
 
