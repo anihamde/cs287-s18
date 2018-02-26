@@ -176,7 +176,7 @@ class AttnNetwork(nn.Module):
         pred = pred[:,:-1,:] # alignment
         _, tokens = pred.max(2) # bs,n_en
         sauce = Variable(torch.cuda.LongTensor([[sos_token]]*bs)) # bs
-        return torch.cat([sauce,tokens[:,:-1]],1), attn_dist
+        return torch.cat([sauce,tokens],1), attn_dist
     # Singleton batch with BSO
     def predict2(self, x_de, beamsz, gen_len):
         emb_de = self.embedding_de(x_de) # "batch size",n_de,word_dim, but "batch size" is 1 in this case!
