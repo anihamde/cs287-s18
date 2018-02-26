@@ -70,15 +70,16 @@ class CandList():
             self.attentions = unshuffled[self.oldbeamindices]
 
 class AttnNetwork(nn.Module):
-    def __init__(self, word_dim=300, n_layers=1, hidden_dim=500, weight_tying=False, bidirectional=False):
+    def __init__(self, word_dim=300, n_layers=1, hidden_dim=500, LSTM_dropout=0.0, vocab_layer_dropout=0.0, 
+                 weight_tying=False, bidirectional=False):
         super(AttnNetwork, self).__init__()
         self.hidden_dim = hidden_dim
         self.n_layers = n_layers
         self.vocab_layer_dim = (hidden_dim,word_dim)[weight_tying == True]
         self.directions = (1,2)[bidirectional == True]
          # LSTM initialization params: inputsz,hiddensz,n_layers,bias,batch_first,bidirectional
-        self.encoder = nn.LSTM(word_dim, hidden_dim, num_layers = n_layers, batch_first = True, bidirectional=bidirectional)
-        self.decoder = nn.LSTM(word_dim, hidden_dim, num_layers = n_layers, batch_first = True)
+        self.encoder = nn.LSTM(word_dim, hidden_dim, num_layers = n_layers, batch_first = True, dropout=LSTM_dropout, bidirectional=bidirectional)
+        self.decoder = nn.LSTM(word_dim, hidden_dim, num_layers = n_layers, batch_first = True, dropout=LSTM_dropout)
         self.embedding_de = nn.Embedding(len(DE.vocab), word_dim)
         self.embedding_en = nn.Embedding(len(EN.vocab), word_dim)
         if bidirectional:
@@ -90,6 +91,7 @@ class AttnNetwork(nn.Module):
         self.vocab_layer = nn.Sequential(OrderedDict([
             ('h2e',nn.Linear(hidden_dim*(self.directions+1), self.vocab_layer_dim)),
             ('tanh',nn.Tanh()),
+            ('drp',nn.Dropout(vocab_layer_dropout)),
             ('e2v',nn.Linear(self.vocab_layer_dim, len(EN.vocab))),
             ('lsft',nn.LogSoftmax(dim=-1))
         ]))
