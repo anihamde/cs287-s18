@@ -217,7 +217,7 @@ for epoch in range(n_epochs):
             x_de = flip(x_de,1) # reverse direction
         loss, reinforce_loss, avg_reward = model.forward(x_de, x_en)
         # too lazy to implement reward or accuracy for validation
-        val_loss_total += loss.data[0] / x_en.size(1)
+        val_loss_total -= avg_reward
     val_loss_avg = val_loss_total / len(val_iter)
     timenow = timeSince(start)
     print('Validation. Time %s, PPL: %.2f' %(timenow, np.exp(val_loss_avg)))
