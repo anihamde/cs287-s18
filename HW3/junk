@@ -2,7 +2,7 @@ from models import AttnNetwork, CandList, S2S
 from helpers import asMinutes, timeSince, escape
 model = AttnNetwork()
 model.cuda()
-model.load_state_dict(torch.load('../../models/HW3/model.pkl'))
+model.load_state_dict(torch.load('../../models/HW3/blah.pkl'))
 
 x_de = batch.src.transpose(1,0).cuda() # bs,n_de
 x_en = batch.trg.transpose(1,0).cuda() # bs,n_en
@@ -10,7 +10,7 @@ x_en = batch.trg.transpose(1,0).cuda() # bs,n_en
 y_pred = model.predict(x_de, attn_type) # bs,max_len
 
 
-    # predict many batches with greedy encoding
+    # predict many batches with greedy encoding. no teacher forcing
     def predict(self, x_de, attn_type = "hard"):
         bs = x_de.size(0)
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
@@ -126,3 +126,10 @@ if attn_type == "hard":
     reinforce_loss -= (cat.log_prob(attn_samples[no_pad]) * (reward-model.baseline).detach()).mean() 
     # reinforce rule (just read the formula), with special baseline
 loss -= reward.mean() # minimizing loss is maximizing reward
+
+
+
+for i in range(20):
+     print(' '.join([DE.vocab.itos[w] for w in x_de.data[i]]))
+     print(' '.join([EN.vocab.itos[w] for w in x_en.data[i]]))
+     print(' '.join([EN.vocab.itos[w] for w in j.data[i]]))

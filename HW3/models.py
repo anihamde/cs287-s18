@@ -87,7 +87,6 @@ class AttnNetwork(nn.Module):
             self.embedding_de.weight.data.copy_(DE.vocab.vectors)
             self.embedding_en.weight.data.copy_(EN.vocab.vectors)
         # vocab layer will combine dec hidden state with context vector, and then project out into vocab space 
-        # TODO: maybe put the weight tying here... Linear(hidden_dim*2,word_dim)
         self.vocab_layer = nn.Sequential(OrderedDict([
             ('h2e',nn.Linear(hidden_dim*(self.directions+1), self.vocab_layer_dim)),
             ('tanh',nn.Tanh()),
@@ -99,7 +98,7 @@ class AttnNetwork(nn.Module):
         # baseline reward, which we initialize with log 1/V
         self.baseline = Variable(torch.cuda.FloatTensor([np.log(1/len(EN.vocab))]))
         # self.baseline = Variable(torch.zeros(1).fill_(np.log(1/len(EN.vocab))).cuda()) # yoon's way
-    def forward(self, x_de, x_en, attn_type="hard", update_baseline=True):
+    def forward(self, x_de, x_en, attn_type="soft", update_baseline=True):
         bs = x_de.size(0)
         # x_de is bs,n_de. x_en is bs,n_en
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
@@ -154,7 +153,7 @@ class AttnNetwork(nn.Module):
             self.baseline = Variable(0.95*self.baseline.data + 0.05*avg_reward)
         return loss, reinforce_loss
     # teacher forcing predict
-    def predict(self, x_de, x_en, attn_type = "hard"):
+    def predict(self, x_de, x_en, attn_type = "soft"):
         bs = x_de.size(0)
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
         emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
@@ -185,7 +184,7 @@ class AttnNetwork(nn.Module):
         y = torch.stack(y,0).transpose(0,1) # bs,n_en
         return y,attn
     # Singleton batch with BSO
-    def predict2(self, x_de, beamsz, gen_len, attn_type = "hard"):
+    def predict2(self, x_de, beamsz, gen_len, attn_type = "soft"):
         emb_de = self.embedding_de(x_de) # "batch size",n_de,word_dim, but "batch size" is 1 in this case!
         h0 = Variable(torch.zeros(1, 1, self.hidden_dim).cuda())
         c0 = Variable(torch.zeros(1, 1, self.hidden_dim).cuda())
@@ -235,7 +234,7 @@ class S2S(nn.Module):
         self.vocab_layer = nn.Sequential(nn.Linear(hidden_dim, hidden_dim),
                                          nn.Tanh(), nn.Linear(hidden_dim, len(EN.vocab)), nn.LogSoftmax(dim=-1))
         self.baseline = Variable(torch.zeros(1)) # just doing this (and attn_type below) so I can reuse some code lol
-    def forward(self, x_de, x_en, attn_type):
+    def forward(self, x_de, x_en, attn_type="soft"):
         bs = x_de.size(0)
         # x_de is bs,n_de. x_en is bs,n_en
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
@@ -258,7 +257,7 @@ class S2S(nn.Module):
         # NOTE: to be consistent with the other network i'm normalizing loss by time only (not by batch) 
         return loss, 0 # passing back an invisible "negative reward"
     # predict with greedy decoding
-    def predict(self, x_de, attn_type):
+    def predict(self, x_de, attn_type="soft"):
         bs = x_de.size(0)
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
         h = Variable(torch.zeros(1, bs, self.hidden_dim).cuda())
@@ -268,9 +267,9 @@ class S2S(nn.Module):
         y = [Variable(torch.cuda.LongTensor([sos_token]*bs))] # bs
         n_en = MAX_LEN # this will change
         for t in range(n_en): # generate some english.
-            emb_t = self.embedding_en(y[-1]) # embed the last thing we generated. bs
+            emb_t = self.embedding_en(y[-1]) # embed the last thing we generated. bs,word_dim
             dec_h, (h, c) = self.decoder(emb_t.unsqueeze(1), (h, c)) # dec_h is bs,1,hiddensz*ndirections (batch_first=True)
-            pred = self.vocab_layer(dec_h) # bs,1,len(EN.vocab)
+            pred = self.vocab_layer(dec_h).squeeze(1) # bs,len(EN.vocab)
             _, next_token = pred.max(1) # bs
             y.append(next_token)
         return torch.stack(y, 0).transpose(0, 1) # bs,n_en
