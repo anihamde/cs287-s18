@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from collections import OrderedDict
+import math # for infinity
 from __main__ import *
 # I use EN,DE,BATCH_SIZE,MAX_LEN,pad_token,sos_token,eos_token,word2vec
 
@@ -133,6 +134,7 @@ class AttnNetwork(nn.Module):
         # (bs,n_de,hiddensz*n_directions) * (bs,hiddensz*n_directions,n_en) = (bs,n_de,n_en)
         loss = 0
         avg_reward = 0
+        scores[(x_de == pad_token).unsqueeze(2).expand(scores.size())] = -math.inf # binary mask
         attn_dist = F.softmax(scores,dim=1) # bs,n_de,n_en
         # hard attn requires stacking to fit into torch.distributions.Categorical
         context = torch.bmm(attn_dist.transpose(2,1), enc_h)
@@ -165,6 +167,7 @@ class AttnNetwork(nn.Module):
         else:
             scores = torch.bmm(enc_h, dec_h.transpose(1,2))
         # (bs,n_de,hiddensz) * (bs,hiddensz,n_en) = (bs,n_de,n_en)
+        scores[(x_de == pad_token).unsqueeze(2).expand(scores.size())] = -math.inf # binary mask
         attn_dist = F.softmax(scores,dim=1) # bs,n_de,n_en
         context = torch.bmm(attn_dist.transpose(2,1),enc_h)
         # (bs,n_en,n_de) * (bs,n_de,hiddensz*ndirections) = (bs,n_en,hiddensz*ndirections)
@@ -196,6 +199,7 @@ class AttnNetwork(nn.Module):
             else:
                 scores = torch.bmm(enc_h_expand, dec_h.transpose(1,2)).squeeze(2)
             # (beamsz,n_de,hiddensz) * (beamsz,hiddensz,1) = (beamsz,n_de,1). squeeze to beamsz,n_de
+            scores[(x_de == pad_token)] = -math.inf # binary mask
             attn_dist = F.softmax(scores,dim=1)
             if self.attn_type == "hard":
                 _, argmax = attn_dist.max(1) # beamsz for each batch, select most likely german word to pay attention to

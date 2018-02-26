@@ -107,17 +107,18 @@ eos_token = EN.vocab.stoi["</s>"]
 pad_token = EN.vocab.stoi["<pad>"]
 
 ''' TODO
-Test with weight tying
+Test with weight tying, and no word2vec.
+Does predict accuracy go up if I exclude stupid tokens from being predicted?
 Plot attention
 Bigger validation set
-
+BLEU perl script
+LaTeX
 
 EXTENSIONS
-Consult papers for hyperparameters
 Multi-layer, bidirectional (see Piazza), GRU instead of LSTM
 Pretrained embeddings
 Weight tying
-Dropout, embedding max norms, weight clipping, learning rate scheduling, residual connections
+Dropout, embedding max norms, weight clipping, learning rate scheduling (ada), residual connections
 More complex regularization techniques (Yoon piazza)
 Interpolation
 Hard attention, with updating baseline
@@ -126,10 +127,7 @@ Checkout openNMT for inspiration
 
 
 ANCILLARY
-Use a binary mask to zero out attention to paddings in the source.
 If we have time, we can try the pytorch tutorial script with and without attn, to see if teacher forcing makes a difference
-BLEU perl script
-Can I throw out the perplexity from predicting on <s>? Who knows what the first word in a sentence is?
 How to run jupyter notebooks in cloud?
 Generate longer full sentences with small beams. Not fixed-length.
 
@@ -138,6 +136,7 @@ Yoon: y u avg loss over batches but not time? Did u know diff batches are diff s
 How do bidirectional RNNs really work (in linear time)? Can the decoder of attention be bidirectional?
 Can you batch over time for hard attention, or without teacher forcing?
 What's purpose of baseline? Ur code is wrong- subtract something averaged over bs & n_de from something averaged over bs?
+Can I throw out the perplexity from predicting on <s>? Else, why might my ppl be too high?
 '''
 from models import AttnNetwork, CandList, S2S
 from helpers import asMinutes, timeSince, escape, flip
