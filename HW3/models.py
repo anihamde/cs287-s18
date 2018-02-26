@@ -154,7 +154,7 @@ class AttnNetwork(nn.Module):
             loss -= reward.sum() # minimizing loss is maximizing reward
         no_pad_total = (x_en[:,:-1] != pad_token).data[0]
         loss /= no_pad_total
-        reinforce_loss =/ no_pad_total
+        reinforce_loss /= no_pad_total
         avg_reward = -loss.data[0]
         if update_baseline: # update baseline as a moving average
             self.baseline = Variable(0.95*self.baseline.data + 0.05*avg_reward)

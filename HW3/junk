@@ -152,3 +152,32 @@ for i in range(20):
      print(' '.join([DE.vocab.itos[w] for w in x_de.data[i]]))
      print(' '.join([EN.vocab.itos[w] for w in x_en.data[i]]))
      print(' '.join([EN.vocab.itos[w] for w in j.data[i]]))
+
+
+# playing a little game with myself
+# conclusion: cannot reject hypothesis t_criterion neq t_gather
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.autograd import Variable
+import numpy
+import time
+
+bs = 32
+lenen = 10000
+first = 0
+second = 0
+criterion = nn.NLLLoss(size_average=False,ignore_index=1)
+preds = Variable(torch.rand(bs,lenen).cuda())
+y = (torch.rand(bs) * lenen).round()
+y = Variable(y.type(torch.cuda.LongTensor))
+
+for _ in range(100000):
+    start = time.time()
+    j=criterion(preds,y)
+    now = time.time()
+    first += now-start
+    start = time.time()
+    j=torch.gather(preds,1,y.unsqueeze(1))
+    now = time.time()
+    second += now-start
