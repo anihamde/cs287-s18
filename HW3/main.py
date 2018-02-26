@@ -107,7 +107,9 @@ eos_token = EN.vocab.stoi["</s>"]
 pad_token = EN.vocab.stoi["<pad>"]
 
 ''' TODO
+Test with weight tying
 Plot attention
+Bigger validation set
 
 
 EXTENSIONS

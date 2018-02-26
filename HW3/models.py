@@ -283,9 +283,9 @@ class S2S(nn.Module):
         h = Variable(torch.zeros(self.n_layers, 1, self.hidden_dim).cuda())
         c = Variable(torch.zeros(self.n_layers, 1, self.hidden_dim).cuda())
         enc_h, (h, c) = self.encoder(emb_de, (h, c))
-        masterheap.update_hiddens(h,c) # should change the 1 to beamsz... i think this is ok
         # since enc batch size=1, enc_h is 1,n_de,hiddensz*n_directions
         masterheap = CandList(self.n_layers,self.hidden_dim,enc_h.size(1),beamsz)
+        masterheap.update_hiddens(h,c) # should change the 1 to beamsz... i think this is ok
         # in the following loop, beamsz is length 1 for first iteration, length true beamsz (100) afterward
         for i in range(gen_len):
             prev = masterheap.get_prev() # beamsz
