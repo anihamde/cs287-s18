@@ -30,7 +30,7 @@ parser.add_argument('--word2vec','-w',action='store_true',help='Raise flag to in
 parser.add_argument('--embedding_dims','-ed',type=int,default=300,help='dims for word2vec embeddings')
 parser.add_argument('--hidden_depth','-hd',type=int,default=1,help='Number of hidden layers in encoder/decoder')
 parser.add_argument('--hidden_size','-hs',type=int,default=500,help='Size of each hidden layer in encoder/decoder')
-parser.add_argument('--vocab_layer_dim','-vd',type=int,default=500,help='Size of hidden vocab layer transformation')
+# parser.add_argument('--vocab_layer_dim','-vd',type=int,default=500,help='Size of hidden vocab layer transformation')
 parser.add_argument('--weight_tying','-wt',action='store_true',help='Raise flag to engage weight tying')
 parser.add_argument('--bidirectional','-b',action='store_true',help='Raise to make encoder bidirectional')
 args = parser.parse_args()
@@ -132,6 +132,7 @@ Generate longer full sentences with small beams. Not fixed-length.
 
 QUESTIONS
 Yoon: why do you average loss over minibatches but not over time?
+How do bidirectional RNNs really work (in linear time)? Can the decoder of attention be bidirectional?
 Justin's piazza post: speedup by batching over time?
 What's purpose of baseline? Your code is wrong- subtract something averaged over bs & n_de from something averaged over bs?
 '''
@@ -140,7 +141,7 @@ from helpers import asMinutes, timeSince, escape, flip
 
 if model_type == 0:
     model = AttnNetwork(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size,
-                        vocab_layer_dim=args.vocab_layer_dim, weight_tying=args.weight_tying,bidirectional=args.bidirectional)
+                        weight_tying=args.weight_tying,bidirectional=args.bidirectional)
 elif model_type == 1:
     model = S2S()
 model.cuda()
@@ -172,11 +173,10 @@ for epoch in range(n_epochs):
         plot_loss_total += loss.data[0] / x_en.size(1)
         # TODO: this is underestimating PPL! It divides by x_en when it should divide by no_pad
 
-        # JUST COMMENTING THIS OUT TO TEST S2S! TODO: uncomment this once s2s predict methods are surgically replaced
-        # y_pred,_ = model.predict(x_de, x_en, attn_type) # bs,n_en
-        # correct = (y_pred == x_en)
-        # no_pad = (x_en != pad_token) & (x_en != sos_token)
-        # print_acc_total += (correct & no_pad).data.sum() / no_pad.data.sum()
+        y_pred,_ = model.predict(x_de, x_en, attn_type) # bs,n_en
+        correct = (y_pred == x_en)
+        no_pad = (x_en != pad_token) & (x_en != sos_token)
+        print_acc_total += (correct & no_pad).data.sum() / no_pad.data.sum()
 
         (loss + reinforce_loss).backward()
         torch.nn.utils.clip_grad_norm(model.parameters(), clip_constraint) # TODO: is this right? it didn't work last time
