@@ -20,7 +20,10 @@ parser = argparse.ArgumentParser(description='training runner')
 parser.add_argument('--model_type','-m',type=int,default=0,help='Model type (0 for Attn, 1 for S2S)')
 parser.add_argument('--model_file','-mf',type=str,default='../../models/HW3/model.pkl',help='Model save target.')
 parser.add_argument('--n_epochs','-e',type=int,default=3,help='set the number of training epochs.')
+parser.add_argument('--adadelta','-ada',action='store_true',help='Use Adadelta optimizer')
 parser.add_argument('--learning_rate','-lr',type=float,default=0.01,help='set learning rate.')
+parser.add_argument('--rho','-r',type=float,default=0.95,help='rho for Adadelta optimizer')
+parser.add_argument('--weight_decay','-wd',type=float,default=0.0,help='Weight decay constant for optimziser')
 parser.add_argument('--attn_type','-at',type=str,default='soft',help='attention type')
 parser.add_argument('--clip_constraint','-cc',type=float,default=5.0,help='weight norm clip constraint')
 parser.add_argument('--word2vec','-w',action='store_true',help='Raise flag to initialize with word2vec embeddings')
@@ -39,6 +42,8 @@ learning_rate = args.learning_rate
 attn_type = args.attn_type
 clip_constraint = args.clip_constraint
 word2vec = args.word2vec
+rho = args.rho
+weight_decay = args.weight_decay
 
 spacy_de = spacy.load('de')
 spacy_en = spacy.load('en')
@@ -144,7 +149,10 @@ start = time.time()
 print_every = 100
 plot_every = 100
 plot_losses = []
-optimizer = optim.SGD(model.parameters(), lr=learning_rate)
+if args.adadelta:
+    optimizer = optim.Adadelta(model.parameters(), lr=learning_rate, rho=rho, weight_decay=weight_decay)
+else:
+    optimizer = optim.SGD(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
 for epoch in range(n_epochs):
     train_iter.init_epoch()
