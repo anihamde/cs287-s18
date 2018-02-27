@@ -70,10 +70,14 @@ class CandList():
     def update_hiddens(self,hidd):
         # no need to save old hidden states
         if self.firstloop:
-            try:
-                hidd = ( x.expand(-1,self.beamsz,-1).contiguous() for x in hidd )
-            except TypeError:
+            if type(hidd) == Variable:
                 hidd = hidd.expand(-1,self.beamsz,-1).contiguous()
+            else:
+                hidd = ( x.expand(-1,self.beamsz,-1).contiguous() for x in hidd )
+            #try:
+            #    hidd = ( x.expand(-1,self.beamsz,-1).contiguous() for x in hidd )
+            #except TypeError:
+            #    hidd = hidd.expand(-1,self.beamsz,-1).contiguous()
             # see https://discuss.pytorch.org/t/initial-state-of-rnn-is-not-contiguous/4615
             #h = h.expand(-1,self.beamsz,-1).contiguous()
             #c = c.expand(-1,self.beamsz,-1).contiguous()
