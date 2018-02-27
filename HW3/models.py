@@ -376,7 +376,7 @@ class S2S(nn.Module):
             self.embedding_en.weight.data.copy_(EN.vocab.vectors)
         # vocab layer will project dec hidden state out into vocab space 
         self.vocab_layer = nn.Sequential(OrderedDict([
-            ('h2e',nn.Linear(hidden_dim*self.directions,self.vocab_layer_dim)),
+            ('h2e',nn.Linear(hidden_dim,self.vocab_layer_dim)),
             ('tanh',nn.Tanh()),
             ('drp',nn.Dropout(vocab_layer_dropout)),
             ('e2v',nn.Linear(self.vocab_layer_dim,len(EN.vocab))),
