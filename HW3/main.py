@@ -107,7 +107,7 @@ eos_token = EN.vocab.stoi["</s>"]
 pad_token = EN.vocab.stoi["<pad>"]
 
 ''' TODO
-Don't average over time bro! Immediate edits
+Don't average over time bro! Immediate edits (hidden)
 Make S2S bidirectional
 Run a smaller model baseline, word2vec, and weight tying+word2vec. With Sager's results.
 Does predict accuracy go up if I exclude stupid tokens from being predicted?
