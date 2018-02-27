@@ -40,9 +40,7 @@ class CandList():
         else:
             return Variable(self.wordlist[:,-1])
     def get_hiddens(self):
-        print(self.hiddens)
-        print(type(self.hiddens) == torch.cuda.FloatTensor)
-        if type(self.hiddens) == FloatTensor:
+        if type(self.hiddens) == torch.cuda.FloatTensor:
             res = Variable(self.hiddens)
         else:
             res = tuple( Variable(x) for x in self.hiddens )
