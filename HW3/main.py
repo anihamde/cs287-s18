@@ -107,37 +107,31 @@ eos_token = EN.vocab.stoi["</s>"]
 pad_token = EN.vocab.stoi["<pad>"]
 
 ''' TODO
-Test with weight tying, and no word2vec.
-Does predict accuracy go up if I exclude stupid tokens from being predicted?
-Plot attention
-Bigger validation set
-BLEU perl script
-LaTeX
-
-EXTENSIONS
-Multi-layer, bidirectional (see Piazza), GRU instead of LSTM
-Pretrained embeddings
-Weight tying
-Dropout, embedding max norms, weight clipping, learning rate scheduling (ada), residual connections
-More complex regularization techniques (Yoon piazza)
-Interpolation
-Hard attention, with updating baseline
+Don't average over time bro! Immediate edits
 Make S2S bidirectional
-Checkout openNMT for inspiration
+Run a smaller model baseline, word2vec, and weight tying+word2vec. With Sager's results.
+Does predict accuracy go up if I exclude stupid tokens from being predicted?
+Try plotting train and val acc after each batch.
+Plot attention
+BLEU perl script
 
+LATEX
+S2S results, with 1 and 4 layers. And bidirectional S2S
+Sweep over hidden sizes and num layers.
+Bidirectional vs not bidirectional (easily helps).
+Baseline, word2vec, weight tying+word2vec.
+GRU vs LSTM
+Hard attention, with updating baseline
+Interpolation
 
 ANCILLARY
+Dropout, embedding max norms, weight clipping, learning rate scheduling (ada), residual connections
+More complex regularization techniques (Yoon piazza)
+Checkout openNMT for inspiration
+Bigger validation set
 If we have time, we can try the pytorch tutorial script with and without attn, to see if teacher forcing makes a difference
 How to run jupyter notebooks in cloud?
 Generate longer full sentences with small beams. Not fixed-length.
-
-QUESTIONS
-Yoon: y u avg loss over batches but not time? Did u know diff batches are diff sizes cuz padding? Is my way ok?
-same sentence length, then it doesn't matter. but here, see paper. there is some work that averages over time step. but from a MLE perspective
-Can the decoder of attention be bidirectional?
-Can you batch over time for hard attention, or without teacher forcing? Nope.
-What's purpose of baseline? Ur code is wrong- subtract something averaged over bs & n_de from something averaged over bs?
-Can I throw out the perplexity from predicting on <s>? Else, why might my ppl be too high?
 ''' 
 from models import AttnNetwork, CandList, S2S
 from helpers import asMinutes, timeSince, escape, flip
