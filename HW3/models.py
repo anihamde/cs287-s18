@@ -171,7 +171,7 @@ class AttnNetwork(nn.Module):
         context = torch.bmm(attn_dist.transpose(2,1),enc_h)
         # (bs,n_en,n_de) * (bs,n_de,hiddensz*ndirections) = (bs,n_en,hiddensz*ndirections)
         pred = self.vocab_layer(torch.cat([dec_h,context],2)) # bs,n_en,len(EN.vocab)
-        pred[:,:,[unk_token,pad_token]] = -math.inf # TODO: testing this out kill pad unk
+        # pred[:,:,[unk_token,pad_token]] = -math.inf # TODO: testing this out kill pad unk
         pred = pred[:,:-1,:] # alignment
         _, tokens = pred.max(2) # bs,n_en-1
         sauce = Variable(torch.cuda.LongTensor([[sos_token]]*bs)) # bs
@@ -206,7 +206,7 @@ class AttnNetwork(nn.Module):
             # the difference btwn hard and soft is just whether we use a one_hot or a distribution
             # context is beamsz,hiddensz*n_directions
             pred = self.vocab_layer(torch.cat([dec_h.squeeze(1), context], 1)) # beamsz,len(EN.vocab)
-            pred[:,:,[unk_token,pad_token]] = -inf # TODO: testing this out kil pad unk
+            # pred[:,:,[unk_token,pad_token]] = -inf # TODO: testing this out kill pad unk
             masterheap.update_beam(pred)
             masterheap.update_hiddens(h,c)
             masterheap.update_attentions(attn_dist)

@@ -17,7 +17,7 @@ import time
 import argparse
 
 parser = argparse.ArgumentParser(description='training runner')
-parser.add_argument('--model_type','-m',type=int,default=0,help='Model type (0 for Attn, 1 for S2S, 2 for AttnGRU)')
+parser.add_argument('--model_type','-m',type=int,default=0,help='Model type (0 for AttnLSTM, 1 for S2S, 2 for AttnGRU)')
 parser.add_argument('--model_file','-mf',type=str,default='../../models/HW3/model.pkl',help='Model save target.')
 parser.add_argument('--n_epochs','-e',type=int,default=3,help='set the number of training epochs.')
 parser.add_argument('--adadelta','-ada',action='store_true',help='Use Adadelta optimizer')
@@ -110,7 +110,6 @@ eos_token = EN.vocab.stoi["</s>"]
 ''' TODO
 Does predict accuracy go up if I exclude stupid tokens from being predicted?
 Does ppl change if you average loss the actual Yoon way?
-Make S2S bidirectional
 Run a smaller model baseline, word2vec, and weight tying+word2vec. With Sager's results.
 Try plotting train and val acc after each batch.
 BLEU perl script
