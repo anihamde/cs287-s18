@@ -45,7 +45,7 @@ class CandList():
             res = ( Variable(x) for x in self.hiddens )
         except TypeError:
             res = Variable(self.hiddens)
-        return result
+        return res
         #return (Variable(self.hiddens[0]),Variable(self.hiddens[1]))
     def update_beam(self,newlogprobs): # newlogprobs is beamsz,len(EN.vocab)
         newlogprobs = newlogprobs.data
