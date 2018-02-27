@@ -170,7 +170,7 @@ class AttnNetwork(nn.Module):
         loss -= reward.sum() / no_pad.data.sum()
         avg_reward = -loss.data[0]
         # hard attention baseline and reinforce stuff causing me trouble
-        return loss, 0, avg_reward
+        return loss, 0, avg_reward, pred, y
     # predict with greedy decoding and teacher forcing
     def predict(self, x_de, x_en):
         bs = x_de.size(0)
@@ -303,7 +303,7 @@ class AttnGRU(nn.Module):
         loss -= reward.sum() / no_pad.data.sum()
         avg_reward = -loss.data[0]
         # hard attention baseline and reinforce stuff causing me trouble
-        return loss, 0, avg_reward
+        return loss, 0, avg_reward, pred, y
     # predict with greedy decoding and teacher forcing
     def predict(self, x_de, x_en):
         bs = x_de.size(0)
@@ -412,7 +412,7 @@ class S2S(nn.Module):
         no_pad = (y != pad_token)
         reward = reward.squeeze(2)[no_pad] # less than bs,n_en
         loss = -reward.sum() / no_pad.data.sum()
-        return loss, 0, -loss.data[0] # passing back things just to be consistent
+        return loss, 0, -loss.data[0], pred, y # passing back things just to be consistent
     # predict with greedy decoding and teacher forcing
     def predict(self, x_de, x_en):
         bs = x_de.size(0)
