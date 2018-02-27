@@ -17,7 +17,7 @@ import time
 import argparse
 
 parser = argparse.ArgumentParser(description='training runner')
-parser.add_argument('--model_type','-m',type=int,default=0,help='Model type (0 for Attn, 1 for S2S, 2 for AttnGRU)')
+parser.add_argument('--model_type','-m',type=int,default=0,help='Model type (0 for AttnLSTM, 1 for S2S, 2 for AttnGRU)')
 parser.add_argument('--model_file','-mf',type=str,default='../../models/HW3/model.pkl',help='Model save target.')
 parser.add_argument('--n_epochs','-e',type=int,default=3,help='set the number of training epochs.')
 parser.add_argument('--adadelta','-ada',action='store_true',help='Use Adadelta optimizer')
@@ -102,17 +102,16 @@ if word2vec:
 
 print("REMINDER!!! Did you create ../../models/HW3?????")
 
+unk_token = EN.vocab.stoi["<unk>"]
+pad_token = EN.vocab.stoi["<pad>"]
 sos_token = EN.vocab.stoi["<s>"]
 eos_token = EN.vocab.stoi["</s>"]
-pad_token = EN.vocab.stoi["<pad>"]
 
 ''' TODO
-Don't average over time bro! Immediate edits (hidden)
-Make S2S bidirectional
-Run a smaller model baseline, word2vec, and weight tying+word2vec. With Sager's results.
 Does predict accuracy go up if I exclude stupid tokens from being predicted?
+Does ppl change if you average loss the actual Yoon way?
+Run a smaller model baseline, word2vec, and weight tying+word2vec. With Sager's results.
 Try plotting train and val acc after each batch.
-Plot attention
 BLEU perl script
 
 LATEX
@@ -143,7 +142,7 @@ if model_type == 0:
 elif model_type == 1:
     model = S2S(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size, word2vec=args.word2vec,
                 vocab_layer_size=args.vocab_layer_size, LSTM_dropout=args.LSTM_dropout, vocab_layer_dropout=args.vocab_layer_dropout, 
-                weight_tying=args.weight_tying)
+                weight_tying=args.weight_tying, bidirectional=args.bidirectional)
 if model_type == 2:
     model = AttnGRU(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size, word2vec=args.word2vec,
                     vocab_layer_size=args.vocab_layer_size, LSTM_dropout=args.LSTM_dropout, vocab_layer_dropout=args.vocab_layer_dropout, 
@@ -190,7 +189,7 @@ for epoch in range(n_epochs):
 
         if args.accuracy:
             model.eval()
-            x_de.volatile = True # "inference mode" supposedly speeds up
+            x_de = Variable(x_de.data, volatile = True)
             y_pred,_ = model.predict(x_de, x_en) # bs,n_en
             correct = (y_pred == x_en) # these are the same shape and both contain a sos_token row
             no_pad = (x_en != pad_token) & (x_en != sos_token)

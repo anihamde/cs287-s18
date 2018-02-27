@@ -123,9 +123,9 @@ class AttnNetwork(nn.Module):
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
         emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
         # hidden vars have dimension n_layers*n_directions,bs,hiddensz
-        enc_h, _ = self.encoder(emb_de, lstm_hidden(self.n_layers*self.directions, bs, self.hidden_dim))
+        enc_h, _ = self.encoder(emb_de, self.initEnc(bs))
         # enc_h is bs,n_de,hiddensz*n_directions. ordering is different from last week because batch_first=True
-        dec_h, _ = self.decoder(emb_en, lstm_hidden(self.n_layers, bs, self.hidden_dim))
+        dec_h, _ = self.decoder(emb_en, self.initDec(bs))
         # dec_h is bs,n_en,hidden_size
         # we've gotten our encoder/decoder hidden states so we are ready to do attention
         # first let's get all our scores, which we can do easily since we are using dot-prod attention
@@ -158,8 +158,8 @@ class AttnNetwork(nn.Module):
         bs = x_de.size(0)
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
         emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
-        enc_h, _ = self.encoder(emb_de, lstm_hidden(self.n_layers*self.directions, bs, self.hidden_dim)) # (bs,n_de,hiddensz*2)
-        dec_h, _ = self.decoder(emb_en, lstm_hidden(self.n_layers, bs, self.hidden_dim)) # (bs,n_en,hiddensz)
+        enc_h, _ = self.encoder(emb_de, self.initEnc(bs)) # (bs,n_de,hiddensz*2)
+        dec_h, _ = self.decoder(emb_en, self.initDec(bs)) # (bs,n_en,hiddensz)
         # all the same. enc_h is bs,n_de,hiddensz*n_directions. h and c are both n_layers*n_directions,bs,hiddensz
         if self.directions == 2:
             scores = torch.bmm(self.dim_reduce(enc_h), dec_h.transpose(1,2))
@@ -171,6 +171,7 @@ class AttnNetwork(nn.Module):
         context = torch.bmm(attn_dist.transpose(2,1),enc_h)
         # (bs,n_en,n_de) * (bs,n_de,hiddensz*ndirections) = (bs,n_en,hiddensz*ndirections)
         pred = self.vocab_layer(torch.cat([dec_h,context],2)) # bs,n_en,len(EN.vocab)
+        # pred[:,:,[unk_token,pad_token]] = -math.inf # TODO: testing this out kill pad unk
         pred = pred[:,:-1,:] # alignment
         _, tokens = pred.max(2) # bs,n_en-1
         sauce = Variable(torch.cuda.LongTensor([[sos_token]]*bs)) # bs
@@ -178,7 +179,7 @@ class AttnNetwork(nn.Module):
     # Singleton batch with BSO
     def predict2(self, x_de, beamsz, gen_len):
         emb_de = self.embedding_de(x_de) # "batch size",n_de,word_dim, but "batch size" is 1 in this case!
-        enc_h, _ = self.encoder(emb_de, lstm_hidden(self.n_layers*self.directions, 1, self.hidden_dim))
+        enc_h, _ = self.encoder(emb_de, self.initEnc(1))
         # since enc batch size=1, enc_h is 1,n_de,hiddensz*n_directions
         masterheap = CandList(self.n_layers,self.hidden_dim,enc_h.size(1),beamsz)
         # in the following loop, beamsz is length 1 for first iteration, length true beamsz (100) afterward
@@ -205,7 +206,7 @@ class AttnNetwork(nn.Module):
             # the difference btwn hard and soft is just whether we use a one_hot or a distribution
             # context is beamsz,hiddensz*n_directions
             pred = self.vocab_layer(torch.cat([dec_h.squeeze(1), context], 1)) # beamsz,len(EN.vocab)
-            # TODO: set the columns corresponding to <pad>,<unk>,</s>,etc to 0
+            # pred[:,:,[unk_token,pad_token]] = -inf # TODO: testing this out kill pad unk
             masterheap.update_beam(pred)
             masterheap.update_hiddens(h,c)
             masterheap.update_attentions(attn_dist)
@@ -254,12 +255,10 @@ class AttnGRU(nn.Module):
         # x_de is bs,n_de. x_en is bs,n_en
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
         emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
-        h0_enc = torch.zeros(self.n_layers*self.directions, bs, self.hidden_dim).cuda()
-        h0_dec = torch.zeros(self.n_layers, bs, self.hidden_dim).cuda()
         # hidden vars have dimension n_layers*n_directions,bs,hiddensz
-        enc_h, _ = self.encoder(emb_de, Variable(h0_enc))
+        enc_h, _ = self.encoder(emb_de, self.initEnc(bs))
         # enc_h is bs,n_de,hiddensz*n_directions. ordering is different from last week because batch_first=True
-        dec_h, _ = self.decoder(emb_en, Variable(h0_dec))
+        dec_h, _ = self.decoder(emb_en, self.initDec(bs))
         # dec_h is bs,n_en,hidden_size
         # we've gotten our encoder/decoder hidden states so we are ready to do attention
         # first let's get all our scores, which we can do easily since we are using dot-prod attention
@@ -292,10 +291,8 @@ class AttnGRU(nn.Module):
         bs = x_de.size(0)
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
         emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
-        h_enc = Variable(torch.zeros(self.n_layers*self.directions, bs, self.hidden_dim).cuda())
-        h_dec = Variable(torch.zeros(self.n_layers, bs, self.hidden_dim).cuda())
-        enc_h, _ = self.encoder(emb_de, h_enc) # (bs,n_de,hiddensz*2)
-        dec_h, _ = self.decoder(emb_en, h_dec) # (bs,n_en,hiddensz)
+        enc_h, _ = self.encoder(emb_de, self.initEnc(bs)) # (bs,n_de,hiddensz*2)
+        dec_h, _ = self.decoder(emb_en, self.initDec(bs)) # (bs,n_en,hiddensz)
         # all the same. enc_h is bs,n_de,hiddensz*n_directions. h and c are both n_layers*n_directions,bs,hiddensz
         if self.directions == 2:
             scores = torch.bmm(self.dim_reduce(enc_h), dec_h.transpose(1,2))
@@ -314,9 +311,7 @@ class AttnGRU(nn.Module):
     # Singleton batch with BSO
     def predict2(self, x_de, beamsz, gen_len):
         emb_de = self.embedding_de(x_de) # "batch size",n_de,word_dim, but "batch size" is 1 in this case!
-        h0_enc = Variable(torch.zeros(self.n_layers*self.directions, 1, self.hidden_dim).cuda())
-        h0_dec = Variable(torch.zeros(self.n_layers, 1, self.hidden_dim).cuda())
-        enc_h, _ = self.encoder(emb_de, h0_enc)
+        enc_h, _ = self.encoder(emb_de, self.initEnc(1))
         # since enc batch size=1, enc_h is 1,n_de,hiddensz*n_directions
         masterheap = CandList(self.n_layers,self.hidden_dim,enc_h.size(1),beamsz)
         # in the following loop, beamsz is length 1 for first iteration, length true beamsz (100) afterward
@@ -326,7 +321,7 @@ class AttnGRU(nn.Module):
             enc_h_expand = enc_h.expand(prev.size(0),-1,-1) # beamsz,n_de,hiddensz
             
             h, c = masterheap.get_hiddens() # (n_layers,beamsz,hiddensz),(n_layers,beamsz,hiddensz)
-            dec_h, (h, c) = self.decoder(emb_t.unsqueeze(1), (h, c)) # dec_h is beamsz,1,hiddensz (batch_first=True)
+            dec_h, (h, c) = self.decoder(emb_t.unsqueeze(1), h) # dec_h is beamsz,1,hiddensz (batch_first=True)
             if self.directions == 2:
                 scores = torch.bmm(self.dim_reduce(enc_h_expand), dec_h.transpose(1,2)).squeeze(2)
             else:
@@ -358,19 +353,20 @@ class S2S(nn.Module):
         self.hidden_dim = hidden_dim
         self.n_layers = n_layers
         self.vocab_layer_dim = (vocab_layer_size,word_dim)[weight_tying == True]
-        bidirectional = False
         self.directions = (1,2)[bidirectional == True]
         # LSTM initialization params: inputsz,hiddensz,n_layers,bias,batch_first,bidirectional
-        self.encoder = nn.LSTM(word_dim, hidden_dim, n_layers, batch_first = True, dropout=LSTM_dropout)
+        self.encoder = nn.LSTM(word_dim, hidden_dim, n_layers, batch_first = True, dropout=LSTM_dropout, bidirectional=bidirectional)
         self.decoder = nn.LSTM(word_dim, hidden_dim, n_layers, batch_first = True, dropout=LSTM_dropout)
         self.embedding_de = nn.Embedding(len(DE.vocab), word_dim)
         self.embedding_en = nn.Embedding(len(EN.vocab), word_dim)
+        if bidirectional:
+            self.dim_reduce = nn.Linear(hidden_dim*2,hidden_dim)
         if word2vec:
             self.embedding_de.weight.data.copy_(DE.vocab.vectors)
             self.embedding_en.weight.data.copy_(EN.vocab.vectors)
         # vocab layer will project dec hidden state out into vocab space 
         self.vocab_layer = nn.Sequential(OrderedDict([
-            ('h2e',nn.Linear(hidden_dim,self.vocab_layer_dim)),
+            ('h2e',nn.Linear(hidden_dim*self.directions,self.vocab_layer_dim)),
             ('tanh',nn.Tanh()),
             ('drp',nn.Dropout(vocab_layer_dropout)),
             ('e2v',nn.Linear(self.vocab_layer_dim,len(EN.vocab))),
@@ -382,19 +378,18 @@ class S2S(nn.Module):
     def initEnc(self,batch_size):
         return (Variable(torch.zeros(self.n_layers*self.directions,batch_size,self.hidden_dim).cuda()), 
                 Variable(torch.zeros(self.n_layers*self.directions,batch_size,self.hidden_dim).cuda()))
-    def initDec(self,batch_size):
-        return (Variable(torch.zeros(self.n_layers,batch_size,self.hidden_dim).cuda()), 
-                Variable(torch.zeros(self.n_layers,batch_size,self.hidden_dim).cuda()))
     def forward(self, x_de, x_en):
         bs = x_de.size(0)
         # x_de is bs,n_de. x_en is bs,n_en
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
         emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
-        h,c = lstm_hidden(self.n_layers, bs, self.hidden_dim)
         # hidden vars have dimension n_layers*n_directions,bs,hiddensz
-        enc_h, (h,c) = self.encoder(emb_de, (h, c))
+        enc_h, (h,c) = self.encoder(emb_de, self.initEnc(bs))
         # enc_h is bs,n_de,hiddensz*n_directions. ordering is different from last week because batch_first=True
-        dec_h, _ = self.decoder(emb_en, (h, c))
+        if self.directions == 2:
+            h = self.dim_reduce(h.transpose(1,2,0)).transpose(2,0,1)
+            c = self.dim_reduce(c.transpose(1,2,0)).transpose(2,0,1)
+        dec_h, _ = self.decoder(emb_en, (h,c))
         # dec_h is bs,n_en,hidden_size*n_directions
         pred = self.vocab_layer(dec_h) # bs,n_en,len(EN.vocab)
         pred = pred[:,:-1,:] # alignment
@@ -410,9 +405,11 @@ class S2S(nn.Module):
         bs = x_de.size(0)
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
         emb_en = self.embedding_en(x_en)
-        h,c = lstm_hidden(self.n_layers, bs, self.hidden_dim)
-        enc_h, (h,c) = self.encoder(emb_de, (h, c))
-        dec_h, _ = self.decoder(emb_en, (h, c))
+        enc_h, (h,c) = self.encoder(emb_de, self.initEnc(bs))
+        if self.directions == 2:
+            h = self.dim_reduce(h.transpose(1,2,0)).transpose(2,0,1)
+            c = self.dim_reduce(c.transpose(1,2,0)).transpose(2,0,1)
+        dec_h, _ = self.decoder(emb_en, (h,c))
         # all the same. enc_h is bs,n_de,hiddensz*n_directions. h and c are both n_layers*n_directions,bs,hiddensz
         pred = self.vocab_layer(dec_h) # bs,n_en,len(EN.vocab)
         pred = pred[:,:-1,:] # alignment
@@ -422,8 +419,10 @@ class S2S(nn.Module):
     # Singleton batch with BSO
     def predict2(self, x_de, beamsz, gen_len):
         emb_de = self.embedding_de(x_de) # "batch size",n_de,word_dim, but "batch size" is 1 in this case!
-        h,c = lstm_hidden(self.n_layers, 1, self.hidden_dim)
-        enc_h, (h, c) = self.encoder(emb_de, (h, c))
+        enc_h, (h, c) = self.encoder(emb_de, self.initEnc(1))
+        if self.directions == 2:
+            h = self.dim_reduce(h.transpose(1,2,0)).transpose(2,0,1)
+            c = self.dim_reduce(c.transpose(1,2,0)).transpose(2,0,1)
         # since enc batch size=1, enc_h is 1,n_de,hiddensz*n_directions
         masterheap = CandList(self.n_layers,self.hidden_dim,enc_h.size(1),beamsz)
         masterheap.update_hiddens(h,c) # should change the 1 to beamsz... i think this is ok
@@ -432,7 +431,6 @@ class S2S(nn.Module):
             prev = masterheap.get_prev() # beamsz
             emb_t = self.embedding_en(prev) # embed the last thing we generated. beamsz,word_dim
             enc_h_expand = enc_h.expand(prev.size(0),-1,-1) # beamsz,n_de,hiddensz
-            
             h, c = masterheap.get_hiddens() # (n_layers,beamsz,hiddensz),(n_layers,beamsz,hiddensz)
             dec_h, (h, c) = self.decoder(emb_t.unsqueeze(1), (h, c)) # dec_h is beamsz,1,hiddensz (batch_first=True)
             pred = self.vocab_layer(dec_h.squeeze(1)) # beamsz,len(EN.vocab)

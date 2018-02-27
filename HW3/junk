@@ -18,6 +18,7 @@ loss -= (reward.sum(1) / no_pad.data.type(torch.FloatTensor).sum(1)).sum()
 avg_reward = -reward[no_pad].data.mean()
 # hard attention baseline and reinforce stuff causing me trouble
 return loss, 0, avg_reward
+# AND then don't multiply by x_en.size(1)!
 
 # Predictions without teacher forcing!
 # predict many batches with greedy encoding. no teacher forcing
