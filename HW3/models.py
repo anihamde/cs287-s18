@@ -24,7 +24,7 @@ from helpers import unpackage_hidden
 # philosophy: we're going to take the dirty variables and reorder them nicely all in here and store them as tensors
 # the inputs to these methods could have beamsz = 1 or beamsz = true beamsz (100)
 class CandList():
-    def __init__(self,n_layers,hidden_dim,n_de,model,beamsz=100):
+    def __init__(self,n_de,model,beamsz=100):
         self.beamsz = beamsz
         self.hiddens = unpackage_hidden(model.initDec(1))
         # hidden tensors (initially beamsz 1, later beamsz true beamsz)
@@ -192,7 +192,7 @@ class AttnNetwork(nn.Module):
         emb_de = self.embedding_de(x_de) # "batch size",n_de,word_dim, but "batch size" is 1 in this case!
         enc_h, _ = self.encoder(emb_de, self.initEnc(1))
         # since enc batch size=1, enc_h is 1,n_de,hiddensz*n_directions
-        masterheap = CandList(self.n_layers,self.hidden_dim,enc_h.size(1),beamsz)
+        masterheap = CandList(enc_h.size(1),self,beamsz)
         # in the following loop, beamsz is length 1 for first iteration, length true beamsz (100) afterward
         for i in range(gen_len):
             prev = masterheap.get_prev() # beamsz
