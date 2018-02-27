@@ -41,11 +41,15 @@ class CandList():
             return Variable(self.wordlist[:,-1])
     def get_hiddens(self):
         print(self.hiddens)
-        print(type(self.hiddens))
-        try:
-            res = tuple( Variable(x) for x in self.hiddens )
-        except TypeError:
+        print(type(self.hiddens) == torch.cuda.FloatTensor)
+        if type(self.hiddens) == FloatTensor:
             res = Variable(self.hiddens)
+        else:
+            res = tuple( Variable(x) for x in self.hiddens )
+        #try:
+        #    res = tuple( Variable(x) for x in self.hiddens )
+        #except TypeError:
+        #    res = Variable(self.hiddens)
         return res
         #return (Variable(self.hiddens[0]),Variable(self.hiddens[1]))
     def update_beam(self,newlogprobs): # newlogprobs is beamsz,len(EN.vocab)
