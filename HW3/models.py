@@ -111,6 +111,12 @@ class AttnNetwork(nn.Module):
         # baseline reward, which we initialize with log 1/V
         self.baseline = Variable(torch.cuda.FloatTensor([np.log(1/len(EN.vocab))]))
         # self.baseline = Variable(torch.zeros(1).fill_(np.log(1/len(EN.vocab))).cuda()) # yoon's way
+    def initEnc(self,batch_size):
+        return (Variable(torch.zeros(self.n_layers*self.directions,batch_size,self.hidden_dim).cuda()), 
+                Variable(torch.zeros(self.n_layers*self.directions,batch_size,self.hidden_dim).cuda()))
+    def initDec(self,batch_size):
+        return (Variable(torch.zeros(self.n_layers,batch_size,self.hidden_dim).cuda()), 
+                Variable(torch.zeros(self.n_layers,batch_size,self.hidden_dim).cuda()))
     def forward(self, x_de, x_en, update_baseline=True):
         bs = x_de.size(0)
         # x_de is bs,n_de. x_en is bs,n_en
@@ -239,6 +245,10 @@ class AttnGRU(nn.Module):
         # baseline reward, which we initialize with log 1/V
         self.baseline = Variable(torch.cuda.FloatTensor([np.log(1/len(EN.vocab))]))
         # self.baseline = Variable(torch.zeros(1).fill_(np.log(1/len(EN.vocab))).cuda()) # yoon's way
+    def initEnc(self,batch_size):
+        return Variable(torch.zeros(self.n_layers*self.directions,batch_size,self.hidden_dim).cuda())
+    def initDec(self,batch_size):
+        return Variable(torch.zeros(self.n_layers,batch_size,self.hidden_dim).cuda())
     def forward(self, x_de, x_en, update_baseline=True):
         bs = x_de.size(0)
         # x_de is bs,n_de. x_en is bs,n_en
@@ -343,11 +353,13 @@ class AttnGRU(nn.Module):
 class S2S(nn.Module):
     def __init__(self, word_dim=300, n_layers=1, hidden_dim=500, word2vec=False,
                 vocab_layer_size=500, LSTM_dropout=0.0, vocab_layer_dropout=0.0, 
-                weight_tying=False):
+                weight_tying=False, bidirectional=False):
         super(S2S, self).__init__()
         self.hidden_dim = hidden_dim
         self.n_layers = n_layers
         self.vocab_layer_dim = (vocab_layer_size,word_dim)[weight_tying == True]
+        bidirectional = False
+        self.directions = (1,2)[bidirectional == True]
         # LSTM initialization params: inputsz,hiddensz,n_layers,bias,batch_first,bidirectional
         self.encoder = nn.LSTM(word_dim, hidden_dim, n_layers, batch_first = True, dropout=LSTM_dropout)
         self.decoder = nn.LSTM(word_dim, hidden_dim, n_layers, batch_first = True, dropout=LSTM_dropout)
@@ -367,6 +379,12 @@ class S2S(nn.Module):
         if weight_tying:
             self.vocab_layer.e2v.weight.data.copy_(self.embedding_en.weight.data)
         self.baseline = Variable(torch.cuda.FloatTensor([np.log(1/len(EN.vocab))])) # just to be consistent
+    def initEnc(self,batch_size):
+        return (Variable(torch.zeros(self.n_layers*self.directions,batch_size,self.hidden_dim).cuda()), 
+                Variable(torch.zeros(self.n_layers*self.directions,batch_size,self.hidden_dim).cuda()))
+    def initDec(self,batch_size):
+        return (Variable(torch.zeros(self.n_layers,batch_size,self.hidden_dim).cuda()), 
+                Variable(torch.zeros(self.n_layers,batch_size,self.hidden_dim).cuda()))
     def forward(self, x_de, x_en):
         bs = x_de.size(0)
         # x_de is bs,n_de. x_en is bs,n_en
