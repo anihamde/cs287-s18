@@ -227,7 +227,7 @@ class AttnGRU(nn.Module):
     def __init__(self, word_dim=300, n_layers=1, hidden_dim=500, word2vec=False,
                 vocab_layer_size=500, LSTM_dropout=0.0, vocab_layer_dropout=0.0, 
                  weight_tying=False, bidirectional=False, attn_type="soft"):
-        super(AttnNetwork, self).__init__()
+        super(AttnGRU, self).__init__()
         self.attn_type = attn_type
         self.hidden_dim = hidden_dim
         self.n_layers = n_layers
