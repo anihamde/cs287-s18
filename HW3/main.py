@@ -133,11 +133,12 @@ Generate longer full sentences with small beams. Not fixed-length.
 
 QUESTIONS
 Yoon: y u avg loss over batches but not time? Did u know diff batches are diff sizes cuz padding? Is my way ok?
-How do bidirectional RNNs really work (in linear time)? Can the decoder of attention be bidirectional?
-Can you batch over time for hard attention, or without teacher forcing?
+same sentence length, then it doesn't matter. but here, see paper. there is some work that averages over time step. but from a MLE perspective
+Can the decoder of attention be bidirectional?
+Can you batch over time for hard attention, or without teacher forcing? Nope.
 What's purpose of baseline? Ur code is wrong- subtract something averaged over bs & n_de from something averaged over bs?
 Can I throw out the perplexity from predicting on <s>? Else, why might my ppl be too high?
-'''
+''' 
 from models import AttnNetwork, CandList, S2S
 from helpers import asMinutes, timeSince, escape, flip
 
