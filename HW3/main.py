@@ -131,7 +131,7 @@ If we have time, we can try the pytorch tutorial script with and without attn, t
 How to run jupyter notebooks in cloud?
 Generate longer full sentences with small beams. Not fixed-length.
 ''' 
-from models import AttnNetwork, CandList, S2S
+from models import AttnNetwork, CandList, S2S, AttnGRU
 from helpers import asMinutes, timeSince, escape, flip
 
 if model_type == 0:
