@@ -42,7 +42,7 @@ class CandList():
             return Variable(self.wordlist[:,-1])
     def get_hiddens(self):
         try:
-            res = ( Variable(x) for x in self.hiddens )
+            res = tuple( Variable(x) for x in self.hiddens )
         except TypeError:
             res = Variable(self.hiddens)
         return res
