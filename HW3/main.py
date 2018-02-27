@@ -17,7 +17,7 @@ import time
 import argparse
 
 parser = argparse.ArgumentParser(description='training runner')
-parser.add_argument('--model_type','-m',type=int,default=0,help='Model type (0 for Attn, 1 for S2S)')
+parser.add_argument('--model_type','-m',type=int,default=0,help='Model type (0 for Attn, 1 for S2S, 2 for AttnGRU)')
 parser.add_argument('--model_file','-mf',type=str,default='../../models/HW3/model.pkl',help='Model save target.')
 parser.add_argument('--n_epochs','-e',type=int,default=3,help='set the number of training epochs.')
 parser.add_argument('--adadelta','-ada',action='store_true',help='Use Adadelta optimizer')
@@ -25,7 +25,7 @@ parser.add_argument('--learning_rate','-lr',type=float,default=0.01,help='set le
 parser.add_argument('--rho','-r',type=float,default=0.95,help='rho for Adadelta optimizer')
 parser.add_argument('--weight_decay','-wd',type=float,default=0.0,help='Weight decay constant for optimizer')
 parser.add_argument('--accuracy','-acc',action='store_true',help='Calculate accuracy during training loop.')
-
+parser.add_argument('--frequent_ckpt','-ckpt',action='store_true',help='Save checkpoints every epoch, instead of just at the end.')
 parser.add_argument('--attn_type','-at',type=str,default='soft',help='attention type')
 parser.add_argument('--clip_constraint','-cc',type=float,default=5.0,help='weight norm clip constraint')
 parser.add_argument('--word2vec','-w',action='store_true',help='Raise flag to initialize with word2vec embeddings')
@@ -107,36 +107,32 @@ eos_token = EN.vocab.stoi["</s>"]
 pad_token = EN.vocab.stoi["<pad>"]
 
 ''' TODO
-Plot attention
-
-
-EXTENSIONS
-Consult papers for hyperparameters
-Multi-layer, bidirectional (see Piazza), GRU instead of LSTM
-Pretrained embeddings
-Weight tying
-Dropout, embedding max norms, weight clipping, learning rate scheduling, residual connections
-More complex regularization techniques (Yoon piazza)
-Interpolation
-Hard attention, with updating baseline
+Don't average over time bro! Immediate edits (hidden)
 Make S2S bidirectional
-Checkout openNMT for inspiration
+Run a smaller model baseline, word2vec, and weight tying+word2vec. With Sager's results.
+Does predict accuracy go up if I exclude stupid tokens from being predicted?
+Try plotting train and val acc after each batch.
+Plot attention
+BLEU perl script
 
+LATEX
+S2S results, with 1 and 4 layers. And bidirectional S2S
+Sweep over hidden sizes and num layers.
+Bidirectional vs not bidirectional (easily helps).
+Baseline, word2vec, weight tying+word2vec.
+GRU vs LSTM
+Hard attention, with updating baseline
+Interpolation
 
 ANCILLARY
-Use a binary mask to zero out attention to paddings in the source.
+Dropout, embedding max norms, weight clipping, learning rate scheduling (ada), residual connections
+More complex regularization techniques (Yoon piazza)
+Checkout openNMT for inspiration
+Bigger validation set
 If we have time, we can try the pytorch tutorial script with and without attn, to see if teacher forcing makes a difference
-BLEU perl script
-Can I throw out the perplexity from predicting on <s>? Who knows what the first word in a sentence is?
 How to run jupyter notebooks in cloud?
 Generate longer full sentences with small beams. Not fixed-length.
-
-QUESTIONS
-Yoon: y u avg loss over batches but not time? Did u know diff batches are diff sizes cuz padding? Is my way ok?
-How do bidirectional RNNs really work (in linear time)? Can the decoder of attention be bidirectional?
-Can you batch over time for hard attention, or without teacher forcing?
-What's purpose of baseline? Ur code is wrong- subtract something averaged over bs & n_de from something averaged over bs?
-'''
+''' 
 from models import AttnNetwork, CandList, S2S
 from helpers import asMinutes, timeSince, escape, flip
 
@@ -148,6 +144,10 @@ elif model_type == 1:
     model = S2S(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size, word2vec=args.word2vec,
                 vocab_layer_size=args.vocab_layer_size, LSTM_dropout=args.LSTM_dropout, vocab_layer_dropout=args.vocab_layer_dropout, 
                 weight_tying=args.weight_tying)
+if model_type == 2:
+    model = AttnGRU(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size, word2vec=args.word2vec,
+                    vocab_layer_size=args.vocab_layer_size, LSTM_dropout=args.LSTM_dropout, vocab_layer_dropout=args.vocab_layer_dropout, 
+                    weight_tying=args.weight_tying, bidirectional=args.bidirectional, attn_type=attn_type)
 
 model.cuda()
 
@@ -185,7 +185,8 @@ for epoch in range(n_epochs):
         torch.nn.utils.clip_grad_norm(model.parameters(), clip_constraint)
         optimizer.step()
         if args.weight_tying:
-            model.vocab_layer.e2v.weight.data.copy_(model.embedding_en.weight.data)
+            #model.vocab_layer.e2v.weight.data.copy_(model.embedding_en.weight.data)
+            model.embedding_en.weight.data.copy_(model.vocab_layer.e2v.weight.data)
 
         if args.accuracy:
             model.eval()
@@ -224,7 +225,8 @@ for epoch in range(n_epochs):
     val_loss_avg = val_loss_total / len(val_iter)
     timenow = timeSince(start)
     print('Validation. Time %s, PPL: %.2f' %(timenow, np.exp(val_loss_avg)))
-    torch.save(model.state_dict(), args.model_file) # I'm Paranoid!!!!!!!!!!!!!!!!
+    if args.frequent_ckpt:
+        torch.save(model.state_dict(), args.model_file) # I'm Paranoid!!!!!!!!!!!!!!!!
 
 torch.save(model.state_dict(), args.model_file)
 
@@ -243,8 +245,9 @@ with open("preds.csv", "w") as f:
 
 # showPlot(plot_losses) # TODO: function not added/checked
 # # visualize only for AttnNetwork
-# def visualize(attns,sentence_de,bs,nwords,flname): # attns = (SentLen_EN)x(SentLen_DE), sentence_de = ["German_1",...,"German_(SentLen_DE)"]
-#     _,wordlist,attns = model.predict2(sentence_de,beamsz=bs,gen_len=nwords)
+# def visualize(sentence_de,bs,nwords,flname): # attns = (SentLen_EN)x(SentLen_DE), sentence_de = ["German_1",...,"German_(SentLen_DE)"]
+#     ls = [[DE.vocab.stoi[w] for w in sentence_de.split(' ')]]
+#     _,wordlist,attns = model.predict2(Variable(torch.cuda.LongTensor(ls)),beamsz=bs,gen_len=nwords)
 
 #     fig = plt.figure()
 #     ax = fig.add_subplot(111)
@@ -266,6 +269,6 @@ with open("preds.csv", "w") as f:
 # cntr = 0
 # for sentence_de in list_of_german_sentences:
 #     flname = "plot_"+"{}".format(cntr)
-#     visualize(model,sentence_de,5,10,"{}".format(flname))
+#     visualize(sentence_de,5,10,"{}".format(flname))
 #     cntr += 1
 

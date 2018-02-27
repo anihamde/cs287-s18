@@ -1,6 +1,8 @@
 import torch
 import time
 import math
+import torch
+from torch.autograd import Variable
 
 def asMinutes(s):
     m = math.floor(s / 60)
@@ -25,3 +27,6 @@ def flip(x, dim):
     x = x.view(x.size(0), x.size(1), -1)[:, getattr(torch.arange(x.size(1)-1, 
                       -1, -1), ('cpu','cuda')[x.is_cuda])().long(), :]
     return x.view(xsize)
+
+def lstm_hidden(laydir,bs,hiddensz):
+    return (Variable(torch.zeros(laydir,bs,hiddensz).cuda()), Variable(torch.zeros(laydir,bs,hiddensz).cuda()))
