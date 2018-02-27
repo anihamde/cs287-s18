@@ -10,7 +10,7 @@ from torchtext import datasets
 from torchtext.vocab import Vectors
 import spacy
 from models import AttnNetwork, CandList, S2S, AttnGRU
-from helpers import asMinutes, timeSince, escape, flip
+from helpers import asMinutes, timeSince, escape, flip, freeze_model
 from collections import OrderedDict
 # import matplotlib.pyplot as plt
 # import matplotlib.ticker as ticker
