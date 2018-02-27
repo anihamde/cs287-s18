@@ -397,8 +397,8 @@ class S2S(nn.Module):
         enc_h, (h,c) = self.encoder(emb_de, self.initEnc(bs))
         # enc_h is bs,n_de,hiddensz*n_directions. ordering is different from last week because batch_first=True
         if self.directions == 2:
-            h = self.dim_reduce(h.transpose(2,0)).transpose(2,0) # nlayers*2,bs,hiddensz to nlayers,bs,hiddensz
-            c = self.dim_reduce(c.transpose(2,0)).transpose(2,0)
+            h = self.dim_reduce(h.transpose(2,0)).transpose(2,0).contiguous() # nlayers*2,bs,hiddensz to nlayers,bs,hiddensz
+            c = self.dim_reduce(c.transpose(2,0)).transpose(2,0).contiguous() # this is hacky, and i don't like doing it!
         dec_h, _ = self.decoder(emb_en, (h,c))
         # dec_h is bs,n_en,hidden_size*n_directions
         pred = self.vocab_layer(dec_h) # bs,n_en,len(EN.vocab)
@@ -417,8 +417,8 @@ class S2S(nn.Module):
         emb_en = self.embedding_en(x_en)
         enc_h, (h,c) = self.encoder(emb_de, self.initEnc(bs))
         if self.directions == 2:
-            h = self.dim_reduce(h.transpose(2,0)).transpose(2,0)
-            c = self.dim_reduce(c.transpose(2,0)).transpose(2,0)
+            h = self.dim_reduce(h.transpose(2,0)).transpose(2,0).contiguous() # nlayers*2,bs,hiddensz to nlayers,bs,hiddensz
+            c = self.dim_reduce(c.transpose(2,0)).transpose(2,0).contiguous() # this is hacky, and i don't like doing it!
         dec_h, _ = self.decoder(emb_en, (h,c))
         # all the same. enc_h is bs,n_de,hiddensz*n_directions. h and c are both n_layers*n_directions,bs,hiddensz
         pred = self.vocab_layer(dec_h) # bs,n_en,len(EN.vocab)
@@ -431,8 +431,8 @@ class S2S(nn.Module):
         emb_de = self.embedding_de(x_de) # "batch size",n_de,word_dim, but "batch size" is 1 in this case!
         enc_h, (h, c) = self.encoder(emb_de, self.initEnc(1))
         if self.directions == 2:
-            h = self.dim_reduce(h.transpose(2,0)).transpose(2,0)
-            c = self.dim_reduce(c.transpose(2,0)).transpose(2,0)
+            h = self.dim_reduce(h.transpose(2,0)).transpose(2,0).contiguous() # nlayers*2,bs,hiddensz to nlayers,bs,hiddensz
+            c = self.dim_reduce(c.transpose(2,0)).transpose(2,0).contiguous() # this is hacky, and i don't like doing it!
         # since enc batch size=1, enc_h is 1,n_de,hiddensz*n_directions
         masterheap = CandList(enc_h.size(1),(h,c),beamsz)
         masterheap.update_hiddens((h,c)) # TODO: this extraneous call could be eliminated if __init__ called self.update_hiddens

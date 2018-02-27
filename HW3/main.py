@@ -108,6 +108,7 @@ sos_token = EN.vocab.stoi["<s>"]
 eos_token = EN.vocab.stoi["</s>"]
 
 ''' TODO
+Fix bidirectional S2S
 Does ppl change if you average loss the actual Yoon way?
 Try plotting train and val acc after each batch.
 BLEU perl script
