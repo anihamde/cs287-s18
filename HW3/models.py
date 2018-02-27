@@ -24,9 +24,9 @@ from helpers import unpackage_hidden
 # philosophy: we're going to take the dirty variables and reorder them nicely all in here and store them as tensors
 # the inputs to these methods could have beamsz = 1 or beamsz = true beamsz (100)
 class CandList():
-    def __init__(self,n_de,model,beamsz=100):
+    def __init__(self,n_de,initHidden,beamsz=100):
         self.beamsz = beamsz
-        self.hiddens = unpackage_hidden(model.initDec(1))
+        self.hiddens = unpackage_hidden(initHidden)
         # hidden tensors (initially beamsz 1, later beamsz true beamsz)
         self.attentions = None
         # attention matrices-- we will concatenate along dimension 1. beamsz,n_en,n_de
@@ -42,9 +42,9 @@ class CandList():
             return Variable(self.wordlist[:,-1])
     def get_hiddens(self):
         try:
-            result = ( Variable(x) for x in self.hiddens )
+            res = ( Variable(x) for x in self.hiddens )
         except TypeError:
-            result = Variable(self.hiddens)
+            res = Variable(self.hiddens)
         return result
         #return (Variable(self.hiddens[0]),Variable(self.hiddens[1]))
     def update_beam(self,newlogprobs): # newlogprobs is beamsz,len(EN.vocab)
@@ -70,7 +70,7 @@ class CandList():
         # no need to save old hidden states
         if self.firstloop:
             try:
-                hidd = [ x.expand(-1,self.beamsz,-1).contiguous() for x in hidd ]
+                hidd = ( x.expand(-1,self.beamsz,-1).contiguous() for x in hidd )
             except TypeError:
                 hidd = hidd.expand(-1,self.beamsz,-1).contiguous()
             # see https://discuss.pytorch.org/t/initial-state-of-rnn-is-not-contiguous/4615
@@ -192,14 +192,15 @@ class AttnNetwork(nn.Module):
         emb_de = self.embedding_de(x_de) # "batch size",n_de,word_dim, but "batch size" is 1 in this case!
         enc_h, _ = self.encoder(emb_de, self.initEnc(1))
         # since enc batch size=1, enc_h is 1,n_de,hiddensz*n_directions
-        masterheap = CandList(enc_h.size(1),self,beamsz)
+        masterheap = CandList(enc_h.size(1),self.initDec(1),beamsz)
         # in the following loop, beamsz is length 1 for first iteration, length true beamsz (100) afterward
         for i in range(gen_len):
             prev = masterheap.get_prev() # beamsz
             emb_t = self.embedding_en(prev) # embed the last thing we generated. beamsz,word_dim
             enc_h_expand = enc_h.expand(prev.size(0),-1,-1) # beamsz,n_de,hiddensz
-            
+            #
             hidd = masterheap.get_hiddens() # (n_layers,beamsz,hiddensz),(n_layers,beamsz,hiddensz)
+            print type(hidd)
             dec_h, hidd = self.decoder(emb_t.unsqueeze(1), hidd) # dec_h is beamsz,1,hiddensz (batch_first=True)
             if self.directions == 2:
                 scores = torch.bmm(self.dim_reduce(enc_h_expand), dec_h.transpose(1,2)).squeeze(2)
