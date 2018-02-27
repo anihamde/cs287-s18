@@ -143,7 +143,7 @@ if model_type == 0:
 elif model_type == 1:
     model = S2S(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size, word2vec=args.word2vec,
                 vocab_layer_size=args.vocab_layer_size, LSTM_dropout=args.LSTM_dropout, vocab_layer_dropout=args.vocab_layer_dropout, 
-                weight_tying=args.weight_tying)
+                weight_tying=args.weight_tying, bidirectional=args.bidirectional)
 if model_type == 2:
     model = AttnGRU(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size, word2vec=args.word2vec,
                     vocab_layer_size=args.vocab_layer_size, LSTM_dropout=args.LSTM_dropout, vocab_layer_dropout=args.vocab_layer_dropout, 
