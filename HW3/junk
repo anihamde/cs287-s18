@@ -9,6 +9,15 @@ x_en = batch.trg.transpose(1,0).cuda() # bs,n_en
 
 y_pred = model.predict(x_de, attn_type) # bs,max_len
 
+# more kosher way to 
+no_pad = (y != pad_token)
+reward = reward.squeeze(2)
+pad = no_pad ^ 1
+reward[pad] = 0
+loss -= (reward.sum(1) / no_pad.data.type(torch.FloatTensor).sum(1)).sum()
+avg_reward = -reward[no_pad].data.mean()
+# hard attention baseline and reinforce stuff causing me trouble
+return loss, 0, avg_reward
 
 # Predictions without teacher forcing!
 # predict many batches with greedy encoding. no teacher forcing
