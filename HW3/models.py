@@ -40,6 +40,8 @@ class CandList():
         else:
             return Variable(self.wordlist[:,-1])
     def get_hiddens(self):
+        print(self.hiddens)
+        print(type(self.hiddens)
         try:
             res = tuple( Variable(x) for x in self.hiddens )
         except TypeError:
