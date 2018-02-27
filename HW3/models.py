@@ -370,7 +370,7 @@ class S2S(nn.Module):
         self.embedding_de = nn.Embedding(len(DE.vocab), word_dim)
         self.embedding_en = nn.Embedding(len(EN.vocab), word_dim)
         if bidirectional:
-            self.dim_reduce = nn.Linear(hidden_dim*2,hidden_dim)
+            self.dim_reduce = nn.Linear(n_layers*2,n_layers)
         if word2vec:
             self.embedding_de.weight.data.copy_(DE.vocab.vectors)
             self.embedding_en.weight.data.copy_(EN.vocab.vectors)
@@ -397,7 +397,7 @@ class S2S(nn.Module):
         enc_h, (h,c) = self.encoder(emb_de, self.initEnc(bs))
         # enc_h is bs,n_de,hiddensz*n_directions. ordering is different from last week because batch_first=True
         if self.directions == 2:
-            h = self.dim_reduce(h.transpose(2,0)).transpose(2,0)
+            h = self.dim_reduce(h.transpose(2,0)).transpose(2,0) # nlayers*2,bs,hiddensz to nlayers,bs,hiddensz
             c = self.dim_reduce(c.transpose(2,0)).transpose(2,0)
         dec_h, _ = self.decoder(emb_en, (h,c))
         # dec_h is bs,n_en,hidden_size*n_directions
@@ -435,7 +435,7 @@ class S2S(nn.Module):
             c = self.dim_reduce(c.transpose(2,0)).transpose(2,0)
         # since enc batch size=1, enc_h is 1,n_de,hiddensz*n_directions
         masterheap = CandList(enc_h.size(1),(h,c),beamsz)
-        masterheap.update_hiddens(h,c) # TODO: this extraneous call could be eliminated if __init__ called self.update_hiddens
+        masterheap.update_hiddens((h,c)) # TODO: this extraneous call could be eliminated if __init__ called self.update_hiddens
         # in the following loop, beamsz is length 1 for first iteration, length true beamsz (100) afterward
         for i in range(gen_len):
             prev = masterheap.get_prev() # beamsz
