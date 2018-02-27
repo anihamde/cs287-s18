@@ -7,6 +7,7 @@ from collections import OrderedDict
 import math # for infinity
 from __main__ import *
 from helpers import lstm_hidden
+from helpers import unpackage_hidden
 # I use EN,DE,BATCH_SIZE,MAX_LEN,pad_token,sos_token,eos_token,word2vec
 
 #######################################
@@ -23,9 +24,9 @@ from helpers import lstm_hidden
 # philosophy: we're going to take the dirty variables and reorder them nicely all in here and store them as tensors
 # the inputs to these methods could have beamsz = 1 or beamsz = true beamsz (100)
 class CandList():
-    def __init__(self,n_layers,hidden_dim,n_de,beamsz=100):
+    def __init__(self,n_layers,hidden_dim,n_de,model,beamsz=100):
         self.beamsz = beamsz
-        self.hiddens = lstm_hidden(n_layers,1,hidden_dim)
+        self.hiddens = unpackage_hidden(model.initDec(1))
         # hidden tensors (initially beamsz 1, later beamsz true beamsz)
         self.attentions = None
         # attention matrices-- we will concatenate along dimension 1. beamsz,n_en,n_de
@@ -40,7 +41,12 @@ class CandList():
         else:
             return Variable(self.wordlist[:,-1])
     def get_hiddens(self):
-        return (Variable(self.hiddens[0]),Variable(self.hiddens[1]))
+        try:
+            result = ( Variable(x) for x in self.hiddens )
+        except TypeError:
+            result = Variable(self.hiddens)
+        return result
+        #return (Variable(self.hiddens[0]),Variable(self.hiddens[1]))
     def update_beam(self,newlogprobs): # newlogprobs is beamsz,len(EN.vocab)
         newlogprobs = newlogprobs.data
         newlogprobs += self.probs.unsqueeze(1) # beamsz,len(EN.vocab)
@@ -60,14 +66,19 @@ class CandList():
             shuffled = self.wordlist[self.oldbeamindices]
             self.wordlist = torch.cat([shuffled,currbeam],1)
         # self.wordlist is now beamsz,iter+1
-    def update_hiddens(self,h,c):
+    def update_hiddens(self,hidd):
         # no need to save old hidden states
         if self.firstloop:
+            try:
+                hidd = [ x.expand(-1,self.beamsz,-1).contiguous() for x in hidd ]
+            except TypeError:
+                hidd = hidd.expand(-1,self.beamsz,-1).contiguous()
             # see https://discuss.pytorch.org/t/initial-state-of-rnn-is-not-contiguous/4615
-            h = h.expand(-1,self.beamsz,-1).contiguous()
-            c = c.expand(-1,self.beamsz,-1).contiguous()
+            #h = h.expand(-1,self.beamsz,-1).contiguous()
+            #c = c.expand(-1,self.beamsz,-1).contiguous()
         # dimensions are n_layers*n_directions,beamsz,hiddensz
-        self.hiddens = (h.data,c.data)
+        #self.hiddens = (h.data,c.data)
+        self.hiddens = unpackage_hidden(hidd)
     def update_attentions(self,attn):
         attn = attn.unsqueeze(1)
         if self.firstloop:
@@ -188,8 +199,8 @@ class AttnNetwork(nn.Module):
             emb_t = self.embedding_en(prev) # embed the last thing we generated. beamsz,word_dim
             enc_h_expand = enc_h.expand(prev.size(0),-1,-1) # beamsz,n_de,hiddensz
             
-            h, c = masterheap.get_hiddens() # (n_layers,beamsz,hiddensz),(n_layers,beamsz,hiddensz)
-            dec_h, (h, c) = self.decoder(emb_t.unsqueeze(1), (h, c)) # dec_h is beamsz,1,hiddensz (batch_first=True)
+            hidd = masterheap.get_hiddens() # (n_layers,beamsz,hiddensz),(n_layers,beamsz,hiddensz)
+            dec_h, hidd = self.decoder(emb_t.unsqueeze(1), hidd) # dec_h is beamsz,1,hiddensz (batch_first=True)
             if self.directions == 2:
                 scores = torch.bmm(self.dim_reduce(enc_h_expand), dec_h.transpose(1,2)).squeeze(2)
             else:
@@ -208,7 +219,7 @@ class AttnNetwork(nn.Module):
             pred = self.vocab_layer(torch.cat([dec_h.squeeze(1), context], 1)) # beamsz,len(EN.vocab)
             # pred[:,:,[unk_token,pad_token]] = -inf # TODO: testing this out kill pad unk
             masterheap.update_beam(pred)
-            masterheap.update_hiddens(h,c)
+            masterheap.update_hiddens(hidd)
             masterheap.update_attentions(attn_dist)
             masterheap.firstloop = False
         return masterheap.probs,masterheap.wordlist,masterheap.attentions
