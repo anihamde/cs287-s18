@@ -6,8 +6,7 @@ from torch.autograd import Variable
 from collections import OrderedDict
 import math # for infinity
 from __main__ import *
-from helpers import lstm_hidden
-from helpers import unpackage_hidden
+from helpers import lstm_hidden, unpackage_hidden
 # I use EN,DE,BATCH_SIZE,MAX_LEN,pad_token,sos_token,eos_token,word2vec
 
 #######################################
@@ -26,7 +25,7 @@ from helpers import unpackage_hidden
 class CandList():
     def __init__(self,n_de,initHidden,beamsz=100):
         self.beamsz = beamsz
-        self.hiddens = unpackage_hidden(initHidden)
+        self.hiddens = unpackage_hidden(initHidden) # would this break if i called self.update_hidden(initHidden)?
         # hidden tensors (initially beamsz 1, later beamsz true beamsz)
         self.attentions = None
         # attention matrices-- we will concatenate along dimension 1. beamsz,n_en,n_de
@@ -398,8 +397,8 @@ class S2S(nn.Module):
         enc_h, (h,c) = self.encoder(emb_de, self.initEnc(bs))
         # enc_h is bs,n_de,hiddensz*n_directions. ordering is different from last week because batch_first=True
         if self.directions == 2:
-            h = self.dim_reduce(h.transpose(1,2,0)).transpose(2,0,1)
-            c = self.dim_reduce(c.transpose(1,2,0)).transpose(2,0,1)
+            h = self.dim_reduce(h.transpose(2,0)).transpose(2,0)
+            c = self.dim_reduce(c.transpose(2,0)).transpose(2,0)
         dec_h, _ = self.decoder(emb_en, (h,c))
         # dec_h is bs,n_en,hidden_size*n_directions
         pred = self.vocab_layer(dec_h) # bs,n_en,len(EN.vocab)
@@ -418,8 +417,8 @@ class S2S(nn.Module):
         emb_en = self.embedding_en(x_en)
         enc_h, (h,c) = self.encoder(emb_de, self.initEnc(bs))
         if self.directions == 2:
-            h = self.dim_reduce(h.transpose(1,2,0)).transpose(2,0,1)
-            c = self.dim_reduce(c.transpose(1,2,0)).transpose(2,0,1)
+            h = self.dim_reduce(h.transpose(2,0)).transpose(2,0)
+            c = self.dim_reduce(c.transpose(2,0)).transpose(2,0)
         dec_h, _ = self.decoder(emb_en, (h,c))
         # all the same. enc_h is bs,n_de,hiddensz*n_directions. h and c are both n_layers*n_directions,bs,hiddensz
         pred = self.vocab_layer(dec_h) # bs,n_en,len(EN.vocab)
@@ -432,11 +431,11 @@ class S2S(nn.Module):
         emb_de = self.embedding_de(x_de) # "batch size",n_de,word_dim, but "batch size" is 1 in this case!
         enc_h, (h, c) = self.encoder(emb_de, self.initEnc(1))
         if self.directions == 2:
-            h = self.dim_reduce(h.transpose(1,2,0)).transpose(2,0,1)
-            c = self.dim_reduce(c.transpose(1,2,0)).transpose(2,0,1)
+            h = self.dim_reduce(h.transpose(2,0)).transpose(2,0)
+            c = self.dim_reduce(c.transpose(2,0)).transpose(2,0)
         # since enc batch size=1, enc_h is 1,n_de,hiddensz*n_directions
-        masterheap = CandList(self.n_layers,self.hidden_dim,enc_h.size(1),beamsz)
-        masterheap.update_hiddens(h,c) # should change the 1 to beamsz... i think this is ok
+        masterheap = CandList(enc_h.size(1),(h,c),beamsz)
+        masterheap.update_hiddens(h,c) # TODO: this extraneous call could be eliminated if __init__ called self.update_hiddens
         # in the following loop, beamsz is length 1 for first iteration, length true beamsz (100) afterward
         for i in range(gen_len):
             prev = masterheap.get_prev() # beamsz

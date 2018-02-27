@@ -108,9 +108,7 @@ sos_token = EN.vocab.stoi["<s>"]
 eos_token = EN.vocab.stoi["</s>"]
 
 ''' TODO
-Does predict accuracy go up if I exclude stupid tokens from being predicted?
 Does ppl change if you average loss the actual Yoon way?
-Run a smaller model baseline, word2vec, and weight tying+word2vec. With Sager's results.
 Try plotting train and val acc after each batch.
 BLEU perl script
 
