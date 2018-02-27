@@ -371,12 +371,9 @@ class S2S(nn.Module):
         self.embedding_en = nn.Embedding(len(EN.vocab), word_dim)
         if bidirectional:
             self.dim_reduce = nn.Linear(n_layers*2,n_layers)
-        if word2vec:
-            self.embedding_de.weight.data.copy_(DE.vocab.vectors)
-            self.embedding_en.weight.data.copy_(EN.vocab.vectors)
         # vocab layer will project dec hidden state out into vocab space 
         self.vocab_layer = nn.Sequential(OrderedDict([
-            ('h2e',nn.Linear(hidden_dim,self.vocab_layer_dim)),
+            ('h2e',nn.Linear(hidden_dim*self.directions,self.vocab_layer_dim)),
             ('tanh',nn.Tanh()),
             ('drp',nn.Dropout(vocab_layer_dropout)),
             ('e2v',nn.Linear(self.vocab_layer_dim,len(EN.vocab))),
@@ -396,11 +393,8 @@ class S2S(nn.Module):
         # hidden vars have dimension n_layers*n_directions,bs,hiddensz
         enc_h, (h,c) = self.encoder(emb_de, self.initEnc(bs))
         # enc_h is bs,n_de,hiddensz*n_directions. ordering is different from last week because batch_first=True
-        if self.directions == 2:
-            h = self.dim_reduce(h.transpose(2,0)).transpose(2,0).contiguous() # nlayers*2,bs,hiddensz to nlayers,bs,hiddensz
-            c = self.dim_reduce(c.transpose(2,0)).transpose(2,0).contiguous() # this is hacky, and i don't like doing it!
         dec_h, _ = self.decoder(emb_en, (h,c))
-        # dec_h is bs,n_en,hidden_size*n_directions
+        # dec_h is bs,n_en,hidden_size
         pred = self.vocab_layer(dec_h) # bs,n_en,len(EN.vocab)
         pred = pred[:,:-1,:] # alignment
         y = x_en[:,1:]
@@ -416,9 +410,6 @@ class S2S(nn.Module):
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
         emb_en = self.embedding_en(x_en)
         enc_h, (h,c) = self.encoder(emb_de, self.initEnc(bs))
-        if self.directions == 2:
-            h = self.dim_reduce(h.transpose(2,0)).transpose(2,0).contiguous() # nlayers*2,bs,hiddensz to nlayers,bs,hiddensz
-            c = self.dim_reduce(c.transpose(2,0)).transpose(2,0).contiguous() # this is hacky, and i don't like doing it!
         dec_h, _ = self.decoder(emb_en, (h,c))
         # all the same. enc_h is bs,n_de,hiddensz*n_directions. h and c are both n_layers*n_directions,bs,hiddensz
         pred = self.vocab_layer(dec_h) # bs,n_en,len(EN.vocab)
