@@ -25,7 +25,8 @@ from helpers import lstm_hidden
 class CandList():
     def __init__(self,n_layers,hidden_dim,n_de,beamsz=100):
         self.beamsz = beamsz
-        self.hiddens = lstm_hidden(n_layers,1,hidden_dim)
+        # TODO: fix below. they need to be tensors not variables
+        self.hiddens = (torch.zeros(laydir,bs,hiddensz).cuda(), torch.zeros(laydir,bs,hiddensz).cuda())
         # hidden tensors (initially beamsz 1, later beamsz true beamsz)
         self.attentions = None
         # attention matrices-- we will concatenate along dimension 1. beamsz,n_en,n_de

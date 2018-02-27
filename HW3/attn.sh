@@ -28,9 +28,10 @@
 # python3 main.py -m 1 -mf '../../models/HW3/s2s.pkl' -e 8 -hd 4 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3
 # s2s 16.74 val ppl
 
-python3 main.py -e 8 -hd 2 -hs 300 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -acc -mf '../../models/HW3/baseline.pkl'
-python3 main.py -e 8 -hd 2 -hs 300 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -w -mf '../../models/HW3/w.pkl'
-python3 main.py -e 8 -hd 2 -hs 300 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -wt -mf '../../models/HW3/wt.pkl'
-python3 main.py -e 8 -hd 1 -hs 300 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -m 1 '../../models/HW3/s2s.pkl'
-python3 main.py -e 8 -hd 3 -hs 300 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -m 1 '../../models/HW3/s2s3.pkl'
-python3 main.py -e 8 -hd 3 -hs 300 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -m 1 -b '../../models/HW3/s2s3b.pkl'
+# python3 main.py -e 8 -hd 2 -hs 300 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -acc -mf '../../models/HW3/baseline.pkl'
+# python3 main.py -e 8 -hd 2 -hs 300 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -w -mf '../../models/HW3/w.pkl'
+# python3 main.py -e 8 -hd 2 -hs 300 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -wt -mf '../../models/HW3/wt.pkl'
+# these failed on predict2 but the models saved
+python3 main.py -e 8 -hd 1 -hs 300 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -m 1 -mf '../../models/HW3/s2s.pkl'
+python3 main.py -e 8 -hd 3 -hs 300 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -m 1 -mf '../../models/HW3/s2s3.pkl'
+python3 main.py -e 8 -hd 3 -hs 300 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -m 1 -b -mf '../../models/HW3/s2s3b.pkl'
