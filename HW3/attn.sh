@@ -20,11 +20,13 @@
 # done
 
 # First overnight
-# python3 main.py -e 8 -hd 4 -hs 1000 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3
-# python3 main.py -e 8 -hd 4 -hs 1000 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -w
-# python3 main.py -mf '../../models/HW3/wwt.pkl' -e 8 -hd 4 -hs 1000 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -w -wt
+# python3 main.py -e 8 -hd 4 -hs 1000 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 # 10.01 train ppl, 9.85 val ppl after 8 epochs
+# python3 main.py -e 8 -hd 4 -hs 1000 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -w # 11.39 train ppl, 10.41 val ppl after 8 epochs
+# python3 main.py -mf '../../models/HW3/wwt.pkl' -e 8 -hd 4 -hs 1000 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -w -wt 
+# 12.33 train ppl, 10.22 valid ppl after 8 epochs
 
 # python3 main.py -m 1 -mf '../../models/HW3/s2s.pkl' -e 8 -hd 4 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3
+# s2s 16.74 val ppl
 
 python3 main.py -e 8 -hd 2 -hs 300 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -acc -mf '../../models/HW3/baseline.pkl'
 python3 main.py -e 8 -hd 2 -hs 300 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -w -mf '../../models/HW3/w.pkl'
