@@ -366,11 +366,12 @@ class S2S(nn.Module):
         self.directions = (1,2)[bidirectional == True]
         # LSTM initialization params: inputsz,hiddensz,n_layers,bias,batch_first,bidirectional
         self.encoder = nn.LSTM(word_dim, hidden_dim, n_layers, batch_first = True, dropout=LSTM_dropout, bidirectional=bidirectional)
-        self.decoder = nn.LSTM(word_dim, hidden_dim, n_layers, batch_first = True, dropout=LSTM_dropout)
+        self.decoder = nn.LSTM(word_dim, hidden_dim, n_layers*self.directions, batch_first = True, dropout=LSTM_dropout)
         self.embedding_de = nn.Embedding(len(DE.vocab), word_dim)
         self.embedding_en = nn.Embedding(len(EN.vocab), word_dim)
-        if bidirectional:
-            self.dim_reduce = nn.Linear(n_layers*2,n_layers)
+        if word2vec:
+            self.embedding_de.weight.data.copy_(DE.vocab.vectors)
+            self.embedding_en.weight.data.copy_(EN.vocab.vectors)
         # vocab layer will project dec hidden state out into vocab space 
         self.vocab_layer = nn.Sequential(OrderedDict([
             ('h2e',nn.Linear(hidden_dim*self.directions,self.vocab_layer_dim)),
