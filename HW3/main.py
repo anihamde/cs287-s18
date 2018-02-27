@@ -11,6 +11,7 @@ from torchtext.vocab import Vectors
 import spacy
 from models import AttnNetwork, CandList, S2S, AttnGRU
 from helpers import asMinutes, timeSince, escape, flip
+from collections import OrderedDict
 # import matplotlib.pyplot as plt
 # import matplotlib.ticker as ticker
 
@@ -21,7 +22,7 @@ import argparse
 parser = argparse.ArgumentParser(description='training runner')
 parser.add_argument('--model_type','-m',type=int,default=0,help='Model type (0 for AttnLSTM, 1 for S2S, 2 for AttnGRU)')
 parser.add_argument('--model_file','-mf',type=str,default='../../models/HW3/model.pkl',help='Model save target.')
-parser.add_argument('--archetecture_file','-y',type=str,default='../../models/HW3/model.yaml',help='YAML file containing specs to build model.')
+parser.add_argument('--architecture_file','-y',type=str,default='../../models/HW3/model.yaml',help='YAML file containing specs to build model.')
 parser.add_argument('--n_epochs','-e',type=int,default=3,help='set the number of training epochs.')
 parser.add_argument('--adadelta','-ada',action='store_true',help='Use Adadelta optimizer')
 parser.add_argument('--learning_rate','-lr',type=float,default=0.01,help='set learning rate.')
@@ -134,6 +135,17 @@ If we have time, we can try the pytorch tutorial script with and without attn, t
 How to run jupyter notebooks in cloud?
 Generate longer full sentences with small beams. Not fixed-length.
 ''' 
+architecture_dict = OrderedDict([ ('model_ype',args.model_type),
+    ('word_dim',args.embedding_dims),('n_layers',args.hidden_depth),
+    ('hidden_dim',args.hidden_size),('word2vec',args.word2vec),
+    ('vocab_layer_size',args.vocab_layer_size),('LSTM_dropout',args.LSTM_dropout),
+    ('vocab_layer_dropout',args.vocab_layer_dropout),('weight_tying',args.weight_tying),
+    ('bidirectional',args.bidirectional),('attn_type',args.attn_type)
+])
+
+with open(args.architecture_file,'w') as fh:
+    [ fh.write("{}: {}\n".format(key,value)) for key,value in architecture_dict.items() ]
+    fh.close()
 
 if model_type == 0:
     model = AttnNetwork(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size, word2vec=args.word2vec,
