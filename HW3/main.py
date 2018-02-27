@@ -190,7 +190,7 @@ for epoch in range(n_epochs):
 
         if args.accuracy:
             model.eval()
-            x_de.volatile = True # "inference mode" supposedly speeds up
+            x_de = Variable(x_de.data, volatile = True)
             y_pred,_ = model.predict(x_de, x_en) # bs,n_en
             correct = (y_pred == x_en) # these are the same shape and both contain a sos_token row
             no_pad = (x_en != pad_token) & (x_en != sos_token)
