@@ -323,15 +323,15 @@ class AttnGRU(nn.Module):
         emb_de = self.embedding_de(x_de) # "batch size",n_de,word_dim, but "batch size" is 1 in this case!
         enc_h, _ = self.encoder(emb_de, self.initEnc(1))
         # since enc batch size=1, enc_h is 1,n_de,hiddensz*n_directions
-        masterheap = CandList(self.n_layers,self.hidden_dim,enc_h.size(1),beamsz)
+        masterheap = CandList(enc_h.size(1),self.initDec(1),beamsz)
         # in the following loop, beamsz is length 1 for first iteration, length true beamsz (100) afterward
         for i in range(gen_len):
             prev = masterheap.get_prev() # beamsz
             emb_t = self.embedding_en(prev) # embed the last thing we generated. beamsz,word_dim
             enc_h_expand = enc_h.expand(prev.size(0),-1,-1) # beamsz,n_de,hiddensz
             
-            h, c = masterheap.get_hiddens() # (n_layers,beamsz,hiddensz),(n_layers,beamsz,hiddensz)
-            dec_h, (h, c) = self.decoder(emb_t.unsqueeze(1), h) # dec_h is beamsz,1,hiddensz (batch_first=True)
+            hidd = masterheap.get_hiddens() # (n_layers,beamsz,hiddensz),(n_layers,beamsz,hiddensz)
+            dec_h, hidd = self.decoder(emb_t.unsqueeze(1), hidd) # dec_h is beamsz,1,hiddensz (batch_first=True)
             if self.directions == 2:
                 scores = torch.bmm(self.dim_reduce(enc_h_expand), dec_h.transpose(1,2)).squeeze(2)
             else:
@@ -350,7 +350,7 @@ class AttnGRU(nn.Module):
             pred = self.vocab_layer(torch.cat([dec_h.squeeze(1), context], 1)) # beamsz,len(EN.vocab)
             # TODO: set the columns corresponding to <pad>,<unk>,</s>,etc to 0
             masterheap.update_beam(pred)
-            masterheap.update_hiddens(h,c)
+            masterheap.update_hiddens(hidd)
             masterheap.update_attentions(attn_dist)
             masterheap.firstloop = False
         return masterheap.probs,masterheap.wordlist,masterheap.attentions
