@@ -17,7 +17,7 @@ import time
 import argparse
 
 parser = argparse.ArgumentParser(description='training runner')
-parser.add_argument('--model_type','-m',type=int,default=0,help='Model type (0 for Attn, 1 for S2S)')
+parser.add_argument('--model_type','-m',type=int,default=0,help='Model type (0 for Attn, 1 for S2S, 2 for AttnGRU)')
 parser.add_argument('--model_file','-mf',type=str,default='../../models/HW3/model.pkl',help='Model save target.')
 parser.add_argument('--n_epochs','-e',type=int,default=3,help='set the number of training epochs.')
 parser.add_argument('--adadelta','-ada',action='store_true',help='Use Adadelta optimizer')
@@ -144,6 +144,10 @@ elif model_type == 1:
     model = S2S(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size, word2vec=args.word2vec,
                 vocab_layer_size=args.vocab_layer_size, LSTM_dropout=args.LSTM_dropout, vocab_layer_dropout=args.vocab_layer_dropout, 
                 weight_tying=args.weight_tying)
+if model_type == 2:
+    model = AttnGRU(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size, word2vec=args.word2vec,
+                    vocab_layer_size=args.vocab_layer_size, LSTM_dropout=args.LSTM_dropout, vocab_layer_dropout=args.vocab_layer_dropout, 
+                    weight_tying=args.weight_tying, bidirectional=args.bidirectional, attn_type=attn_type)
 
 model.cuda()
 
@@ -241,8 +245,9 @@ with open("preds.csv", "w") as f:
 
 # showPlot(plot_losses) # TODO: function not added/checked
 # # visualize only for AttnNetwork
-# def visualize(attns,sentence_de,bs,nwords,flname): # attns = (SentLen_EN)x(SentLen_DE), sentence_de = ["German_1",...,"German_(SentLen_DE)"]
-#     _,wordlist,attns = model.predict2(sentence_de,beamsz=bs,gen_len=nwords)
+# def visualize(sentence_de,bs,nwords,flname): # attns = (SentLen_EN)x(SentLen_DE), sentence_de = ["German_1",...,"German_(SentLen_DE)"]
+#     ls = [[DE.vocab.stoi[w] for w in sentence_de.split(' ')]]
+#     _,wordlist,attns = model.predict2(Variable(torch.cuda.LongTensor(ls)),beamsz=bs,gen_len=nwords)
 
 #     fig = plt.figure()
 #     ax = fig.add_subplot(111)
@@ -264,6 +269,6 @@ with open("preds.csv", "w") as f:
 # cntr = 0
 # for sentence_de in list_of_german_sentences:
 #     flname = "plot_"+"{}".format(cntr)
-#     visualize(model,sentence_de,5,10,"{}".format(flname))
+#     visualize(sentence_de,5,10,"{}".format(flname))
 #     cntr += 1
 
