@@ -172,7 +172,7 @@ if args.interpolated_model:
                                           vocab_layer_size=arch['vocab_layer_size'], LSTM_dropout=arch['LSTM_dropout'], 
                                           vocab_layer_dropout=arch['vocab_layer_dropout'], weight_tying=arch['weight_tying'], 
                                           bidirectional=arch['bidirectional'], attn_type=arch['attn_type'])
-        elif arch['model_type'] == 3:
+        elif arch['model_type'] == 2:
             model_grab = AttnGRU(word_dim=arch['word_dim'], n_layers=arch['n_layers'], 
                                           hidden_dim=arch['hidden_dim'], word2vec=arch['word2vec'],
                                           vocab_layer_size=arch['vocab_layer_size'], LSTM_dropout=arch['LSTM_dropout'], 
