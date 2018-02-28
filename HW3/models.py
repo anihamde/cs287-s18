@@ -467,6 +467,7 @@ class Alpha(nn.Module):
         self.hidden = nn.Linear(n_featmaps1+n_featmaps2,linear_size)
         self.output = nn.Linear(linear_size,len(models_tuple))
         # vocab layer will combine dec hidden state with context vector, and then project out into vocab space 
+        self.baseline = Variable(torch.cuda.FloatTensor([np.log(1/len(EN.vocab))])) # just to be consistent
     def initEnc(self,batch_size):
         return (Variable(torch.zeros(self.n_layers*self.directions,batch_size,self.hidden_dim).cuda()), 
                 Variable(torch.zeros(self.n_layers*self.directions,batch_size,self.hidden_dim).cuda()))
