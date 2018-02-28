@@ -1,0 +1,327 @@
+[01;32melbertgong@nlpfinal[00m:[01;34m/mnt/trunk/cs287-s18/HW3[00m$ sh attn.sh
+Getting datasets!
+{'src': <torchtext.data.field.Field object at 0x7fdf38708780>, 'trg': <torchtext.data.field.Field object at 0x7fdf387081d0>}
+119076
+{'src': ['David', 'Gallo', ':', 'Das', 'ist', 'Bill', 'Lange', '.', 'Ich', 'bin', 'Dave', 'Gallo', '.'], 'trg': ['David', 'Gallo', ':', 'This', 'is', 'Bill', 'Lange', '.', 'I', "'m", 'Dave', 'Gallo', '.']}
+[('.', 113253), (',', 67237), ('ist', 24189), ('die', 23778), ('das', 17102), ('der', 15727), ('und', 15622), ('Sie', 15085), ('es', 13197), ('ich', 12946)]
+Size of German vocab 13353
+[('.', 113433), (',', 59512), ('the', 46029), ('to', 29177), ('a', 27548), ('of', 26794), ('I', 24887), ('is', 21775), ("'s", 20630), ('that', 19814)]
+Size of English vocab 11560
+2 3
+Source size torch.Size([9, 32])
+Target size torch.Size([16, 32])
+REMINDER!!! Did you create ../../models/HW3?????
+Time 0m 11s, Epoch [1/8], Iter [100/3722], Loss: 6.2965, Reward: -9.36, Accuracy: 0.00, PPL: 542.68
+Time 0m 22s, Epoch [1/8], Iter [200/3722], Loss: 5.7257, Reward: -9.36, Accuracy: 0.00, PPL: 306.65
+Time 0m 33s, Epoch [1/8], Iter [300/3722], Loss: 5.6217, Reward: -9.36, Accuracy: 0.00, PPL: 276.35
+Time 0m 45s, Epoch [1/8], Iter [400/3722], Loss: 5.5922, Reward: -9.36, Accuracy: 0.00, PPL: 268.33
+Time 0m 56s, Epoch [1/8], Iter [500/3722], Loss: 5.5702, Reward: -9.36, Accuracy: 0.00, PPL: 262.48
+Time 1m 7s, Epoch [1/8], Iter [600/3722], Loss: 5.5475, Reward: -9.36, Accuracy: 0.00, PPL: 256.59
+Time 1m 18s, Epoch [1/8], Iter [700/3722], Loss: 5.4675, Reward: -9.36, Accuracy: 0.00, PPL: 236.86
+Time 1m 28s, Epoch [1/8], Iter [800/3722], Loss: 5.4306, Reward: -9.36, Accuracy: 0.00, PPL: 228.28
+Time 1m 40s, Epoch [1/8], Iter [900/3722], Loss: 5.3735, Reward: -9.36, Accuracy: 0.00, PPL: 215.61
+Time 1m 51s, Epoch [1/8], Iter [1000/3722], Loss: 5.3607, Reward: -9.36, Accuracy: 0.00, PPL: 212.87
+Time 2m 2s, Epoch [1/8], Iter [1100/3722], Loss: 5.2879, Reward: -9.36, Accuracy: 0.00, PPL: 197.92
+Time 2m 13s, Epoch [1/8], Iter [1200/3722], Loss: 5.1468, Reward: -9.36, Accuracy: 0.00, PPL: 171.88
+Time 2m 24s, Epoch [1/8], Iter [1300/3722], Loss: 4.9650, Reward: -9.36, Accuracy: 0.00, PPL: 143.31
+Time 2m 35s, Epoch [1/8], Iter [1400/3722], Loss: 4.8018, Reward: -9.36, Accuracy: 0.00, PPL: 121.73
+Time 2m 46s, Epoch [1/8], Iter [1500/3722], Loss: 4.7317, Reward: -9.36, Accuracy: 0.00, PPL: 113.48
+Time 2m 57s, Epoch [1/8], Iter [1600/3722], Loss: 4.6848, Reward: -9.36, Accuracy: 0.00, PPL: 108.29
+Time 3m 8s, Epoch [1/8], Iter [1700/3722], Loss: 4.6056, Reward: -9.36, Accuracy: 0.00, PPL: 100.04
+Time 3m 19s, Epoch [1/8], Iter [1800/3722], Loss: 4.5375, Reward: -9.36, Accuracy: 0.00, PPL: 93.46
+Time 3m 31s, Epoch [1/8], Iter [1900/3722], Loss: 4.5465, Reward: -9.36, Accuracy: 0.00, PPL: 94.30
+Time 3m 42s, Epoch [1/8], Iter [2000/3722], Loss: 4.4695, Reward: -9.36, Accuracy: 0.00, PPL: 87.31
+Time 3m 53s, Epoch [1/8], Iter [2100/3722], Loss: 4.4654, Reward: -9.36, Accuracy: 0.00, PPL: 86.95
+Time 4m 5s, Epoch [1/8], Iter [2200/3722], Loss: 4.4451, Reward: -9.36, Accuracy: 0.00, PPL: 85.21
+Time 4m 16s, Epoch [1/8], Iter [2300/3722], Loss: 4.4033, Reward: -9.36, Accuracy: 0.00, PPL: 81.72
+Time 4m 27s, Epoch [1/8], Iter [2400/3722], Loss: 4.4144, Reward: -9.36, Accuracy: 0.00, PPL: 82.64
+Time 4m 39s, Epoch [1/8], Iter [2500/3722], Loss: 4.3426, Reward: -9.36, Accuracy: 0.00, PPL: 76.91
+Time 4m 50s, Epoch [1/8], Iter [2600/3722], Loss: 4.3103, Reward: -9.36, Accuracy: 0.00, PPL: 74.46
+Time 5m 2s, Epoch [1/8], Iter [2700/3722], Loss: 4.3238, Reward: -9.36, Accuracy: 0.00, PPL: 75.48
+Time 5m 13s, Epoch [1/8], Iter [2800/3722], Loss: 4.2913, Reward: -9.36, Accuracy: 0.00, PPL: 73.06
+Time 5m 25s, Epoch [1/8], Iter [2900/3722], Loss: 4.2485, Reward: -9.36, Accuracy: 0.00, PPL: 70.00
+Time 5m 37s, Epoch [1/8], Iter [3000/3722], Loss: 4.2128, Reward: -9.36, Accuracy: 0.00, PPL: 67.55
+Time 5m 49s, Epoch [1/8], Iter [3100/3722], Loss: 4.1908, Reward: -9.36, Accuracy: 0.00, PPL: 66.08
+Time 6m 0s, Epoch [1/8], Iter [3200/3722], Loss: 4.1881, Reward: -9.36, Accuracy: 0.00, PPL: 65.90
+Time 6m 12s, Epoch [1/8], Iter [3300/3722], Loss: 4.1549, Reward: -9.36, Accuracy: 0.00, PPL: 63.74
+Time 6m 24s, Epoch [1/8], Iter [3400/3722], Loss: 4.1703, Reward: -9.36, Accuracy: 0.00, PPL: 64.74
+Time 6m 36s, Epoch [1/8], Iter [3500/3722], Loss: 4.1585, Reward: -9.36, Accuracy: 0.00, PPL: 63.98
+Time 6m 48s, Epoch [1/8], Iter [3600/3722], Loss: 4.1388, Reward: -9.36, Accuracy: 0.00, PPL: 62.73
+Time 7m 0s, Epoch [1/8], Iter [3700/3722], Loss: 4.1097, Reward: -9.36, Accuracy: 0.00, PPL: 60.93
+Validation. Time 7m 3s, PPL: 47.69
+Time 7m 15s, Epoch [2/8], Iter [100/3722], Loss: 4.0255, Reward: -9.36, Accuracy: 0.00, PPL: 56.01
+Time 7m 27s, Epoch [2/8], Iter [200/3722], Loss: 4.0462, Reward: -9.36, Accuracy: 0.00, PPL: 57.18
+Time 7m 39s, Epoch [2/8], Iter [300/3722], Loss: 4.0589, Reward: -9.36, Accuracy: 0.00, PPL: 57.91
+Time 7m 51s, Epoch [2/8], Iter [400/3722], Loss: 3.9892, Reward: -9.36, Accuracy: 0.00, PPL: 54.01
+Time 8m 3s, Epoch [2/8], Iter [500/3722], Loss: 4.0218, Reward: -9.36, Accuracy: 0.00, PPL: 55.80
+Time 8m 15s, Epoch [2/8], Iter [600/3722], Loss: 3.9905, Reward: -9.36, Accuracy: 0.00, PPL: 54.08
+Time 8m 27s, Epoch [2/8], Iter [700/3722], Loss: 3.9978, Reward: -9.36, Accuracy: 0.00, PPL: 54.48
+Time 8m 40s, Epoch [2/8], Iter [800/3722], Loss: 3.9692, Reward: -9.36, Accuracy: 0.00, PPL: 52.94
+Time 8m 52s, Epoch [2/8], Iter [900/3722], Loss: 3.9802, Reward: -9.36, Accuracy: 0.00, PPL: 53.53
+Time 9m 4s, Epoch [2/8], Iter [1000/3722], Loss: 3.9880, Reward: -9.36, Accuracy: 0.00, PPL: 53.95
+Time 9m 16s, Epoch [2/8], Iter [1100/3722], Loss: 3.9688, Reward: -9.36, Accuracy: 0.00, PPL: 52.92
+Time 9m 28s, Epoch [2/8], Iter [1200/3722], Loss: 3.8972, Reward: -9.36, Accuracy: 0.00, PPL: 49.27
+Time 9m 40s, Epoch [2/8], Iter [1300/3722], Loss: 3.9277, Reward: -9.36, Accuracy: 0.00, PPL: 50.79
+Time 9m 53s, Epoch [2/8], Iter [1400/3722], Loss: 3.8949, Reward: -9.36, Accuracy: 0.00, PPL: 49.15
+Time 10m 5s, Epoch [2/8], Iter [1500/3722], Loss: 3.8915, Reward: -9.36, Accuracy: 0.00, PPL: 48.98
+Time 10m 17s, Epoch [2/8], Iter [1600/3722], Loss: 3.8910, Reward: -9.36, Accuracy: 0.00, PPL: 48.96
+Time 10m 29s, Epoch [2/8], Iter [1700/3722], Loss: 3.8721, Reward: -9.36, Accuracy: 0.00, PPL: 48.04
+Time 10m 41s, Epoch [2/8], Iter [1800/3722], Loss: 3.9040, Reward: -9.36, Accuracy: 0.00, PPL: 49.60
+Time 10m 53s, Epoch [2/8], Iter [1900/3722], Loss: 3.9347, Reward: -9.36, Accuracy: 0.00, PPL: 51.15
+Time 11m 5s, Epoch [2/8], Iter [2000/3722], Loss: 3.8680, Reward: -9.36, Accuracy: 0.00, PPL: 47.85
+Time 11m 18s, Epoch [2/8], Iter [2100/3722], Loss: 3.8315, Reward: -9.36, Accuracy: 0.00, PPL: 46.13
+Time 11m 30s, Epoch [2/8], Iter [2200/3722], Loss: 3.8337, Reward: -9.36, Accuracy: 0.00, PPL: 46.23
+Time 11m 42s, Epoch [2/8], Iter [2300/3722], Loss: 3.8393, Reward: -9.36, Accuracy: 0.00, PPL: 46.49
+Time 11m 54s, Epoch [2/8], Iter [2400/3722], Loss: 3.8287, Reward: -9.36, Accuracy: 0.00, PPL: 46.00
+Time 12m 6s, Epoch [2/8], Iter [2500/3722], Loss: 3.8139, Reward: -9.36, Accuracy: 0.00, PPL: 45.33
+Time 12m 18s, Epoch [2/8], Iter [2600/3722], Loss: 3.8134, Reward: -9.36, Accuracy: 0.00, PPL: 45.30
+Time 12m 30s, Epoch [2/8], Iter [2700/3722], Loss: 3.8200, Reward: -9.36, Accuracy: 0.00, PPL: 45.60
+Time 12m 42s, Epoch [2/8], Iter [2800/3722], Loss: 3.7772, Reward: -9.36, Accuracy: 0.00, PPL: 43.69
+Time 12m 54s, Epoch [2/8], Iter [2900/3722], Loss: 3.8094, Reward: -9.36, Accuracy: 0.00, PPL: 45.12
+Time 13m 6s, Epoch [2/8], Iter [3000/3722], Loss: 3.7949, Reward: -9.36, Accuracy: 0.00, PPL: 44.47
+Time 13m 19s, Epoch [2/8], Iter [3100/3722], Loss: 3.7668, Reward: -9.36, Accuracy: 0.00, PPL: 43.24
+Time 13m 30s, Epoch [2/8], Iter [3200/3722], Loss: 3.7329, Reward: -9.36, Accuracy: 0.00, PPL: 41.80
+Time 13m 43s, Epoch [2/8], Iter [3300/3722], Loss: 3.7690, Reward: -9.36, Accuracy: 0.00, PPL: 43.34
+Time 13m 55s, Epoch [2/8], Iter [3400/3722], Loss: 3.7384, Reward: -9.36, Accuracy: 0.00, PPL: 42.03
+Time 14m 8s, Epoch [2/8], Iter [3500/3722], Loss: 3.7157, Reward: -9.36, Accuracy: 0.00, PPL: 41.09
+Time 14m 20s, Epoch [2/8], Iter [3600/3722], Loss: 3.7367, Reward: -9.36, Accuracy: 0.00, PPL: 41.96
+Time 14m 32s, Epoch [2/8], Iter [3700/3722], Loss: 3.7548, Reward: -9.36, Accuracy: 0.00, PPL: 42.73
+Validation. Time 14m 35s, PPL: 31.96
+Time 14m 48s, Epoch [3/8], Iter [100/3722], Loss: 3.6049, Reward: -9.36, Accuracy: 0.00, PPL: 36.78
+Time 15m 1s, Epoch [3/8], Iter [200/3722], Loss: 3.6604, Reward: -9.36, Accuracy: 0.00, PPL: 38.88
+Time 15m 13s, Epoch [3/8], Iter [300/3722], Loss: 3.6452, Reward: -9.36, Accuracy: 0.00, PPL: 38.29
+Time 15m 25s, Epoch [3/8], Iter [400/3722], Loss: 3.6621, Reward: -9.36, Accuracy: 0.00, PPL: 38.94
+Time 15m 37s, Epoch [3/8], Iter [500/3722], Loss: 3.6730, Reward: -9.36, Accuracy: 0.00, PPL: 39.37
+Time 15m 49s, Epoch [3/8], Iter [600/3722], Loss: 3.6341, Reward: -9.36, Accuracy: 0.00, PPL: 37.87
+Time 16m 1s, Epoch [3/8], Iter [700/3722], Loss: 3.6450, Reward: -9.36, Accuracy: 0.00, PPL: 38.28
+Time 16m 14s, Epoch [3/8], Iter [800/3722], Loss: 3.6182, Reward: -9.36, Accuracy: 0.00, PPL: 37.27
+Time 16m 26s, Epoch [3/8], Iter [900/3722], Loss: 3.6181, Reward: -9.36, Accuracy: 0.00, PPL: 37.27
+Time 16m 39s, Epoch [3/8], Iter [1000/3722], Loss: 3.6367, Reward: -9.36, Accuracy: 0.00, PPL: 37.97
+Time 16m 51s, Epoch [3/8], Iter [1100/3722], Loss: 3.6124, Reward: -9.36, Accuracy: 0.00, PPL: 37.06
+Time 17m 3s, Epoch [3/8], Iter [1200/3722], Loss: 3.5822, Reward: -9.36, Accuracy: 0.00, PPL: 35.95
+Time 17m 16s, Epoch [3/8], Iter [1300/3722], Loss: 3.6185, Reward: -9.36, Accuracy: 0.00, PPL: 37.28
+Time 17m 28s, Epoch [3/8], Iter [1400/3722], Loss: 3.5920, Reward: -9.36, Accuracy: 0.00, PPL: 36.31
+Time 17m 40s, Epoch [3/8], Iter [1500/3722], Loss: 3.5798, Reward: -9.36, Accuracy: 0.00, PPL: 35.87
+Time 17m 53s, Epoch [3/8], Iter [1600/3722], Loss: 3.6006, Reward: -9.36, Accuracy: 0.00, PPL: 36.62
+Time 18m 5s, Epoch [3/8], Iter [1700/3722], Loss: 3.6132, Reward: -9.36, Accuracy: 0.00, PPL: 37.09
+Time 18m 18s, Epoch [3/8], Iter [1800/3722], Loss: 3.6334, Reward: -9.36, Accuracy: 0.00, PPL: 37.84
+Time 18m 30s, Epoch [3/8], Iter [1900/3722], Loss: 3.5756, Reward: -9.36, Accuracy: 0.00, PPL: 35.72
+Time 18m 42s, Epoch [3/8], Iter [2000/3722], Loss: 3.5923, Reward: -9.36, Accuracy: 0.00, PPL: 36.32
+Time 18m 54s, Epoch [3/8], Iter [2100/3722], Loss: 3.5954, Reward: -9.36, Accuracy: 0.00, PPL: 36.43
+Time 19m 7s, Epoch [3/8], Iter [2200/3722], Loss: 3.5922, Reward: -9.36, Accuracy: 0.00, PPL: 36.31
+Time 19m 19s, Epoch [3/8], Iter [2300/3722], Loss: 3.5732, Reward: -9.36, Accuracy: 0.00, PPL: 35.63
+Time 19m 32s, Epoch [3/8], Iter [2400/3722], Loss: 3.5463, Reward: -9.36, Accuracy: 0.00, PPL: 34.68
+Time 19m 44s, Epoch [3/8], Iter [2500/3722], Loss: 3.5791, Reward: -9.36, Accuracy: 0.00, PPL: 35.84
+Time 19m 56s, Epoch [3/8], Iter [2600/3722], Loss: 3.5495, Reward: -9.36, Accuracy: 0.00, PPL: 34.79
+Time 20m 8s, Epoch [3/8], Iter [2700/3722], Loss: 3.5575, Reward: -9.36, Accuracy: 0.00, PPL: 35.08
+Time 20m 20s, Epoch [3/8], Iter [2800/3722], Loss: 3.5542, Reward: -9.36, Accuracy: 0.00, PPL: 34.96
+Time 20m 33s, Epoch [3/8], Iter [2900/3722], Loss: 3.5437, Reward: -9.36, Accuracy: 0.00, PPL: 34.60
+Time 20m 45s, Epoch [3/8], Iter [3000/3722], Loss: 3.5111, Reward: -9.36, Accuracy: 0.00, PPL: 33.49
+Time 20m 58s, Epoch [3/8], Iter [3100/3722], Loss: 3.5584, Reward: -9.36, Accuracy: 0.00, PPL: 35.11
+Time 21m 10s, Epoch [3/8], Iter [3200/3722], Loss: 3.5057, Reward: -9.36, Accuracy: 0.00, PPL: 33.31
+Time 21m 22s, Epoch [3/8], Iter [3300/3722], Loss: 3.5405, Reward: -9.36, Accuracy: 0.00, PPL: 34.49
+Time 21m 34s, Epoch [3/8], Iter [3400/3722], Loss: 3.5461, Reward: -9.36, Accuracy: 0.00, PPL: 34.68
+Time 21m 46s, Epoch [3/8], Iter [3500/3722], Loss: 3.5493, Reward: -9.36, Accuracy: 0.00, PPL: 34.79
+Time 21m 59s, Epoch [3/8], Iter [3600/3722], Loss: 3.5201, Reward: -9.36, Accuracy: 0.00, PPL: 33.79
+Time 22m 11s, Epoch [3/8], Iter [3700/3722], Loss: 3.5539, Reward: -9.36, Accuracy: 0.00, PPL: 34.95
+Validation. Time 22m 14s, PPL: 25.91
+Time 22m 27s, Epoch [4/8], Iter [100/3722], Loss: 3.3807, Reward: -9.36, Accuracy: 0.00, PPL: 29.39
+Time 22m 39s, Epoch [4/8], Iter [200/3722], Loss: 3.4069, Reward: -9.36, Accuracy: 0.00, PPL: 30.17
+Time 22m 52s, Epoch [4/8], Iter [300/3722], Loss: 3.4090, Reward: -9.36, Accuracy: 0.00, PPL: 30.24
+Time 23m 4s, Epoch [4/8], Iter [400/3722], Loss: 3.4141, Reward: -9.36, Accuracy: 0.00, PPL: 30.39
+Time 23m 16s, Epoch [4/8], Iter [500/3722], Loss: 3.4314, Reward: -9.36, Accuracy: 0.00, PPL: 30.92
+Time 23m 28s, Epoch [4/8], Iter [600/3722], Loss: 3.4054, Reward: -9.36, Accuracy: 0.00, PPL: 30.13
+Time 23m 40s, Epoch [4/8], Iter [700/3722], Loss: 3.4799, Reward: -9.36, Accuracy: 0.00, PPL: 32.46
+Time 23m 53s, Epoch [4/8], Iter [800/3722], Loss: 3.4094, Reward: -9.36, Accuracy: 0.00, PPL: 30.25
+Time 24m 5s, Epoch [4/8], Iter [900/3722], Loss: 3.4194, Reward: -9.36, Accuracy: 0.00, PPL: 30.55
+Time 24m 18s, Epoch [4/8], Iter [1000/3722], Loss: 3.4382, Reward: -9.36, Accuracy: 0.00, PPL: 31.13
+Time 24m 30s, Epoch [4/8], Iter [1100/3722], Loss: 3.4412, Reward: -9.36, Accuracy: 0.00, PPL: 31.22
+Time 24m 42s, Epoch [4/8], Iter [1200/3722], Loss: 3.4269, Reward: -9.36, Accuracy: 0.00, PPL: 30.78
+Time 24m 54s, Epoch [4/8], Iter [1300/3722], Loss: 3.4341, Reward: -9.36, Accuracy: 0.00, PPL: 31.00
+Time 25m 6s, Epoch [4/8], Iter [1400/3722], Loss: 3.3910, Reward: -9.36, Accuracy: 0.00, PPL: 29.70
+Time 25m 19s, Epoch [4/8], Iter [1500/3722], Loss: 3.3846, Reward: -9.36, Accuracy: 0.00, PPL: 29.51
+Time 25m 31s, Epoch [4/8], Iter [1600/3722], Loss: 3.4508, Reward: -9.36, Accuracy: 0.00, PPL: 31.53
+Time 25m 44s, Epoch [4/8], Iter [1700/3722], Loss: 3.4113, Reward: -9.36, Accuracy: 0.00, PPL: 30.31
+Time 25m 56s, Epoch [4/8], Iter [1800/3722], Loss: 3.3998, Reward: -9.36, Accuracy: 0.00, PPL: 29.96
+Time 26m 8s, Epoch [4/8], Iter [1900/3722], Loss: 3.3823, Reward: -9.36, Accuracy: 0.00, PPL: 29.44
+Time 26m 20s, Epoch [4/8], Iter [2000/3722], Loss: 3.3995, Reward: -9.36, Accuracy: 0.00, PPL: 29.95
+Time 26m 31s, Epoch [4/8], Iter [2100/3722], Loss: 3.3948, Reward: -9.36, Accuracy: 0.00, PPL: 29.81
+Time 26m 44s, Epoch [4/8], Iter [2200/3722], Loss: 3.3961, Reward: -9.36, Accuracy: 0.00, PPL: 29.85
+Time 26m 56s, Epoch [4/8], Iter [2300/3722], Loss: 3.3852, Reward: -9.36, Accuracy: 0.00, PPL: 29.52
+Time 27m 8s, Epoch [4/8], Iter [2400/3722], Loss: 3.4195, Reward: -9.36, Accuracy: 0.00, PPL: 30.55
+Time 27m 20s, Epoch [4/8], Iter [2500/3722], Loss: 3.3662, Reward: -9.36, Accuracy: 0.00, PPL: 28.97
+Time 27m 32s, Epoch [4/8], Iter [2600/3722], Loss: 3.4085, Reward: -9.36, Accuracy: 0.00, PPL: 30.22
+Time 27m 44s, Epoch [4/8], Iter [2700/3722], Loss: 3.3789, Reward: -9.36, Accuracy: 0.00, PPL: 29.34
+Time 27m 56s, Epoch [4/8], Iter [2800/3722], Loss: 3.4081, Reward: -9.36, Accuracy: 0.00, PPL: 30.21
+Time 28m 7s, Epoch [4/8], Iter [2900/3722], Loss: 3.3648, Reward: -9.36, Accuracy: 0.00, PPL: 28.93
+Time 28m 19s, Epoch [4/8], Iter [3000/3722], Loss: 3.4275, Reward: -9.36, Accuracy: 0.00, PPL: 30.80
+Time 28m 30s, Epoch [4/8], Iter [3100/3722], Loss: 3.3552, Reward: -9.36, Accuracy: 0.00, PPL: 28.65
+Time 28m 42s, Epoch [4/8], Iter [3200/3722], Loss: 3.4044, Reward: -9.36, Accuracy: 0.00, PPL: 30.10
+Time 28m 54s, Epoch [4/8], Iter [3300/3722], Loss: 3.3751, Reward: -9.36, Accuracy: 0.00, PPL: 29.23
+Time 29m 5s, Epoch [4/8], Iter [3400/3722], Loss: 3.3970, Reward: -9.36, Accuracy: 0.00, PPL: 29.87
+Time 29m 16s, Epoch [4/8], Iter [3500/3722], Loss: 3.3858, Reward: -9.36, Accuracy: 0.00, PPL: 29.54
+Time 29m 27s, Epoch [4/8], Iter [3600/3722], Loss: 3.3548, Reward: -9.36, Accuracy: 0.00, PPL: 28.64
+Time 29m 39s, Epoch [4/8], Iter [3700/3722], Loss: 3.3908, Reward: -9.36, Accuracy: 0.00, PPL: 29.69
+Validation. Time 29m 42s, PPL: 22.84
+Time 29m 54s, Epoch [5/8], Iter [100/3722], Loss: 3.2349, Reward: -9.36, Accuracy: 0.00, PPL: 25.40
+Time 30m 5s, Epoch [5/8], Iter [200/3722], Loss: 3.2565, Reward: -9.36, Accuracy: 0.00, PPL: 25.96
+Time 30m 16s, Epoch [5/8], Iter [300/3722], Loss: 3.2681, Reward: -9.36, Accuracy: 0.00, PPL: 26.26
+Time 30m 28s, Epoch [5/8], Iter [400/3722], Loss: 3.2954, Reward: -9.36, Accuracy: 0.00, PPL: 26.99
+Time 30m 39s, Epoch [5/8], Iter [500/3722], Loss: 3.2456, Reward: -9.36, Accuracy: 0.00, PPL: 25.68
+Time 30m 51s, Epoch [5/8], Iter [600/3722], Loss: 3.2918, Reward: -9.36, Accuracy: 0.00, PPL: 26.89
+Time 31m 2s, Epoch [5/8], Iter [700/3722], Loss: 3.2913, Reward: -9.36, Accuracy: 0.00, PPL: 26.88
+Time 31m 13s, Epoch [5/8], Iter [800/3722], Loss: 3.2795, Reward: -9.36, Accuracy: 0.00, PPL: 26.56
+Time 31m 24s, Epoch [5/8], Iter [900/3722], Loss: 3.2738, Reward: -9.36, Accuracy: 0.00, PPL: 26.41
+Time 31m 35s, Epoch [5/8], Iter [1000/3722], Loss: 3.2261, Reward: -9.36, Accuracy: 0.00, PPL: 25.18
+Time 31m 46s, Epoch [5/8], Iter [1100/3722], Loss: 3.2812, Reward: -9.36, Accuracy: 0.00, PPL: 26.61
+Time 31m 57s, Epoch [5/8], Iter [1200/3722], Loss: 3.2887, Reward: -9.36, Accuracy: 0.00, PPL: 26.81
+Time 32m 8s, Epoch [5/8], Iter [1300/3722], Loss: 3.2710, Reward: -9.36, Accuracy: 0.00, PPL: 26.34
+Time 32m 19s, Epoch [5/8], Iter [1400/3722], Loss: 3.2771, Reward: -9.36, Accuracy: 0.00, PPL: 26.50
+Time 32m 31s, Epoch [5/8], Iter [1500/3722], Loss: 3.2819, Reward: -9.36, Accuracy: 0.00, PPL: 26.63
+Time 32m 42s, Epoch [5/8], Iter [1600/3722], Loss: 3.2645, Reward: -9.36, Accuracy: 0.00, PPL: 26.17
+Time 32m 52s, Epoch [5/8], Iter [1700/3722], Loss: 3.2651, Reward: -9.36, Accuracy: 0.00, PPL: 26.18
+Time 33m 4s, Epoch [5/8], Iter [1800/3722], Loss: 3.2864, Reward: -9.36, Accuracy: 0.00, PPL: 26.75
+Time 33m 15s, Epoch [5/8], Iter [1900/3722], Loss: 3.2634, Reward: -9.36, Accuracy: 0.00, PPL: 26.14
+Time 33m 26s, Epoch [5/8], Iter [2000/3722], Loss: 3.2904, Reward: -9.36, Accuracy: 0.00, PPL: 26.85
+Time 33m 37s, Epoch [5/8], Iter [2100/3722], Loss: 3.2660, Reward: -9.36, Accuracy: 0.00, PPL: 26.21
+Time 33m 48s, Epoch [5/8], Iter [2200/3722], Loss: 3.2800, Reward: -9.36, Accuracy: 0.00, PPL: 26.58
+Time 33m 59s, Epoch [5/8], Iter [2300/3722], Loss: 3.2679, Reward: -9.36, Accuracy: 0.00, PPL: 26.26
+Time 34m 10s, Epoch [5/8], Iter [2400/3722], Loss: 3.2420, Reward: -9.36, Accuracy: 0.00, PPL: 25.59
+Time 34m 21s, Epoch [5/8], Iter [2500/3722], Loss: 3.2500, Reward: -9.36, Accuracy: 0.00, PPL: 25.79
+Time 34m 33s, Epoch [5/8], Iter [2600/3722], Loss: 3.2838, Reward: -9.36, Accuracy: 0.00, PPL: 26.68
+Time 34m 43s, Epoch [5/8], Iter [2700/3722], Loss: 3.2609, Reward: -9.36, Accuracy: 0.00, PPL: 26.07
+Time 34m 55s, Epoch [5/8], Iter [2800/3722], Loss: 3.2696, Reward: -9.36, Accuracy: 0.00, PPL: 26.30
+Time 35m 6s, Epoch [5/8], Iter [2900/3722], Loss: 3.2271, Reward: -9.36, Accuracy: 0.00, PPL: 25.21
+Time 35m 17s, Epoch [5/8], Iter [3000/3722], Loss: 3.2679, Reward: -9.36, Accuracy: 0.00, PPL: 26.26
+Time 35m 28s, Epoch [5/8], Iter [3100/3722], Loss: 3.2684, Reward: -9.36, Accuracy: 0.00, PPL: 26.27
+Time 35m 39s, Epoch [5/8], Iter [3200/3722], Loss: 3.3047, Reward: -9.36, Accuracy: 0.00, PPL: 27.24
+Time 35m 50s, Epoch [5/8], Iter [3300/3722], Loss: 3.2777, Reward: -9.36, Accuracy: 0.00, PPL: 26.51
+Time 36m 1s, Epoch [5/8], Iter [3400/3722], Loss: 3.2878, Reward: -9.36, Accuracy: 0.00, PPL: 26.78
+Time 36m 13s, Epoch [5/8], Iter [3500/3722], Loss: 3.2687, Reward: -9.36, Accuracy: 0.00, PPL: 26.28
+Time 36m 24s, Epoch [5/8], Iter [3600/3722], Loss: 3.2680, Reward: -9.36, Accuracy: 0.00, PPL: 26.26
+Time 36m 36s, Epoch [5/8], Iter [3700/3722], Loss: 3.2225, Reward: -9.36, Accuracy: 0.00, PPL: 25.09
+Validation. Time 36m 39s, PPL: 20.71
+Time 36m 50s, Epoch [6/8], Iter [100/3722], Loss: 3.1405, Reward: -9.36, Accuracy: 0.00, PPL: 23.12
+Time 37m 1s, Epoch [6/8], Iter [200/3722], Loss: 3.1244, Reward: -9.36, Accuracy: 0.00, PPL: 22.75
+Time 37m 13s, Epoch [6/8], Iter [300/3722], Loss: 3.1407, Reward: -9.36, Accuracy: 0.00, PPL: 23.12
+Time 37m 24s, Epoch [6/8], Iter [400/3722], Loss: 3.1497, Reward: -9.36, Accuracy: 0.00, PPL: 23.33
+Time 37m 35s, Epoch [6/8], Iter [500/3722], Loss: 3.1477, Reward: -9.36, Accuracy: 0.00, PPL: 23.28
+Time 37m 46s, Epoch [6/8], Iter [600/3722], Loss: 3.1619, Reward: -9.36, Accuracy: 0.00, PPL: 23.62
+Time 37m 57s, Epoch [6/8], Iter [700/3722], Loss: 3.1508, Reward: -9.36, Accuracy: 0.00, PPL: 23.35
+Time 38m 9s, Epoch [6/8], Iter [800/3722], Loss: 3.1226, Reward: -9.36, Accuracy: 0.00, PPL: 22.71
+Time 38m 20s, Epoch [6/8], Iter [900/3722], Loss: 3.1494, Reward: -9.36, Accuracy: 0.00, PPL: 23.32
+Time 38m 31s, Epoch [6/8], Iter [1000/3722], Loss: 3.1532, Reward: -9.36, Accuracy: 0.00, PPL: 23.41
+Time 38m 42s, Epoch [6/8], Iter [1100/3722], Loss: 3.1777, Reward: -9.36, Accuracy: 0.00, PPL: 23.99
+Time 38m 53s, Epoch [6/8], Iter [1200/3722], Loss: 3.1564, Reward: -9.36, Accuracy: 0.00, PPL: 23.49
+Time 39m 4s, Epoch [6/8], Iter [1300/3722], Loss: 3.1740, Reward: -9.36, Accuracy: 0.00, PPL: 23.90
+Time 39m 16s, Epoch [6/8], Iter [1400/3722], Loss: 3.1930, Reward: -9.36, Accuracy: 0.00, PPL: 24.36
+Time 39m 28s, Epoch [6/8], Iter [1500/3722], Loss: 3.1971, Reward: -9.36, Accuracy: 0.00, PPL: 24.46
+Time 39m 39s, Epoch [6/8], Iter [1600/3722], Loss: 3.1962, Reward: -9.36, Accuracy: 0.00, PPL: 24.44
+Time 39m 50s, Epoch [6/8], Iter [1700/3722], Loss: 3.1262, Reward: -9.36, Accuracy: 0.00, PPL: 22.79
+Time 40m 2s, Epoch [6/8], Iter [1800/3722], Loss: 3.1958, Reward: -9.36, Accuracy: 0.00, PPL: 24.43
+Time 40m 13s, Epoch [6/8], Iter [1900/3722], Loss: 3.1071, Reward: -9.36, Accuracy: 0.00, PPL: 22.36
+Time 40m 24s, Epoch [6/8], Iter [2000/3722], Loss: 3.2190, Reward: -9.36, Accuracy: 0.00, PPL: 25.00
+Time 40m 36s, Epoch [6/8], Iter [2100/3722], Loss: 3.1839, Reward: -9.36, Accuracy: 0.00, PPL: 24.14
+Time 40m 48s, Epoch [6/8], Iter [2200/3722], Loss: 3.1533, Reward: -9.36, Accuracy: 0.00, PPL: 23.41
+Time 40m 59s, Epoch [6/8], Iter [2300/3722], Loss: 3.1566, Reward: -9.36, Accuracy: 0.00, PPL: 23.49
+Time 41m 11s, Epoch [6/8], Iter [2400/3722], Loss: 3.1513, Reward: -9.36, Accuracy: 0.00, PPL: 23.37
+Time 41m 22s, Epoch [6/8], Iter [2500/3722], Loss: 3.1658, Reward: -9.36, Accuracy: 0.00, PPL: 23.71
+Time 41m 33s, Epoch [6/8], Iter [2600/3722], Loss: 3.2091, Reward: -9.36, Accuracy: 0.00, PPL: 24.76
+Time 41m 45s, Epoch [6/8], Iter [2700/3722], Loss: 3.1368, Reward: -9.36, Accuracy: 0.00, PPL: 23.03
+Time 41m 57s, Epoch [6/8], Iter [2800/3722], Loss: 3.1905, Reward: -9.36, Accuracy: 0.00, PPL: 24.30
+Time 42m 8s, Epoch [6/8], Iter [2900/3722], Loss: 3.1440, Reward: -9.36, Accuracy: 0.00, PPL: 23.20
+Time 42m 19s, Epoch [6/8], Iter [3000/3722], Loss: 3.1888, Reward: -9.36, Accuracy: 0.00, PPL: 24.26
+Time 42m 31s, Epoch [6/8], Iter [3100/3722], Loss: 3.1463, Reward: -9.36, Accuracy: 0.00, PPL: 23.25
+Time 42m 42s, Epoch [6/8], Iter [3200/3722], Loss: 3.1755, Reward: -9.36, Accuracy: 0.00, PPL: 23.94
+Time 42m 53s, Epoch [6/8], Iter [3300/3722], Loss: 3.1600, Reward: -9.36, Accuracy: 0.00, PPL: 23.57
+Time 43m 5s, Epoch [6/8], Iter [3400/3722], Loss: 3.1679, Reward: -9.36, Accuracy: 0.00, PPL: 23.76
+Time 43m 16s, Epoch [6/8], Iter [3500/3722], Loss: 3.1974, Reward: -9.36, Accuracy: 0.00, PPL: 24.47
+Time 43m 28s, Epoch [6/8], Iter [3600/3722], Loss: 3.1613, Reward: -9.36, Accuracy: 0.00, PPL: 23.60
+Time 43m 39s, Epoch [6/8], Iter [3700/3722], Loss: 3.1864, Reward: -9.36, Accuracy: 0.00, PPL: 24.20
+Validation. Time 43m 42s, PPL: 19.33
+Time 43m 54s, Epoch [7/8], Iter [100/3722], Loss: 3.0034, Reward: -9.36, Accuracy: 0.00, PPL: 20.15
+Time 44m 5s, Epoch [7/8], Iter [200/3722], Loss: 3.0132, Reward: -9.36, Accuracy: 0.00, PPL: 20.35
+Time 44m 16s, Epoch [7/8], Iter [300/3722], Loss: 3.0360, Reward: -9.36, Accuracy: 0.00, PPL: 20.82
+Time 44m 28s, Epoch [7/8], Iter [400/3722], Loss: 3.0438, Reward: -9.36, Accuracy: 0.00, PPL: 20.99
+Time 44m 39s, Epoch [7/8], Iter [500/3722], Loss: 3.0624, Reward: -9.36, Accuracy: 0.00, PPL: 21.38
+Time 44m 50s, Epoch [7/8], Iter [600/3722], Loss: 3.0166, Reward: -9.36, Accuracy: 0.00, PPL: 20.42
+Time 45m 2s, Epoch [7/8], Iter [700/3722], Loss: 3.0574, Reward: -9.36, Accuracy: 0.00, PPL: 21.27
+Time 45m 13s, Epoch [7/8], Iter [800/3722], Loss: 3.0762, Reward: -9.36, Accuracy: 0.00, PPL: 21.68
+Time 45m 24s, Epoch [7/8], Iter [900/3722], Loss: 3.0585, Reward: -9.36, Accuracy: 0.00, PPL: 21.29
+Time 45m 35s, Epoch [7/8], Iter [1000/3722], Loss: 3.1089, Reward: -9.36, Accuracy: 0.00, PPL: 22.40
+Time 45m 46s, Epoch [7/8], Iter [1100/3722], Loss: 3.0687, Reward: -9.36, Accuracy: 0.00, PPL: 21.51
+Time 45m 58s, Epoch [7/8], Iter [1200/3722], Loss: 3.0936, Reward: -9.36, Accuracy: 0.00, PPL: 22.06
+Time 46m 9s, Epoch [7/8], Iter [1300/3722], Loss: 3.1163, Reward: -9.36, Accuracy: 0.00, PPL: 22.56
+Time 46m 21s, Epoch [7/8], Iter [1400/3722], Loss: 3.0797, Reward: -9.36, Accuracy: 0.00, PPL: 21.75
+Time 46m 32s, Epoch [7/8], Iter [1500/3722], Loss: 3.0790, Reward: -9.36, Accuracy: 0.00, PPL: 21.74
+Time 46m 43s, Epoch [7/8], Iter [1600/3722], Loss: 3.1005, Reward: -9.36, Accuracy: 0.00, PPL: 22.21
+Time 46m 54s, Epoch [7/8], Iter [1700/3722], Loss: 3.0816, Reward: -9.36, Accuracy: 0.00, PPL: 21.79
+Time 47m 6s, Epoch [7/8], Iter [1800/3722], Loss: 3.0904, Reward: -9.36, Accuracy: 0.00, PPL: 21.99
+Time 47m 17s, Epoch [7/8], Iter [1900/3722], Loss: 3.0635, Reward: -9.36, Accuracy: 0.00, PPL: 21.40
+Time 47m 28s, Epoch [7/8], Iter [2000/3722], Loss: 3.0648, Reward: -9.36, Accuracy: 0.00, PPL: 21.43
+Time 47m 40s, Epoch [7/8], Iter [2100/3722], Loss: 3.0602, Reward: -9.36, Accuracy: 0.00, PPL: 21.33
+Time 47m 51s, Epoch [7/8], Iter [2200/3722], Loss: 3.0870, Reward: -9.36, Accuracy: 0.00, PPL: 21.91
+Time 48m 2s, Epoch [7/8], Iter [2300/3722], Loss: 3.1098, Reward: -9.36, Accuracy: 0.00, PPL: 22.42
+Time 48m 14s, Epoch [7/8], Iter [2400/3722], Loss: 3.1290, Reward: -9.36, Accuracy: 0.00, PPL: 22.85
+Time 48m 25s, Epoch [7/8], Iter [2500/3722], Loss: 3.1130, Reward: -9.36, Accuracy: 0.00, PPL: 22.49
+Time 48m 37s, Epoch [7/8], Iter [2600/3722], Loss: 3.0766, Reward: -9.36, Accuracy: 0.00, PPL: 21.68
+Time 48m 48s, Epoch [7/8], Iter [2700/3722], Loss: 3.0921, Reward: -9.36, Accuracy: 0.00, PPL: 22.02
+Time 48m 59s, Epoch [7/8], Iter [2800/3722], Loss: 3.1037, Reward: -9.36, Accuracy: 0.00, PPL: 22.28
+Time 49m 11s, Epoch [7/8], Iter [2900/3722], Loss: 3.0778, Reward: -9.36, Accuracy: 0.00, PPL: 21.71
+Time 49m 22s, Epoch [7/8], Iter [3000/3722], Loss: 3.0873, Reward: -9.36, Accuracy: 0.00, PPL: 21.92
+Time 49m 33s, Epoch [7/8], Iter [3100/3722], Loss: 3.1145, Reward: -9.36, Accuracy: 0.00, PPL: 22.52
+Time 49m 44s, Epoch [7/8], Iter [3200/3722], Loss: 3.0990, Reward: -9.36, Accuracy: 0.00, PPL: 22.18
+Time 49m 56s, Epoch [7/8], Iter [3300/3722], Loss: 3.0873, Reward: -9.36, Accuracy: 0.00, PPL: 21.92
+Time 50m 7s, Epoch [7/8], Iter [3400/3722], Loss: 3.0975, Reward: -9.36, Accuracy: 0.00, PPL: 22.14
+Time 50m 18s, Epoch [7/8], Iter [3500/3722], Loss: 3.0806, Reward: -9.36, Accuracy: 0.00, PPL: 21.77
+Time 50m 29s, Epoch [7/8], Iter [3600/3722], Loss: 3.0889, Reward: -9.36, Accuracy: 0.00, PPL: 21.95
+Time 50m 41s, Epoch [7/8], Iter [3700/3722], Loss: 3.1034, Reward: -9.36, Accuracy: 0.00, PPL: 22.27
+Validation. Time 50m 44s, PPL: 18.29
+Time 50m 55s, Epoch [8/8], Iter [100/3722], Loss: 2.9654, Reward: -9.36, Accuracy: 0.00, PPL: 19.40
+Time 51m 7s, Epoch [8/8], Iter [200/3722], Loss: 2.9759, Reward: -9.36, Accuracy: 0.00, PPL: 19.61
+Time 51m 18s, Epoch [8/8], Iter [300/3722], Loss: 2.9304, Reward: -9.36, Accuracy: 0.00, PPL: 18.73
+Time 51m 29s, Epoch [8/8], Iter [400/3722], Loss: 2.9837, Reward: -9.36, Accuracy: 0.00, PPL: 19.76
+Time 51m 40s, Epoch [8/8], Iter [500/3722], Loss: 2.9618, Reward: -9.36, Accuracy: 0.00, PPL: 19.33
+Time 51m 52s, Epoch [8/8], Iter [600/3722], Loss: 3.0060, Reward: -9.36, Accuracy: 0.00, PPL: 20.21
+Time 52m 3s, Epoch [8/8], Iter [700/3722], Loss: 2.9939, Reward: -9.36, Accuracy: 0.00, PPL: 19.96
+Time 52m 14s, Epoch [8/8], Iter [800/3722], Loss: 2.9961, Reward: -9.36, Accuracy: 0.00, PPL: 20.01
+Time 52m 26s, Epoch [8/8], Iter [900/3722], Loss: 2.9927, Reward: -9.36, Accuracy: 0.00, PPL: 19.94
+Time 52m 37s, Epoch [8/8], Iter [1000/3722], Loss: 3.0059, Reward: -9.36, Accuracy: 0.00, PPL: 20.20
+Time 52m 49s, Epoch [8/8], Iter [1100/3722], Loss: 3.0371, Reward: -9.36, Accuracy: 0.00, PPL: 20.85
+Time 53m 0s, Epoch [8/8], Iter [1200/3722], Loss: 2.9818, Reward: -9.36, Accuracy: 0.00, PPL: 19.72
+Time 53m 12s, Epoch [8/8], Iter [1300/3722], Loss: 3.0018, Reward: -9.36, Accuracy: 0.00, PPL: 20.12
+Time 53m 23s, Epoch [8/8], Iter [1400/3722], Loss: 3.0197, Reward: -9.36, Accuracy: 0.00, PPL: 20.48
+Time 53m 34s, Epoch [8/8], Iter [1500/3722], Loss: 2.9843, Reward: -9.36, Accuracy: 0.00, PPL: 19.77
+Time 53m 45s, Epoch [8/8], Iter [1600/3722], Loss: 2.9953, Reward: -9.36, Accuracy: 0.00, PPL: 19.99
+Time 53m 57s, Epoch [8/8], Iter [1700/3722], Loss: 3.0205, Reward: -9.36, Accuracy: 0.00, PPL: 20.50
+Time 54m 8s, Epoch [8/8], Iter [1800/3722], Loss: 2.9853, Reward: -9.36, Accuracy: 0.00, PPL: 19.79
+Time 54m 20s, Epoch [8/8], Iter [1900/3722], Loss: 3.0102, Reward: -9.36, Accuracy: 0.00, PPL: 20.29
+Time 54m 31s, Epoch [8/8], Iter [2000/3722], Loss: 3.0175, Reward: -9.36, Accuracy: 0.00, PPL: 20.44
+Time 54m 42s, Epoch [8/8], Iter [2100/3722], Loss: 3.0083, Reward: -9.36, Accuracy: 0.00, PPL: 20.25
+Time 54m 53s, Epoch [8/8], Iter [2200/3722], Loss: 2.9936, Reward: -9.36, Accuracy: 0.00, PPL: 19.96
+Time 55m 5s, Epoch [8/8], Iter [2300/3722], Loss: 3.0037, Reward: -9.36, Accuracy: 0.00, PPL: 20.16
+Time 55m 16s, Epoch [8/8], Iter [2400/3722], Loss: 3.0034, Reward: -9.36, Accuracy: 0.00, PPL: 20.15
+Time 55m 27s, Epoch [8/8], Iter [2500/3722], Loss: 3.0416, Reward: -9.36, Accuracy: 0.00, PPL: 20.94
+Time 55m 38s, Epoch [8/8], Iter [2600/3722], Loss: 3.0464, Reward: -9.36, Accuracy: 0.00, PPL: 21.04
+Time 55m 50s, Epoch [8/8], Iter [2700/3722], Loss: 3.0324, Reward: -9.36, Accuracy: 0.00, PPL: 20.75
+Time 56m 1s, Epoch [8/8], Iter [2800/3722], Loss: 3.0371, Reward: -9.36, Accuracy: 0.00, PPL: 20.85
+Time 56m 13s, Epoch [8/8], Iter [2900/3722], Loss: 3.0389, Reward: -9.36, Accuracy: 0.00, PPL: 20.88
+Time 56m 24s, Epoch [8/8], Iter [3000/3722], Loss: 2.9984, Reward: -9.36, Accuracy: 0.00, PPL: 20.05
+Time 56m 35s, Epoch [8/8], Iter [3100/3722], Loss: 3.0643, Reward: -9.36, Accuracy: 0.00, PPL: 21.42
+Time 56m 47s, Epoch [8/8], Iter [3200/3722], Loss: 3.0664, Reward: -9.36, Accuracy: 0.00, PPL: 21.46
+Time 56m 58s, Epoch [8/8], Iter [3300/3722], Loss: 3.0407, Reward: -9.36, Accuracy: 0.00, PPL: 20.92
+Time 57m 9s, Epoch [8/8], Iter [3400/3722], Loss: 3.0655, Reward: -9.36, Accuracy: 0.00, PPL: 21.45
+Time 57m 20s, Epoch [8/8], Iter [3500/3722], Loss: 3.0294, Reward: -9.36, Accuracy: 0.00, PPL: 20.68
+Time 57m 31s, Epoch [8/8], Iter [3600/3722], Loss: 3.0214, Reward: -9.36, Accuracy: 0.00, PPL: 20.52
+Time 57m 43s, Epoch [8/8], Iter [3700/3722], Loss: 3.0444, Reward: -9.36, Accuracy: 0.00, PPL: 21.00
+Validation. Time 57m 46s, PPL: 17.62
+Traceback (most recent call last):
+  File "main.py", line 238, in <module>
+    _,wordlist,_ = model.predict2(x_de,beamsz=100,gen_len=3)
+  File "/mnt/trunk/cs287-s18/HW3/models.py", line 426, in predict2
+    h = self.dim_reduce(h.transpose(2,0)).transpose(2,0).contiguous() # nlayers*2,bs,hiddensz to nlayers,bs,hiddensz
+  File "/usr/local/lib/python3.5/dist-packages/torch/nn/modules/module.py", line 366, in __getattr__
+    type(self).__name__, name))
+AttributeError: 'S2S' object has no attribute 'dim_reduce'
+[01;32melbertgong@nlpfinal[00m:[01;34m/mnt/trunk/cs287-s18/HW3[00m$ exit
+exit

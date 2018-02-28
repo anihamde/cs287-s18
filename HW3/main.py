@@ -9,6 +9,9 @@ from torchtext import data
 from torchtext import datasets
 from torchtext.vocab import Vectors
 import spacy
+from models import AttnNetwork, CandList, S2S, AttnGRU
+from helpers import asMinutes, timeSince, escape, flip, freeze_model
+from collections import OrderedDict
 # import matplotlib.pyplot as plt
 # import matplotlib.ticker as ticker
 
@@ -19,6 +22,7 @@ import argparse
 parser = argparse.ArgumentParser(description='training runner')
 parser.add_argument('--model_type','-m',type=int,default=0,help='Model type (0 for AttnLSTM, 1 for S2S, 2 for AttnGRU)')
 parser.add_argument('--model_file','-mf',type=str,default='../../models/HW3/model.pkl',help='Model save target.')
+parser.add_argument('--architecture_file','-y',type=str,default='../../models/HW3/model.yaml',help='YAML file containing specs to build model.')
 parser.add_argument('--n_epochs','-e',type=int,default=3,help='set the number of training epochs.')
 parser.add_argument('--adadelta','-ada',action='store_true',help='Use Adadelta optimizer')
 parser.add_argument('--learning_rate','-lr',type=float,default=0.01,help='set learning rate.')
@@ -37,6 +41,12 @@ parser.add_argument('--weight_tying','-wt',action='store_true',help='Raise flag 
 parser.add_argument('--bidirectional','-b',action='store_true',help='Raise to make encoder bidirectional')
 parser.add_argument('--LSTM_dropout','-ld',type=float,default=0.0,help='Dropout rate inside encoder/decoder LSTMs')
 parser.add_argument('--vocab_layer_dropout','-vd',type=float,default=0.0,help='Dropout rate in vocab layer')
+parser.add_argument('--interpolated_model','-i',action='store_true',help="Invoke interpolated model, above architecture defining args suppressed, below args activated.")
+parser.add_argument('--saved_parameters','-sp',type=str,nargs='+',help="List of model parameter files (PKLs). Needs to match '--saved_architectures' arg.")
+parser.add_argument('--saved_architectures','-sa',type=str,nargs='+',help="List of model architecture files (YAMLs). Needs to match '--saved_parameters' arg.")
+parser.add_argument('--convolutional_featuremap_1','-cf1',type=int,default=200,help='Featuremap density for 3x1 conv.')
+parser.add_argument('--convolutional_featuremap_2','-cf2',type=int,default=200,help='Featuremap density for 5x1 conv.')
+parser.add_argument('--freeze_models','-fz',action='store_true',help='raise flag to freeze ensemble member parameters.')
 args = parser.parse_args()
 # You can add MIN_FREQ, MAX_LEN, and BATCH_SIZE as args too
 
@@ -131,8 +141,17 @@ If we have time, we can try the pytorch tutorial script with and without attn, t
 How to run jupyter notebooks in cloud?
 Generate longer full sentences with small beams. Not fixed-length.
 ''' 
-from models import AttnNetwork, CandList, S2S, AttnGRU
-from helpers import asMinutes, timeSince, escape, flip
+architecture_dict = OrderedDict([ ('model_ype',args.model_type),
+    ('word_dim',args.embedding_dims),('n_layers',args.hidden_depth),
+    ('hidden_dim',args.hidden_size),('word2vec',args.word2vec),
+    ('vocab_layer_size',args.vocab_layer_size),('LSTM_dropout',args.LSTM_dropout),
+    ('vocab_layer_dropout',args.vocab_layer_dropout),('weight_tying',args.weight_tying),
+    ('bidirectional',args.bidirectional),('attn_type',args.attn_type)
+])
+
+with open(args.architecture_file,'w') as fh:
+    [ fh.write("{}: {}\n".format(key,value)) for key,value in architecture_dict.items() ]
+    fh.close()
 
 if model_type == 0:
     model = AttnNetwork(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size, word2vec=args.word2vec,
@@ -172,7 +191,7 @@ for epoch in range(n_epochs):
         x_en = batch.trg.transpose(1,0).cuda() # bs,n_en
         if model_type == 1:
             x_de = flip(x_de,1) # reverse direction
-        loss, reinforce_loss, avg_reward = model.forward(x_de, x_en)
+        loss, reinforce_loss, avg_reward, _ = model.forward(x_de, x_en)
         print_loss_total -= avg_reward
         plot_loss_total -= avg_reward
 
@@ -217,7 +236,7 @@ for epoch in range(n_epochs):
         if model_type == 1:
             x_de = flip(x_de,1) # reverse direction
         x_de.volatile = True # "inference mode" supposedly speeds up
-        loss, reinforce_loss, avg_reward = model.forward(x_de, x_en)
+        loss, reinforce_loss, avg_reward, _, _ = model.forward(x_de, x_en)
         # too lazy to implement reward or accuracy for validation
         val_loss_total -= avg_reward
     val_loss_avg = val_loss_total / len(val_iter)
