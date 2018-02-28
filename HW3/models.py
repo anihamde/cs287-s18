@@ -469,7 +469,7 @@ class Alpha(nn.Module):
     def initDec(self,batch_size):
         return (Variable(torch.zeros(self.n_layers,batch_size,self.hidden_dim).cuda()), 
                 Variable(torch.zeros(self.n_layers,batch_size,self.hidden_dim).cuda()))
-    def forward(self, x_de, x_en, update_baseline=True):
+    def forward(self, x_de, x_en):
         models_stack = torch.stack(( x.forward(x_de,x_en)[3] for x in self.members ),dim=3) # bs,n_en,len(EN.vocab),len(models_tuple)
         bs = x_de.size(0)
         embeds = self.embedding(x_de) # bs,n_de,word_dim
@@ -486,7 +486,7 @@ class Alpha(nn.Module):
         out = out.unsqueeze(1) # bs, 1, len(model_tuple)
         out = out.unsqueeze(2) # bs, 1, 1, len(model_tuple)
         out = models_stack * out
-        pred = out.sum(3)
+        pred = out.sum(3) # bs,n_en,len(EN.vocab) 
         #
         y = x_en[:,1:]
         reward = torch.gather(pred,2,y.unsqueeze(2)) # bs,n_en,1
@@ -496,63 +496,41 @@ class Alpha(nn.Module):
         avg_reward = -loss.data[0]
         # hard attention baseline and reinforce stuff causing me trouble
         return loss, 0, avg_reward, pred
-
-    # predict with greedy decoding and teacher forcing
     def predict(self, x_de, x_en):
+    	models_stack = torch.stack(( x.forward(x_de,x_en)[3] for x in self.members ),dim=3) # bs,n_en,len(EN.vocab),len(models_tuple)
         bs = x_de.size(0)
-        emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
-        emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
-        enc_h, _ = self.encoder(emb_de, self.initEnc(bs)) # (bs,n_de,hiddensz*2)
-        dec_h, _ = self.decoder(emb_en, self.initDec(bs)) # (bs,n_en,hiddensz)
-        # all the same. enc_h is bs,n_de,hiddensz*n_directions. h and c are both n_layers*n_directions,bs,hiddensz
-        if self.directions == 2:
-            scores = torch.bmm(self.dim_reduce(enc_h), dec_h.transpose(1,2))
-        else:
-            scores = torch.bmm(enc_h, dec_h.transpose(1,2))
-        # (bs,n_de,hiddensz) * (bs,hiddensz,n_en) = (bs,n_de,n_en)
-        scores[(x_de == pad_token).unsqueeze(2).expand(scores.size())] = -math.inf # binary mask
-        attn_dist = F.softmax(scores,dim=1) # bs,n_de,n_en
-        context = torch.bmm(attn_dist.transpose(2,1),enc_h)
-        # (bs,n_en,n_de) * (bs,n_de,hiddensz*ndirections) = (bs,n_en,hiddensz*ndirections)
-        pred = self.vocab_layer(torch.cat([dec_h,context],2)) # bs,n_en,len(EN.vocab)
-        # pred[:,:,[unk_token,pad_token]] = -math.inf # TODO: testing this out kill pad unk
-        pred = pred[:,:-1,:] # alignment
+        embeds = self.embedding(x_de) # bs,n_de,word_dim
+        out = embeds.unsqueeze(2)
+        out = out.permute(0,3,1,2) # bs,word_dim,n_de,1
+        fw3 = self.conv3(out) # bs,n_featmaps1,n_de,1
+        fw5 = self.conv5(out) # bs,n_featmaps2,n_de,1
+        out = torch.cat([fw3,fw5],dim=1) # bs,n_featmaps1+n_featmaps2,n_de,1
+        out = out.squeeze(-1) # bs,n_featmaps1+n_featmaps2,n_de
+        out = self.maxpool(out) # bs,n_featmaps1+n_featmaps2,1
+        out = out.squeeze(-1) # bs,n_featmaps1+n_featmaps2
+        out = self.linear(out) # bs, len(model_tuple)
+        out = F.softmax(out,dim=1) # bs, len(model_tuple)
+        out = out.unsqueeze(1) # bs, 1, len(model_tuple)
+        out = out.unsqueeze(2) # bs, 1, 1, len(model_tuple)
+        out = models_stack * out
+        pred = out.sum(3) # bs,n_en,len(EN.vocab)
+        # the below is literally copy pasted from previous predict fnctions
         _, tokens = pred.max(2) # bs,n_en-1
         sauce = Variable(torch.cuda.LongTensor([[sos_token]]*bs)) # bs
         return torch.cat([sauce,tokens],1), attn_dist
-    # Singleton batch with BSO
-    def predict2(self, x_de, beamsz, gen_len):
-        emb_de = self.embedding_de(x_de) # "batch size",n_de,word_dim, but "batch size" is 1 in this case!
-        enc_h, _ = self.encoder(emb_de, self.initEnc(1))
-        # since enc batch size=1, enc_h is 1,n_de,hiddensz*n_directions
-        masterheap = CandList(enc_h.size(1),self.initDec(1),beamsz)
-        # in the following loop, beamsz is length 1 for first iteration, length true beamsz (100) afterward
-        for i in range(gen_len):
-            prev = masterheap.get_prev() # beamsz
-            emb_t = self.embedding_en(prev) # embed the last thing we generated. beamsz,word_dim
-            enc_h_expand = enc_h.expand(prev.size(0),-1,-1) # beamsz,n_de,hiddensz
-            #
-            hidd = masterheap.get_hiddens() # (n_layers,beamsz,hiddensz),(n_layers,beamsz,hiddensz)
-            dec_h, hidd = self.decoder(emb_t.unsqueeze(1), hidd) # dec_h is beamsz,1,hiddensz (batch_first=True)
-            if self.directions == 2:
-                scores = torch.bmm(self.dim_reduce(enc_h_expand), dec_h.transpose(1,2)).squeeze(2)
-            else:
-                scores = torch.bmm(enc_h_expand, dec_h.transpose(1,2)).squeeze(2)
-            # (beamsz,n_de,hiddensz) * (beamsz,hiddensz,1) = (beamsz,n_de,1). squeeze to beamsz,n_de
-            scores[(x_de == pad_token)] = -math.inf # binary mask
-            attn_dist = F.softmax(scores,dim=1)
-            if self.attn_type == "hard":
-                _, argmax = attn_dist.max(1) # beamsz for each batch, select most likely german word to pay attention to
-                one_hot = Variable(torch.zeros_like(attn_dist.data).scatter_(-1, argmax.data.unsqueeze(1), 1).cuda())
-                context = torch.bmm(one_hot.unsqueeze(1), enc_h_expand).squeeze(1)
-            else:
-                context = torch.bmm(attn_dist.unsqueeze(1), enc_h_expand).squeeze(1)
-            # the difference btwn hard and soft is just whether we use a one_hot or a distribution
-            # context is beamsz,hiddensz*n_directions
-            pred = self.vocab_layer(torch.cat([dec_h.squeeze(1), context], 1)) # beamsz,len(EN.vocab)
-            # pred[:,:,[unk_token,pad_token]] = -inf # TODO: testing this out kill pad unk
-            masterheap.update_beam(pred)
-            masterheap.update_hiddens(hidd)
-            masterheap.update_attentions(attn_dist)
-            masterheap.firstloop = False
-        return masterheap.probs,masterheap.wordlist,masterheap.attentions
+    def predict2(self,x_de,x_en):
+    	bs = x_de.size(0)
+        embeds = self.embedding(x_de) # bs,n_de,word_dim
+        out = embeds.unsqueeze(2)
+        out = out.permute(0,3,1,2) # bs,word_dim,n_de,1
+        fw3 = self.conv3(out) # bs,n_featmaps1,n_de,1
+        fw5 = self.conv5(out) # bs,n_featmaps2,n_de,1
+        out = torch.cat([fw3,fw5],dim=1) # bs,n_featmaps1+n_featmaps2,n_de,1
+        out = out.squeeze(-1) # bs,n_featmaps1+n_featmaps2,n_de
+        out = self.maxpool(out) # bs,n_featmaps1+n_featmaps2,1
+        out = out.squeeze(-1) # bs,n_featmaps1+n_featmaps2
+        out = self.linear(out) # bs, len(model_tuple)
+        out = F.softmax(out,dim=1) # bs, len(model_tuple)
+        out = out.unsqueeze(1) # bs, 1, len(model_tuple)
+        out = out.unsqueeze(2) # bs, 1, 1, len(model_tuple)
+		assert(0==1)
