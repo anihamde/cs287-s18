@@ -29,7 +29,7 @@ parser.add_argument('--rho','-r',type=float,default=0.95,help='rho for Adadelta 
 parser.add_argument('--weight_decay','-wd',type=float,default=0.0,help='Weight decay constant for optimizer')
 parser.add_argument('--accuracy','-acc',action='store_true',help='Calculate accuracy during training loop.')
 parser.add_argument('--frequent_ckpt','-ckpt',action='store_true',help='Save checkpoints every epoch, instead of just at the end.')
-parser.add_argument('--save_best','-best',action='store_true',hel='Save checkpoint after every epoch iff validation ppl improves.')
+parser.add_argument('--save_best','-best',action='store_true',help='Save checkpoint after every epoch iff validation ppl improves.')
 parser.add_argument('--attn_type','-at',type=str,default='soft',help='attention type')
 parser.add_argument('--clip_constraint','-cc',type=float,default=5.0,help='weight norm clip constraint')
 parser.add_argument('--word2vec','-w',action='store_true',help='Raise flag to initialize with word2vec embeddings')
