@@ -454,6 +454,7 @@ class Alpha(nn.Module):
             self.members = tuple( freeze_model(x) for x in models_tuple )
         else:
             self.members = models_tuple
+        self.member_count = len(models_tuple)
         self.embedding_dims = (embedding_features, 300)[word2vec == True]
         self.n_featmaps1 = n_featmaps1
         self.n_featmaps2 = n_featmaps2
@@ -465,7 +466,7 @@ class Alpha(nn.Module):
         self.maxpool = nn.AdaptiveMaxPool1d(1)
         self.dropout = nn.Dropout(dropout_rate)
         self.hidden = nn.Linear(n_featmaps1+n_featmaps2,linear_size)
-        self.output = nn.Linear(linear_size,len(models_tuple))
+        self.output = nn.Linear(linear_size,self.member_count)
         # vocab layer will combine dec hidden state with context vector, and then project out into vocab space 
         self.baseline = Variable(torch.cuda.FloatTensor([np.log(1/len(EN.vocab))])) # just to be consistent
     def initEnc(self,batch_size):
@@ -526,7 +527,7 @@ class Alpha(nn.Module):
         _, tokens = pred.max(2) # bs,n_en-1
         sauce = Variable(torch.cuda.LongTensor([[sos_token]]*bs)) # bs
         return torch.cat([sauce,tokens],1), attn_dist
-    def predict2(self,x_de,x_en):
+    def predict2(self,x_de,beamsz,gen_len):
         bs = x_de.size(0)
         embeds = self.embedding(x_de) # bs,n_de,word_dim
         out = embeds.unsqueeze(2)
@@ -541,4 +542,31 @@ class Alpha(nn.Module):
         out = F.softmax(out,dim=1) # bs, len(model_tuple)
         out = out.unsqueeze(1) # bs, 1, len(model_tuple)
         out = out.unsqueeze(2) # bs, 1, 1, len(model_tuple)
+        #
+        r_dex = range(self.member_count)
+        emb_de = tuple( m.embedding_de(x_de) for m in self.members )
+        enc_h  = tuple( m.encoder(emb_de,m.initEnc(1))[0] for m in self.members )
+        masterheaps = tuple( CandList(enc_h[i],self.members[i].initDec(1),beamsz) for i in r_dex )
+        for j in range(gen_len):
+            prev  = tuple( heap.get_prev() for heap in masterheaps )
+            emb_t = tuple( self.members[i].embedding_en(prev[i]) for i in r_dex )
+            enc_h_expand = tuple( enc_h[i].expand(prev[i].size(0),-1,-1) for i in r_dex )
+            hidd = tuple( heap.get_hiddens() for heap in masterheaps )
+            hold = tuple( self.members[i].decoder(emb_t[i].unsqueeze(1),hidd[i]) for i in r_dex )
+            dec_h, hidd = tuple(zip(*hold))
+            scores = tuple( torch.bmm(self.members[i].dim_reduce(enc_h_expand[i]), dec_h[i].transpose(1,2)).squeeze(2) if self.members[i].directions == 2 else torch.bmm(enc_h_expand[i], dec_h[i].transpose(1,2)).squeeze(2) for i in r_dex )
+            for i in r_dex:
+                scores[i][(x_de == pad_token)] = -math.inf
+            attn_dist = tuple( F.softmax(scores[i],dim=1) for i in r_dex )
+            context = tuple( torch.bmm(attn_dist[i].unsqueeze(1),enc_h_expand[i]).squeeze(1) for i in r_dex )
+            pred = tuple( self.members[i].vocab_layer(torch.cat([dec_h[i].squeeze(1), context[i]], 1)) for i in r_dex )
+            weighted_pred  = torch.stack(pred,dim=3) * out.squeeze(2)
+            ensembled_pred = weighted_pred.sum(3)
+            for i in r_dex:
+                masterheaps[i].update_beam(ensembled_pred)
+                masterheaps[i].update_hiddens(hidd[i])
+                masterheaps[i].update_attentions(attn_dist[i])
+                masterheaps[i].firstloop = False
+        #return masterheap.probs,masterheap.wordlist,masterheap.attentions
+        #
         assert(0==1)
