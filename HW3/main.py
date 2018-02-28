@@ -21,6 +21,7 @@ import argparse
 parser = argparse.ArgumentParser(description='training runner')
 parser.add_argument('--model_type','-m',type=int,default=0,help='Model type (0 for AttnLSTM, 1 for S2S, 2 for AttnGRU)')
 parser.add_argument('--model_file','-mf',type=str,default='../../models/HW3/model.pkl',help='Model save target.')
+parser.add_argument('--skip_training','-sk',action='store_true',help='Skip training loop and load model from PKL.')
 parser.add_argument('--architecture_file','-y',type=str,default='../../models/HW3/model.yaml',help='YAML file containing specs to build model.')
 parser.add_argument('--n_epochs','-e',type=int,default=3,help='set the number of training epochs.')
 parser.add_argument('--adadelta','-ada',action='store_true',help='Use Adadelta optimizer')
@@ -229,98 +230,101 @@ if args.adadelta:
 else:
     optimizer = optim.SGD(params, lr=learning_rate, weight_decay=weight_decay)
 
-best_ppl = 1000
-for epoch in range(n_epochs):
-    train_iter.init_epoch()
-    ctr = 0
-    print_loss_total = 0  # Reset every print_every
-    plot_loss_total = 0  # Reset every plot_every
-    print_acc_total = 0 # Reset every print_every
-    for batch in iter(train_iter):
-        ctr += 1
-        model.train()
-        if (not args.freeze_models) and args.interpolated_model:
-            for member in model.members:
-                member.train()
-        optimizer.zero_grad()
-        x_de = batch.src.transpose(1,0).cuda() # bs,n_de
-        x_en = batch.trg.transpose(1,0).cuda() # bs,n_en
-        if model_type == 1:
-            x_de = flip(x_de,1) # reverse direction
-        loss, reinforce_loss, avg_reward, _ = model.forward(x_de, x_en)
-        print_loss_total -= avg_reward
-        plot_loss_total -= avg_reward
-
-        # TODO: what happens if i don't multiply by x_en.size(1)
-        loss *= x_en.size(1) # scaling purposes, ask yoon!
-        reinforce_loss *= x_en.size(1)
-        (loss + reinforce_loss).backward()
-        torch.nn.utils.clip_grad_norm(model.parameters(), clip_constraint)
-        optimizer.step()
-        if args.weight_tying:
-            #model.vocab_layer.e2v.weight.data.copy_(model.embedding_en.weight.data)
-            model.embedding_en.weight.data.copy_(model.vocab_layer.e2v.weight.data)
-
-        if args.accuracy:
-            model.eval()
+if not args.skip_training:
+    best_ppl = 1000
+    for epoch in range(n_epochs):
+        train_iter.init_epoch()
+        ctr = 0
+        print_loss_total = 0  # Reset every print_every
+        plot_loss_total = 0  # Reset every plot_every
+        print_acc_total = 0 # Reset every print_every
+        for batch in iter(train_iter):
+            ctr += 1
+            model.train()
             if (not args.freeze_models) and args.interpolated_model:
                 for member in model.members:
-                    member.eval()
-            x_de = Variable(x_de.data, volatile = True)
-            y_pred,_ = model.predict(x_de, x_en) # bs,n_en
-            correct = (y_pred == x_en) # these are the same shape and both contain a sos_token row
-            no_pad = (x_en != pad_token) & (x_en != sos_token)
-            print_acc_total += (correct & no_pad).data.sum() / no_pad.data.sum()
-        
-        if ctr % print_every == 0:
-            print_loss_avg = print_loss_total / print_every
-            print_loss_total = 0
-            print_acc_avg = print_acc_total / print_every
-            print_acc_total = 0
-            timenow = timeSince(start)
-            print ('Time %s, Epoch [%d/%d], Iter [%d/%d], Loss: %.4f, Reward: %.2f, Accuracy: %.2f, PPL: %.2f' 
-                %(timenow, epoch+1, n_epochs, ctr, len(train_iter), print_loss_avg,
-                    model.baseline.data[0], print_acc_avg, np.exp(print_loss_avg)))
+                    member.train()
+            optimizer.zero_grad()
+            x_de = batch.src.transpose(1,0).cuda() # bs,n_de
+            x_en = batch.trg.transpose(1,0).cuda() # bs,n_en
+            if model_type == 1:
+                x_de = flip(x_de,1) # reverse direction
+            loss, reinforce_loss, avg_reward, _ = model.forward(x_de, x_en)
+            print_loss_total -= avg_reward
+            plot_loss_total -= avg_reward
 
-        if ctr % plot_every == 0:
-            plot_loss_avg = plot_loss_total / plot_every
-            plot_loss_total = 0
-            plot_losses.append(plot_loss_avg)
+            # TODO: what happens if i don't multiply by x_en.size(1)
+            loss *= x_en.size(1) # scaling purposes, ask yoon!
+            reinforce_loss *= x_en.size(1)
+            (loss + reinforce_loss).backward()
+            torch.nn.utils.clip_grad_norm(model.parameters(), clip_constraint)
+            optimizer.step()
+            if args.weight_tying:
+                #model.vocab_layer.e2v.weight.data.copy_(model.embedding_en.weight.data)
+                model.embedding_en.weight.data.copy_(model.vocab_layer.e2v.weight.data)
 
-    val_loss_total = 0 # Validation/early stopping
-    model.eval()
-    if (not args.freeze_models) and args.interpolated_model:
-        for member in model.members:
-            member.eval()
-    for batch in iter(val_iter):
-        x_de = batch.src.transpose(1,0).cuda()
-        x_en = batch.trg.transpose(1,0).cuda()
-        if model_type == 1:
-            x_de = flip(x_de,1) # reverse direction
-        x_de.volatile = True # "inference mode" supposedly speeds up
-        loss, reinforce_loss, avg_reward, _ = model.forward(x_de, x_en)
-        # too lazy to implement reward or accuracy for validation
-        val_loss_total -= avg_reward
-    val_loss_avg = val_loss_total / len(val_iter)
-    timenow = timeSince(start)
-    current_ppl = np.exp(val_loss_avg)
-    print('Validation. Time %s, PPL: %.2f' %(timenow, current_ppl))
-    if args.frequent_ckpt:
-        torch.save(model.state_dict(), args.model_file) # I'm Paranoid!!!!!!!!!!!!!!!!
-        print("Saved Checkpoint")
-    elif args.save_best and (current_ppl < best_ppl):
+            if args.accuracy:
+                model.eval()
+                if (not args.freeze_models) and args.interpolated_model:
+                    for member in model.members:
+                        member.eval()
+                x_de = Variable(x_de.data, volatile = True)
+                y_pred,_ = model.predict(x_de, x_en) # bs,n_en
+                correct = (y_pred == x_en) # these are the same shape and both contain a sos_token row
+                no_pad = (x_en != pad_token) & (x_en != sos_token)
+                print_acc_total += (correct & no_pad).data.sum() / no_pad.data.sum()
+
+            if ctr % print_every == 0:
+                print_loss_avg = print_loss_total / print_every
+                print_loss_total = 0
+                print_acc_avg = print_acc_total / print_every
+                print_acc_total = 0
+                timenow = timeSince(start)
+                print ('Time %s, Epoch [%d/%d], Iter [%d/%d], Loss: %.4f, Reward: %.2f, Accuracy: %.2f, PPL: %.2f' 
+                    %(timenow, epoch+1, n_epochs, ctr, len(train_iter), print_loss_avg,
+                        model.baseline.data[0], print_acc_avg, np.exp(print_loss_avg)))
+
+            if ctr % plot_every == 0:
+                plot_loss_avg = plot_loss_total / plot_every
+                plot_loss_total = 0
+                plot_losses.append(plot_loss_avg)
+
+        val_loss_total = 0 # Validation/early stopping
+        model.eval()
+        if (not args.freeze_models) and args.interpolated_model:
+            for member in model.members:
+                member.eval()
+        for batch in iter(val_iter):
+            x_de = batch.src.transpose(1,0).cuda()
+            x_en = batch.trg.transpose(1,0).cuda()
+            if model_type == 1:
+                x_de = flip(x_de,1) # reverse direction
+            x_de.volatile = True # "inference mode" supposedly speeds up
+            loss, reinforce_loss, avg_reward, _ = model.forward(x_de, x_en)
+            # too lazy to implement reward or accuracy for validation
+            val_loss_total -= avg_reward
+        val_loss_avg = val_loss_total / len(val_iter)
+        timenow = timeSince(start)
+        current_ppl = np.exp(val_loss_avg)
+        print('Validation. Time %s, PPL: %.2f' %(timenow, current_ppl))
+        if args.frequent_ckpt:
+            torch.save(model.state_dict(), args.model_file) # I'm Paranoid!!!!!!!!!!!!!!!!
+            print("Saved Checkpoint")
+        elif args.save_best and (current_ppl < best_ppl):
+            torch.save(model.state_dict(), args.model_file)
+            print("Saved Checkpoint")
+            best_ppl = current_ppl
+
+    if args.save_best and (current_ppl < best_ppl):
         torch.save(model.state_dict(), args.model_file)
         print("Saved Checkpoint")
         best_ppl = current_ppl
-        
-if args.save_best and (current_ppl < best_ppl):
-    torch.save(model.state_dict(), args.model_file)
-    print("Saved Checkpoint")
-    best_ppl = current_ppl
-elif (not args.save_best) and (not args.frequent_ckpt):
-    torch.save(model.state_dict(), args.model_file)
-    print("Saved Checkpoint")
-
+    elif (not args.save_best) and (not args.frequent_ckpt):
+        torch.save(model.state_dict(), args.model_file)
+        print("Saved Checkpoint")
+else:
+    model.load_state_dict(torch.load(args.model_file))
+    
 model.eval()
 if (not args.freeze_models) and args.interpolated_model:
     for member in model.members:
