@@ -6,7 +6,7 @@ from torch.autograd import Variable
 from collections import OrderedDict
 import math # for infinity
 from __main__ import *
-from helpers import lstm_hidden, unpackage_hidden
+from helpers import lstm_hidden, unpackage_hidden, freeze_model
 # I use EN,DE,BATCH_SIZE,MAX_LEN,pad_token,sos_token,eos_token,word2vec
 
 #######################################
