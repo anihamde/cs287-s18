@@ -218,10 +218,14 @@ start = time.time()
 print_every = 100
 plot_every = 100
 plot_losses = []
+params = list(filter(lambda x: x.requires_grad, model.parameters()))
+if (not args.freeze_models) and args.interpolated_model:
+    for member in model.members:
+        params.extend(list(filter(lambda x: x.requires_grad, member.parameters())))
 if args.adadelta:
-    optimizer = optim.Adadelta(model.parameters(), lr=learning_rate, rho=rho, weight_decay=weight_decay)
+    optimizer = optim.Adadelta(params, lr=learning_rate, rho=rho, weight_decay=weight_decay)
 else:
-    optimizer = optim.SGD(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    optimizer = optim.SGD(params, lr=learning_rate, weight_decay=weight_decay)
 
 for epoch in range(n_epochs):
     train_iter.init_epoch()
