@@ -547,7 +547,7 @@ class Alpha(nn.Module):
         emb_de = tuple( m.embedding_de(x_de) for m in self.members )
         enc_h  = tuple( m.encoder(emb_de,m.initEnc(1))[0] for m in self.members )
         masterheaps = tuple( CandList(enc_h[i],self.members[i].initDec(1),beamsz) for i in r_dex )
-        for j in range(gen_len):
+        for _ in range(gen_len):
             prev  = tuple( heap.get_prev() for heap in masterheaps )
             emb_t = tuple( self.members[i].embedding_en(prev[i]) for i in r_dex )
             enc_h_expand = tuple( enc_h[i].expand(prev[i].size(0),-1,-1) for i in r_dex )
@@ -567,6 +567,7 @@ class Alpha(nn.Module):
                 masterheaps[i].update_hiddens(hidd[i])
                 masterheaps[i].update_attentions(attn_dist[i])
                 masterheaps[i].firstloop = False
+        return "poop",masterheaps[0].wordlist,"morepoop"
         #return masterheap.probs,masterheap.wordlist,masterheap.attentions
         #
         assert(0==1)
