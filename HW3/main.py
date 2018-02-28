@@ -10,8 +10,6 @@ from torchtext import datasets
 from torchtext.vocab import Vectors
 import spacy
 import yaml
-from models import AttnNetwork, CandList, S2S, AttnGRU
-from helpers import asMinutes, timeSince, escape, flip, freeze_model
 from collections import OrderedDict
 # import matplotlib.pyplot as plt
 # import matplotlib.ticker as ticker
@@ -145,6 +143,9 @@ If we have time, we can try the pytorch tutorial script with and without attn, t
 How to run jupyter notebooks in cloud?
 Generate longer full sentences with small beams. Not fixed-length.
 ''' 
+from models import AttnNetwork, CandList, S2S, AttnGRU
+from helpers import asMinutes, timeSince, escape, flip, freeze_model
+
 if args.interpolated_model:
     model_list
     arch_tuple = ( yaml.safe_load(open(x,'r')) for x in args.saved_architectures )
