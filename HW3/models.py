@@ -452,9 +452,12 @@ class S2S(nn.Module):
         return masterheap.probs,masterheap.wordlist,masterheap.attentions
 
 class Alpha(nn.Module):
-    def __init__(self, models_tuple, embedding_features=300, n_featmaps1=200, n_featmaps2=100, dropout_rate=0.5, word2vec=False):
+    def __init__(self, models_tuple, embedding_features=300, n_featmaps1=200, n_featmaps2=100, dropout_rate=0.5, word2vec=False, freeze_models=False):
         super(Alpha, self).__init__()
-        self.members = models_tuple
+        if freeze_models:
+            self.members = ( freeze_model(x) for x in models_tuple )
+        else:
+            self.members = models_tuple
         self.embedding_dims = (embedding_features, 300)[word2vec == True]
         self.n_featmaps1 = n_featmaps1
         self.n_featmaps2 = n_featmaps2
