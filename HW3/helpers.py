@@ -46,5 +46,6 @@ def unpackage_hidden(h):
         return tuple(unpackage_hidden(v) for v in h)
 
 def freeze_model(model):
+    model.eval()
     for param in model.parameters():
         param.requires_grad = False
