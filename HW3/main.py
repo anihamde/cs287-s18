@@ -172,7 +172,8 @@ if args.interpolated_model:
         model_list.append(model_grab)
     model_list = tuple(model_list)    
     model = Alpha(model_list, embedding_features=args.convolution_embedding_size, n_featmaps1=args.convolutional_featuremap_1, 
-                  n_featmaps2=args.convolutional_featuremap_2, dropout_rate=0.5, word2vec=args.word2vec, 
+                  n_featmaps2=args.convolutional_featuremap_2, linear_size=args.alpha_linear_size, 
+                  dropout_rate=args.alpha_dropout, word2vec=args.word2vec, 
                   freeze_models=args.freeze_models):
 else:        
     architecture_dict = OrderedDict([ ('model_ype',args.model_type),
