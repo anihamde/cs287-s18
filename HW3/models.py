@@ -431,7 +431,7 @@ class S2S(nn.Module):
         enc_h, (h, c) = self.encoder(emb_de, self.initEnc(1))
         # since enc batch size=1, enc_h is 1,n_de,hiddensz*n_directions
         masterheap = CandList(enc_h.size(1),(h,c),beamsz)
-        masterheap.update_hiddens((h,c)) # TODO: this extraneous call could be eliminated if __init__ called self.update_hiddens
+        #masterheap.update_hiddens((h,c)) # TODO: this extraneous call could be eliminated if __init__ called self.update_hiddens
         # in the following loop, beamsz is length 1 for first iteration, length true beamsz (100) afterward
         for i in range(gen_len):
             prev = masterheap.get_prev() # beamsz
@@ -441,7 +441,7 @@ class S2S(nn.Module):
             pred = self.vocab_layer(dec_h.squeeze(1)) # beamsz,len(EN.vocab)
             # TODO: set the columns corresponding to <pad>,<unk>,</s>,etc to 0
             masterheap.update_beam(pred)
-            masterheap.update_hiddens(h,c)
+            masterheap.update_hiddens((h,c))
             masterheap.update_attentions(attn_dist)
             masterheap.firstloop = False
         return masterheap.probs,masterheap.wordlist,masterheap.attentions
