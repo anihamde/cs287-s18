@@ -191,7 +191,7 @@ for epoch in range(n_epochs):
         x_en = batch.trg.transpose(1,0).cuda() # bs,n_en
         if model_type == 1:
             x_de = flip(x_de,1) # reverse direction
-        loss, reinforce_loss, avg_reward, _, _ = model.forward(x_de, x_en)
+        loss, reinforce_loss, avg_reward, _ = model.forward(x_de, x_en)
         print_loss_total -= avg_reward
         plot_loss_total -= avg_reward
 
