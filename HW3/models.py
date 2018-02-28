@@ -474,7 +474,7 @@ class Alpha(nn.Module):
         return (Variable(torch.zeros(self.n_layers,batch_size,self.hidden_dim).cuda()), 
                 Variable(torch.zeros(self.n_layers,batch_size,self.hidden_dim).cuda()))
     def forward(self, x_de, x_en, update_baseline=True):
-        models_stack = torch.stack(( x.forward(x_de,x_en)[3] for x in models_tuple ),dim=3) # bs,n_en,len(EN.vocab),len(models_tuple)
+        models_stack = torch.stack(( x.forward(x_de,x_en)[3] for x in self.members ),dim=3) # bs,n_en,len(EN.vocab),len(models_tuple)
         bs = x_de.size(0)
         embeds = self.embedding(x_de) # bs,n_de,word_dim
         out = embeds.unsqueeze(2)
