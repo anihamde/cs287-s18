@@ -9,8 +9,7 @@ from torchtext import data
 from torchtext import datasets
 from torchtext.vocab import Vectors
 import spacy
-from models import AttnNetwork, CandList, S2S, AttnGRU
-from helpers import asMinutes, timeSince, escape, flip, freeze_model
+import yaml
 from collections import OrderedDict
 # import matplotlib.pyplot as plt
 # import matplotlib.ticker as ticker
@@ -44,8 +43,11 @@ parser.add_argument('--vocab_layer_dropout','-vd',type=float,default=0.0,help='D
 parser.add_argument('--interpolated_model','-i',action='store_true',help="Invoke interpolated model, above architecture defining args suppressed, below args activated.")
 parser.add_argument('--saved_parameters','-sp',type=str,nargs='+',help="List of model parameter files (PKLs). Needs to match '--saved_architectures' arg.")
 parser.add_argument('--saved_architectures','-sa',type=str,nargs='+',help="List of model architecture files (YAMLs). Needs to match '--saved_parameters' arg.")
+parser.add_argument('--convolution_embedding_size','-ces',type=int,default=300,help='size of embedding in Alpha.')
 parser.add_argument('--convolutional_featuremap_1','-cf1',type=int,default=200,help='Featuremap density for 3x1 conv.')
 parser.add_argument('--convolutional_featuremap_2','-cf2',type=int,default=200,help='Featuremap density for 5x1 conv.')
+parser.add_argument('--alpha_dropout','-ad',type=float,default=0.5,help='Dropout for Alpha.')
+parser.add_argument('--alpha_linear_size','-cls',type=int,default=200,help='Size of hidden fully connected layer in Alpha')
 parser.add_argument('--freeze_models','-fz',action='store_true',help='raise flag to freeze ensemble member parameters.')
 args = parser.parse_args()
 # You can add MIN_FREQ, MAX_LEN, and BATCH_SIZE as args too
@@ -141,30 +143,74 @@ If we have time, we can try the pytorch tutorial script with and without attn, t
 How to run jupyter notebooks in cloud?
 Generate longer full sentences with small beams. Not fixed-length.
 ''' 
-architecture_dict = OrderedDict([ ('model_ype',args.model_type),
-    ('word_dim',args.embedding_dims),('n_layers',args.hidden_depth),
-    ('hidden_dim',args.hidden_size),('word2vec',args.word2vec),
-    ('vocab_layer_size',args.vocab_layer_size),('LSTM_dropout',args.LSTM_dropout),
-    ('vocab_layer_dropout',args.vocab_layer_dropout),('weight_tying',args.weight_tying),
-    ('bidirectional',args.bidirectional),('attn_type',args.attn_type)
-])
+from models import AttnNetwork, CandList, S2S, AttnGRU
+from helpers import asMinutes, timeSince, escape, flip, freeze_model
 
-with open(args.architecture_file,'w') as fh:
-    [ fh.write("{}: {}\n".format(key,value)) for key,value in architecture_dict.items() ]
-    fh.close()
-
-if model_type == 0:
-    model = AttnNetwork(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size, word2vec=args.word2vec,
+if args.interpolated_model:
+    architecture_dict = OrderedDict([ ('model_ype','interpolated'),
+        ('embedding_features',args.convolution_embedding_size),('n_featmaps1',args.convolutional_featuremap_1),
+        ('n_featmaps2',args.convolutional_featuremap_2),('linear_size',args.alpha_linear_size),
+        ('dropout_rate',args.alpha_dropout),('word2vec',args.word2vec),
+        ('freeze_models',args.freeze_models)
+    ])
+    #
+    with open(args.architecture_file,'w') as fh:
+        [ fh.write("{}: {}\n".format(key,value)) for key,value in architecture_dict.items() ]
+        fh.close()
+    model_list = []
+    arch_tuple = ( yaml.safe_load(open(x,'r')) for x in args.saved_architectures )
+    for arch,params in zip(arch_tuple,args.saved_parameters):
+        if arch['model_type'] == 0:
+            model_grab = AttnNetwork(word_dim=arch['word_dim'], n_layers=arch['n_layers'], 
+                                          hidden_dim=arch['hidden_dim'], word2vec=arch['word2vec'],
+                                          vocab_layer_size=arch['vocab_layer_size'], LSTM_dropout=arch['LSTM_dropout'], 
+                                          vocab_layer_dropout=arch['vocab_layer_dropout'], weight_tying=arch['weight_tying'], 
+                                          bidirectional=arch['bidirectional'], attn_type=arch['attn_type'])
+        elif arch['model_type'] == 1:
+            model_grab = S2S(word_dim=arch['word_dim'], n_layers=arch['n_layers'], 
+                                          hidden_dim=arch['hidden_dim'], word2vec=arch['word2vec'],
+                                          vocab_layer_size=arch['vocab_layer_size'], LSTM_dropout=arch['LSTM_dropout'], 
+                                          vocab_layer_dropout=arch['vocab_layer_dropout'], weight_tying=arch['weight_tying'], 
+                                          bidirectional=arch['bidirectional'], attn_type=arch['attn_type'])
+        elif arch['model_type'] == 3:
+            model_grab = AttnGRU(word_dim=arch['word_dim'], n_layers=arch['n_layers'], 
+                                          hidden_dim=arch['hidden_dim'], word2vec=arch['word2vec'],
+                                          vocab_layer_size=arch['vocab_layer_size'], LSTM_dropout=arch['LSTM_dropout'], 
+                                          vocab_layer_dropout=arch['vocab_layer_dropout'], weight_tying=arch['weight_tying'], 
+                                          bidirectional=arch['bidirectional'], attn_type=arch['attn_type'])
+        model_grab.load_state_dict(params)
+        model_grab.cuda()
+        model_list.append(model_grab)
+    model_list = tuple(model_list)    
+    model = Alpha(model_list, embedding_features=args.convolution_embedding_size, n_featmaps1=args.convolutional_featuremap_1, 
+                  n_featmaps2=args.convolutional_featuremap_2, linear_size=args.alpha_linear_size, 
+                  dropout_rate=args.alpha_dropout, word2vec=args.word2vec, 
+                  freeze_models=args.freeze_models)
+else:        
+    architecture_dict = OrderedDict([ ('model_ype',args.model_type),
+        ('word_dim',args.embedding_dims),('n_layers',args.hidden_depth),
+        ('hidden_dim',args.hidden_size),('word2vec',args.word2vec),
+        ('vocab_layer_size',args.vocab_layer_size),('LSTM_dropout',args.LSTM_dropout),
+        ('vocab_layer_dropout',args.vocab_layer_dropout),('weight_tying',args.weight_tying),
+        ('bidirectional',args.bidirectional),('attn_type',args.attn_type)
+    ])
+    #
+    with open(args.architecture_file,'w') as fh:
+        [ fh.write("{}: {}\n".format(key,value)) for key,value in architecture_dict.items() ]
+        fh.close()
+    #
+    if model_type == 0:
+        model = AttnNetwork(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size, word2vec=args.word2vec,
+                            vocab_layer_size=args.vocab_layer_size, LSTM_dropout=args.LSTM_dropout, vocab_layer_dropout=args.vocab_layer_dropout, 
+                            weight_tying=args.weight_tying, bidirectional=args.bidirectional, attn_type=attn_type)
+    elif model_type == 1:
+        model = S2S(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size, word2vec=args.word2vec,
+                    vocab_layer_size=args.vocab_layer_size, LSTM_dropout=args.LSTM_dropout, vocab_layer_dropout=args.vocab_layer_dropout, 
+                    weight_tying=args.weight_tying, bidirectional=args.bidirectional)
+    if model_type == 2:
+        model = AttnGRU(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size, word2vec=args.word2vec,
                         vocab_layer_size=args.vocab_layer_size, LSTM_dropout=args.LSTM_dropout, vocab_layer_dropout=args.vocab_layer_dropout, 
                         weight_tying=args.weight_tying, bidirectional=args.bidirectional, attn_type=attn_type)
-elif model_type == 1:
-    model = S2S(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size, word2vec=args.word2vec,
-                vocab_layer_size=args.vocab_layer_size, LSTM_dropout=args.LSTM_dropout, vocab_layer_dropout=args.vocab_layer_dropout, 
-                weight_tying=args.weight_tying, bidirectional=args.bidirectional)
-if model_type == 2:
-    model = AttnGRU(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size, word2vec=args.word2vec,
-                    vocab_layer_size=args.vocab_layer_size, LSTM_dropout=args.LSTM_dropout, vocab_layer_dropout=args.vocab_layer_dropout, 
-                    weight_tying=args.weight_tying, bidirectional=args.bidirectional, attn_type=attn_type)
 
 model.cuda()
 

@@ -6,7 +6,7 @@ from torch.autograd import Variable
 from collections import OrderedDict
 import math # for infinity
 from __main__ import *
-from helpers import lstm_hidden, unpackage_hidden
+from helpers import lstm_hidden, unpackage_hidden, freeze_model
 # I use EN,DE,BATCH_SIZE,MAX_LEN,pad_token,sos_token,eos_token,word2vec
 
 #######################################
@@ -15,7 +15,6 @@ from helpers import lstm_hidden, unpackage_hidden
 #  not using hard attention and that  #
 #  you are using teacher forcing.     #
 #######################################
-
 
 # If we have beamsz 100 and we only go 3 steps, we're guaranteed to have 100 unique trigrams
 # This is written so that, at any time, hiddens/attentions/wordlist/probs all align with each other across the beamsz dimension
@@ -448,9 +447,12 @@ class S2S(nn.Module):
         return masterheap.probs,masterheap.wordlist,masterheap.attentions
 
 class Alpha(nn.Module):
-    def __init__(self, models_tuple, embedding_features=300, n_featmaps1=200, n_featmaps2=100, dropout_rate=0.5, word2vec=False):
+    def __init__(self, models_tuple, embedding_features=300, n_featmaps1=200, n_featmaps2=100, linear_size=300, dropout_rate=0.5, word2vec=False, freeze_models=False):
         super(Alpha, self).__init__()
-        self.members = models_tuple
+        if freeze_models:
+            self.members = ( freeze_model(x) for x in models_tuple )
+        else:
+            self.members = models_tuple
         self.embedding_dims = (embedding_features, 300)[word2vec == True]
         self.n_featmaps1 = n_featmaps1
         self.n_featmaps2 = n_featmaps2
@@ -461,7 +463,8 @@ class Alpha(nn.Module):
         self.conv5 = nn.Conv2d(300,self.n_featmaps2,kernel_size=(5,1),padding=(2,0))
         self.maxpool = nn.AdaptiveMaxPool1d(1)
         self.dropout = nn.Dropout(dropout_rate)
-        self.linear = nn.Linear(n_featmaps1+n_featmaps2,len(models_tuple))
+        self.hidden = nn.Linear(n_featmaps1+n_featmaps2,linear_size)
+        self.output = nn.Linear(linear_size,len(models_tuple))
         # vocab layer will combine dec hidden state with context vector, and then project out into vocab space 
     def initEnc(self,batch_size):
         return (Variable(torch.zeros(self.n_layers*self.directions,batch_size,self.hidden_dim).cuda()), 
@@ -481,7 +484,9 @@ class Alpha(nn.Module):
         out = out.squeeze(-1) # bs,n_featmaps1+n_featmaps2,n_de
         out = self.maxpool(out) # bs,n_featmaps1+n_featmaps2,1
         out = out.squeeze(-1) # bs,n_featmaps1+n_featmaps2
-        out = self.linear(out) # bs, len(model_tuple)
+        out = self.hidden(out) # bs, linear_size
+        out = self.dropout(out)
+        out = self.output(out) # bs, len(model_tuple)
         out = F.softmax(out,dim=1) # bs, len(model_tuple)
         out = out.unsqueeze(1) # bs, 1, len(model_tuple)
         out = out.unsqueeze(2) # bs, 1, 1, len(model_tuple)
