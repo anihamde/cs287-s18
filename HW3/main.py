@@ -29,6 +29,7 @@ parser.add_argument('--rho','-r',type=float,default=0.95,help='rho for Adadelta 
 parser.add_argument('--weight_decay','-wd',type=float,default=0.0,help='Weight decay constant for optimizer')
 parser.add_argument('--accuracy','-acc',action='store_true',help='Calculate accuracy during training loop.')
 parser.add_argument('--frequent_ckpt','-ckpt',action='store_true',help='Save checkpoints every epoch, instead of just at the end.')
+parser.add_argument('--save_best','-best',action='store_true',hel='Save checkpoint after every epoch iff validation ppl improves.')
 parser.add_argument('--attn_type','-at',type=str,default='soft',help='attention type')
 parser.add_argument('--clip_constraint','-cc',type=float,default=5.0,help='weight norm clip constraint')
 parser.add_argument('--word2vec','-w',action='store_true',help='Raise flag to initialize with word2vec embeddings')
@@ -229,6 +230,7 @@ else:
     optimizer = optim.SGD(params, lr=learning_rate, weight_decay=weight_decay)
 
 for epoch in range(n_epochs):
+    best_ppl = 1000
     train_iter.init_epoch()
     ctr = 0
     print_loss_total = 0  # Reset every print_every
@@ -301,11 +303,19 @@ for epoch in range(n_epochs):
         val_loss_total -= avg_reward
     val_loss_avg = val_loss_total / len(val_iter)
     timenow = timeSince(start)
-    print('Validation. Time %s, PPL: %.2f' %(timenow, np.exp(val_loss_avg)))
+    current_ppl = np.exp(val_loss_avg)
+    print('Validation. Time %s, PPL: %.2f' %(timenow, current_ppl))
     if args.frequent_ckpt:
         torch.save(model.state_dict(), args.model_file) # I'm Paranoid!!!!!!!!!!!!!!!!
-
-torch.save(model.state_dict(), args.model_file)
+    elif args.save_best and (current_ppl < best_ppl):
+        torch.save(model.state_dict(), args.model_file)
+        best_ppl = current_ppl
+        
+if args.save_best and (current_ppl < best_ppl):
+    torch.save(model.state_dict(), args.model_file)
+    best_ppl = current_ppl
+elif (not args.save_best) and (not args.frequent_ckpt):
+    torch.save(model.state_dict(), args.model_file)
 
 model.eval()
 if (not args.freeze_models) and args.interpolated_model:
