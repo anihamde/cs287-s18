@@ -147,7 +147,17 @@ from models import AttnNetwork, CandList, S2S, AttnGRU
 from helpers import asMinutes, timeSince, escape, flip, freeze_model
 
 if args.interpolated_model:
-    model_list
+    architecture_dict = OrderedDict([ ('model_ype','interpolated'),
+        ('embedding_features',args.convolution_embedding_size),('n_featmaps1',args.convolutional_featuremap_1),
+        ('n_featmaps2',args.convolutional_featuremap_2),('linear_size',args.alpha_linear_size),
+        ('dropout_rate',args.alpha_dropout),('word2vec',args.word2vec),
+        ('freeze_models',args.freeze_models)
+    ])
+    #
+    with open(args.architecture_file,'w') as fh:
+        [ fh.write("{}: {}\n".format(key,value)) for key,value in architecture_dict.items() ]
+        fh.close()
+    model_list = []
     arch_tuple = ( yaml.safe_load(open(x,'r')) for x in args.saved_architectures )
     for arch,params in zip(arch_tuple,args.saved_parameters):
         if arch['model_type'] == 0:
