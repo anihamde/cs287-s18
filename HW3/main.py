@@ -307,15 +307,19 @@ for epoch in range(n_epochs):
     print('Validation. Time %s, PPL: %.2f' %(timenow, current_ppl))
     if args.frequent_ckpt:
         torch.save(model.state_dict(), args.model_file) # I'm Paranoid!!!!!!!!!!!!!!!!
+        print("Saved Checkpoint")
     elif args.save_best and (current_ppl < best_ppl):
         torch.save(model.state_dict(), args.model_file)
+        print("Saved Checkpoint")
         best_ppl = current_ppl
         
 if args.save_best and (current_ppl < best_ppl):
     torch.save(model.state_dict(), args.model_file)
+    print("Saved Checkpoint")
     best_ppl = current_ppl
 elif (not args.save_best) and (not args.frequent_ckpt):
     torch.save(model.state_dict(), args.model_file)
+    print("Saved Checkpoint")
 
 model.eval()
 if (not args.freeze_models) and args.interpolated_model:
