@@ -232,6 +232,9 @@ for epoch in range(n_epochs):
     for batch in iter(train_iter):
         ctr += 1
         model.train()
+        if (not args.freeze_models) and args.interpolated_model:
+            for member in model.members:
+                member.train()
         optimizer.zero_grad()
         x_de = batch.src.transpose(1,0).cuda() # bs,n_de
         x_en = batch.trg.transpose(1,0).cuda() # bs,n_en
@@ -253,6 +256,9 @@ for epoch in range(n_epochs):
 
         if args.accuracy:
             model.eval()
+            if (not args.freeze_models) and args.interpolated_model:
+                for member in model.members:
+                    member.eval()
             x_de = Variable(x_de.data, volatile = True)
             y_pred,_ = model.predict(x_de, x_en) # bs,n_en
             correct = (y_pred == x_en) # these are the same shape and both contain a sos_token row
@@ -276,13 +282,16 @@ for epoch in range(n_epochs):
 
     val_loss_total = 0 # Validation/early stopping
     model.eval()
+    if (not args.freeze_models) and args.interpolated_model:
+        for member in model.members:
+            member.eval()
     for batch in iter(val_iter):
         x_de = batch.src.transpose(1,0).cuda()
         x_en = batch.trg.transpose(1,0).cuda()
         if model_type == 1:
             x_de = flip(x_de,1) # reverse direction
         x_de.volatile = True # "inference mode" supposedly speeds up
-        loss, reinforce_loss, avg_reward, _, _ = model.forward(x_de, x_en)
+        loss, reinforce_loss, avg_reward, _ = model.forward(x_de, x_en)
         # too lazy to implement reward or accuracy for validation
         val_loss_total -= avg_reward
     val_loss_avg = val_loss_total / len(val_iter)
@@ -294,6 +303,9 @@ for epoch in range(n_epochs):
 torch.save(model.state_dict(), args.model_file)
 
 model.eval()
+if (not args.freeze_models) and args.interpolated_model:
+    for member in model.members:
+        member.eval()
 with open("preds.csv", "w") as f:
     writer = csv.writer(f)
     writer.writerow(['id','word'])
