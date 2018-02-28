@@ -16,7 +16,7 @@ from helpers import lstm_hidden, unpackage_hidden, freeze_model
 #  you are using teacher forcing.     #
 #######################################
 
-
+print(DE.vocab)
 # If we have beamsz 100 and we only go 3 steps, we're guaranteed to have 100 unique trigrams
 # This is written so that, at any time, hiddens/attentions/wordlist/probs all align with each other across the beamsz dimension
 # - We could've enforced this better by packaging together each beam member in an object, but we don't
