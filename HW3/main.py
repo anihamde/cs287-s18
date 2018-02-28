@@ -178,7 +178,7 @@ if args.interpolated_model:
                                           vocab_layer_size=arch['vocab_layer_size'], LSTM_dropout=arch['LSTM_dropout'], 
                                           vocab_layer_dropout=arch['vocab_layer_dropout'], weight_tying=arch['weight_tying'], 
                                           bidirectional=arch['bidirectional'], attn_type=arch['attn_type'])
-        model_grab.load_state_dict(params)
+        model_grab.load_state_dict(torch.load(params))
         model_grab.cuda()
         model_list.append(model_grab)
     model_list = tuple(model_list)    
