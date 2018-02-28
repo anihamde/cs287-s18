@@ -187,7 +187,7 @@ if args.interpolated_model:
                   dropout_rate=args.alpha_dropout, word2vec=args.word2vec, 
                   freeze_models=args.freeze_models)
 else:        
-    architecture_dict = OrderedDict([ ('model_ype',args.model_type),
+    architecture_dict = OrderedDict([ ('model_type',args.model_type),
         ('word_dim',args.embedding_dims),('n_layers',args.hidden_depth),
         ('hidden_dim',args.hidden_size),('word2vec',args.word2vec),
         ('vocab_layer_size',args.vocab_layer_size),('LSTM_dropout',args.LSTM_dropout),
@@ -199,18 +199,19 @@ else:
         [ fh.write("{}: {}\n".format(key,value)) for key,value in architecture_dict.items() ]
         fh.close()
     #
+    arch = architecture_dict
     if model_type == 0:
-        model = AttnNetwork(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size, word2vec=args.word2vec,
-                            vocab_layer_size=args.vocab_layer_size, LSTM_dropout=args.LSTM_dropout, vocab_layer_dropout=args.vocab_layer_dropout, 
-                            weight_tying=args.weight_tying, bidirectional=args.bidirectional, attn_type=attn_type)
+        model = AttnNetwork(word_dim=arch['word_dim'], n_layers=arch['n_layers'], hidden_dim=arch['hidden_dim'], word2vec=arch['word2vec'],
+                            vocab_layer_size=arch['vocab_layer_size'], LSTM_dropout=arch['LSTM_dropout'], vocab_layer_dropout=arch['vocab_layer_dropout'], 
+                            weight_tying=arch['weight_tying'], bidirectional=arch['bidirectional'], attn_type=arch['attn_type'])
     elif model_type == 1:
-        model = S2S(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size, word2vec=args.word2vec,
-                    vocab_layer_size=args.vocab_layer_size, LSTM_dropout=args.LSTM_dropout, vocab_layer_dropout=args.vocab_layer_dropout, 
-                    weight_tying=args.weight_tying, bidirectional=args.bidirectional)
+        model = S2S(word_dim=arch['word_dim'], n_layers=arch['n_layers'], hidden_dim=arch['hidden_dim'], word2vec=arch['word2vec'],
+                            vocab_layer_size=arch['vocab_layer_size'], LSTM_dropout=arch['LSTM_dropout'], vocab_layer_dropout=arch['vocab_layer_dropout'], 
+                            weight_tying=arch['weight_tying'], bidirectional=arch['bidirectional'], attn_type=arch['attn_type'])
     if model_type == 2:
-        model = AttnGRU(word_dim=args.embedding_dims, n_layers=args.hidden_depth, hidden_dim=args.hidden_size, word2vec=args.word2vec,
-                        vocab_layer_size=args.vocab_layer_size, LSTM_dropout=args.LSTM_dropout, vocab_layer_dropout=args.vocab_layer_dropout, 
-                        weight_tying=args.weight_tying, bidirectional=args.bidirectional, attn_type=attn_type)
+        model = AttnGRU(word_dim=arch['word_dim'], n_layers=arch['n_layers'], hidden_dim=arch['hidden_dim'], word2vec=arch['word2vec'],
+                            vocab_layer_size=arch['vocab_layer_size'], LSTM_dropout=arch['LSTM_dropout'], vocab_layer_dropout=arch['vocab_layer_dropout'], 
+                            weight_tying=arch['weight_tying'], bidirectional=arch['bidirectional'], attn_type=arch['attn_type'])
 
 model.cuda()
 
