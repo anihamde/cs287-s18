@@ -28,10 +28,11 @@
 # python3 main.py -m 1 -mf '../../models/HW3/s2s.pkl' -e 8 -hd 4 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3
 # s2s 16.74 val ppl
 
-# these failed on predict2 but the models saved
-# python3 main.py -e 8 -hd 2 -hs 300 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -acc -mf '../../models/HW3/baseline.pkl' # 12.67/10.77 train/val ppl
-# python3 main.py -e 8 -hd 2 -hs 300 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -w -mf '../../models/HW3/w.pkl' # 10.28/9.31 train/val ppl
-# python3 main.py -e 8 -hd 2 -hs 300 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -wt -mf '../../models/HW3/wt.pkl' # 19.02/13.57 train/val ppl
-# python3 main.py -e 8 -hd 1 -hs 300 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -m 1 -mf '../../models/HW3/s2s.pkl' # 22.32/23.17 train/val ppl
-# python3 main.py -e 8 -hd 3 -hs 300 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -m 1 -mf '../../models/HW3/s2s3.pkl' # 19.95/16.80 train/val ppl
-python3 main.py -e 8 -hd 3 -hs 300 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -m 1 -b -mf '../../models/HW3/s2s3b.pkl'
+# second overnight
+# these all failed on predict2 but the models saved. predict2 should work now, if you want to rerun it
+python3 main.py -e 8 -hd 2 -hs 300 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -acc -mf '../../models/HW3/baseline.pkl' # 12.67/10.77 train/val ppl
+python3 main.py -e 8 -hd 2 -hs 300 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -w -mf '../../models/HW3/w.pkl' # 10.28/9.31 train/val ppl
+python3 main.py -e 8 -hd 2 -hs 300 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -wt -mf '../../models/HW3/wt.pkl' # 19.02/13.57 train/val ppl
+python3 main.py -e 8 -hd 1 -hs 300 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -m 1 -mf '../../models/HW3/s2s.pkl' # 22.32/23.17 train/val ppl
+python3 main.py -e 8 -hd 3 -hs 300 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -m 1 -mf '../../models/HW3/s2s3.pkl' # 19.95/16.80 train/val ppl
+python3 main.py -e 8 -hd 3 -hs 300 -vs 300 -ada -lr 1.0 -vd 0.3 -ld 0.3 -m 1 -b -mf '../../models/HW3/s2s3b.pkl' # 21.00/17.62 train/val ppl

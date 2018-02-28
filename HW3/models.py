@@ -422,9 +422,6 @@ class S2S(nn.Module):
     def predict2(self, x_de, beamsz, gen_len):
         emb_de = self.embedding_de(x_de) # "batch size",n_de,word_dim, but "batch size" is 1 in this case!
         enc_h, (h, c) = self.encoder(emb_de, self.initEnc(1))
-        if self.directions == 2:
-            h = self.dim_reduce(h.transpose(2,0)).transpose(2,0).contiguous() # nlayers*2,bs,hiddensz to nlayers,bs,hiddensz
-            c = self.dim_reduce(c.transpose(2,0)).transpose(2,0).contiguous() # this is hacky, and i don't like doing it!
         # since enc batch size=1, enc_h is 1,n_de,hiddensz*n_directions
         masterheap = CandList(enc_h.size(1),(h,c),beamsz)
         masterheap.update_hiddens((h,c)) # TODO: this extraneous call could be eliminated if __init__ called self.update_hiddens
@@ -432,7 +429,6 @@ class S2S(nn.Module):
         for i in range(gen_len):
             prev = masterheap.get_prev() # beamsz
             emb_t = self.embedding_en(prev) # embed the last thing we generated. beamsz,word_dim
-            enc_h_expand = enc_h.expand(prev.size(0),-1,-1) # beamsz,n_de,hiddensz
             h, c = masterheap.get_hiddens() # (n_layers,beamsz,hiddensz),(n_layers,beamsz,hiddensz)
             dec_h, (h, c) = self.decoder(emb_t.unsqueeze(1), (h, c)) # dec_h is beamsz,1,hiddensz (batch_first=True)
             pred = self.vocab_layer(dec_h.squeeze(1)) # beamsz,len(EN.vocab)
