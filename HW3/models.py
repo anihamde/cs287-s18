@@ -494,6 +494,7 @@ class Alpha(nn.Module):
         out = models_stack * out
         pred = out.sum(3) # bs,n_en,len(EN.vocab) 
         #
+        loss = 0
         y = x_en[:,1:]
         reward = torch.gather(pred,2,y.unsqueeze(2)) # bs,n_en,1
         no_pad = (y != pad_token)
