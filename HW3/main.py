@@ -229,8 +229,8 @@ if args.adadelta:
 else:
     optimizer = optim.SGD(params, lr=learning_rate, weight_decay=weight_decay)
 
+best_ppl = 1000
 for epoch in range(n_epochs):
-    best_ppl = 1000
     train_iter.init_epoch()
     ctr = 0
     print_loss_total = 0  # Reset every print_every
