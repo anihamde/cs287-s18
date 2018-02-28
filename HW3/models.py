@@ -170,7 +170,7 @@ class AttnNetwork(nn.Module):
         loss -= reward.sum() / no_pad.data.sum()
         avg_reward = -loss.data[0]
         # hard attention baseline and reinforce stuff causing me trouble
-        return loss, 0, avg_reward, pred, y
+        return loss, 0, avg_reward, pred
     # predict with greedy decoding and teacher forcing
     def predict(self, x_de, x_en):
         bs = x_de.size(0)
@@ -303,7 +303,7 @@ class AttnGRU(nn.Module):
         loss -= reward.sum() / no_pad.data.sum()
         avg_reward = -loss.data[0]
         # hard attention baseline and reinforce stuff causing me trouble
-        return loss, 0, avg_reward, pred, y
+        return loss, 0, avg_reward, pred
     # predict with greedy decoding and teacher forcing
     def predict(self, x_de, x_en):
         bs = x_de.size(0)
@@ -412,7 +412,7 @@ class S2S(nn.Module):
         no_pad = (y != pad_token)
         reward = reward.squeeze(2)[no_pad] # less than bs,n_en
         loss = -reward.sum() / no_pad.data.sum()
-        return loss, 0, -loss.data[0], pred, y # passing back things just to be consistent
+        return loss, 0, -loss.data[0], pred # passing back things just to be consistent
     # predict with greedy decoding and teacher forcing
     def predict(self, x_de, x_en):
         bs = x_de.size(0)
@@ -465,7 +465,7 @@ class Alpha(nn.Module):
         self.conv5 = nn.Conv2d(300,self.n_featmaps2,kernel_size=(5,1),padding=(2,0))
         self.maxpool = nn.AdaptiveMaxPool1d(1)
         self.dropout = nn.Dropout(dropout_rate)
-        self.linear = nn.Linear(n_featmaps1+n_featmaps2,3)
+        self.linear = nn.Linear(n_featmaps1+n_featmaps2,len(models_tuple))
         # vocab layer will combine dec hidden state with context vector, and then project out into vocab space 
     def initEnc(self,batch_size):
         return (Variable(torch.zeros(self.n_layers*self.directions,batch_size,self.hidden_dim).cuda()), 
@@ -474,41 +474,33 @@ class Alpha(nn.Module):
         return (Variable(torch.zeros(self.n_layers,batch_size,self.hidden_dim).cuda()), 
                 Variable(torch.zeros(self.n_layers,batch_size,self.hidden_dim).cuda()))
     def forward(self, x_de, x_en, update_baseline=True):
+        models_stack = torch.stack(( x.forward(x_de,x_en)[3] for x in models_tuple ),dim=3) # bs,n_en,len(EN.vocab),len(models_tuple)
         bs = x_de.size(0)
-        # x_de is bs,n_de. x_en is bs,n_en
-        emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
-        emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
-        # hidden vars have dimension n_layers*n_directions,bs,hiddensz
-        enc_h, _ = self.encoder(emb_de, self.initEnc(bs))
-        # enc_h is bs,n_de,hiddensz*n_directions. ordering is different from last week because batch_first=True
-        dec_h, _ = self.decoder(emb_en, self.initDec(bs))
-        # dec_h is bs,n_en,hidden_size
-        # we've gotten our encoder/decoder hidden states so we are ready to do attention
-        # first let's get all our scores, which we can do easily since we are using dot-prod attention
-        if self.directions == 2:
-            scores = torch.bmm(self.dim_reduce(enc_h), dec_h.transpose(1,2))
-            # TODO: any easier ways to reduce dimension?
-        else:
-            scores = torch.bmm(enc_h, dec_h.transpose(1,2))
-        # (bs,n_de,hiddensz*n_directions) * (bs,hiddensz*n_directions,n_en) = (bs,n_de,n_en)
-        loss = 0
-        avg_reward = 0
-        scores[(x_de == pad_token).unsqueeze(2).expand(scores.size())] = -math.inf # binary mask
-        attn_dist = F.softmax(scores,dim=1) # bs,n_de,n_en
-        # hard attn requires stacking to fit into torch.distributions.Categorical
-        context = torch.bmm(attn_dist.transpose(2,1), enc_h)
-        # (bs,n_en,n_de) * (bs,n_de,hiddensz) = (bs,n_en,hiddensz)
-        pred = self.vocab_layer(torch.cat([dec_h,context],2)) # bs,n_en,len(EN.vocab)
-        pred = pred[:,:-1,:] # alignment
+        embeds = self.embedding(x_de) # bs,n_de,word_dim
+        out = embeds.unsqueeze(2)
+        out = out.permute(0,3,1,2) # bs,word_dim,n_de,1
+        fw3 = self.conv3(out) # bs,n_featmaps1,n_de,1
+        fw5 = self.conv5(out) # bs,n_featmaps2,n_de,1
+        out = torch.cat([fw3,fw5],dim=1) # bs,n_featmaps1+n_featmaps2,n_de,1
+        out = out.squeeze(-1) # bs,n_featmaps1+n_featmaps2,n_de
+        out = self.maxpool(out) # bs,n_featmaps1+n_featmaps2,1
+        out = out.squeeze(-1) # bs,n_featmaps1+n_featmaps2
+        out = self.linear(out) # bs, len(model_tuple)
+        out = F.softmax(out,dim=1) # bs, len(model_tuple)
+        out = out.unsqueeze(1) # bs, 1, len(model_tuple)
+        out = out.unsqueeze(2) # bs, 1, 1, len(model_tuple)
+        out = models_stack * out
+        pred = out.sum(3)
+        #
         y = x_en[:,1:]
         reward = torch.gather(pred,2,y.unsqueeze(2)) # bs,n_en,1
-        # reward[i,j,1] = input[i,j,y[i,j]]
         no_pad = (y != pad_token)
         reward = reward.squeeze(2)[no_pad]
         loss -= reward.sum() / no_pad.data.sum()
         avg_reward = -loss.data[0]
         # hard attention baseline and reinforce stuff causing me trouble
-        return loss, 0, avg_reward
+        return loss, 0, avg_reward, pred
+
     # predict with greedy decoding and teacher forcing
     def predict(self, x_de, x_en):
         bs = x_de.size(0)
