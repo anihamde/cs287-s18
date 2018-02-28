@@ -502,7 +502,7 @@ class Alpha(nn.Module):
         # hard attention baseline and reinforce stuff causing me trouble
         return loss, 0, avg_reward, pred
     def predict(self, x_de, x_en):
-    	models_stack = torch.stack(( x.forward(x_de,x_en)[3] for x in self.members ),dim=3) # bs,n_en,len(EN.vocab),len(models_tuple)
+        models_stack = torch.stack(( x.forward(x_de,x_en)[3] for x in self.members ),dim=3) # bs,n_en,len(EN.vocab),len(models_tuple)
         bs = x_de.size(0)
         embeds = self.embedding(x_de) # bs,n_de,word_dim
         out = embeds.unsqueeze(2)
@@ -524,7 +524,7 @@ class Alpha(nn.Module):
         sauce = Variable(torch.cuda.LongTensor([[sos_token]]*bs)) # bs
         return torch.cat([sauce,tokens],1), attn_dist
     def predict2(self,x_de,x_en):
-    	bs = x_de.size(0)
+        bs = x_de.size(0)
         embeds = self.embedding(x_de) # bs,n_de,word_dim
         out = embeds.unsqueeze(2)
         out = out.permute(0,3,1,2) # bs,word_dim,n_de,1
@@ -538,4 +538,4 @@ class Alpha(nn.Module):
         out = F.softmax(out,dim=1) # bs, len(model_tuple)
         out = out.unsqueeze(1) # bs, 1, len(model_tuple)
         out = out.unsqueeze(2) # bs, 1, 1, len(model_tuple)
-		assert(0==1)
+        assert(0==1)
