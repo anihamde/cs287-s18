@@ -452,7 +452,7 @@ class S2S(nn.Module):
         return masterheap.probs,masterheap.wordlist,masterheap.attentions
 
 class Alpha(nn.Module):
-    def __init__(self, models_tuple, embedding_features=300, n_featmaps1=200, n_featmaps2=100, dropout_rate=0.5, word2vec=False, freeze_models=False):
+    def __init__(self, models_tuple, embedding_features=300, n_featmaps1=200, n_featmaps2=100, linear_size=300, dropout_rate=0.5, word2vec=False, freeze_models=False):
         super(Alpha, self).__init__()
         if freeze_models:
             self.members = ( freeze_model(x) for x in models_tuple )
@@ -468,7 +468,8 @@ class Alpha(nn.Module):
         self.conv5 = nn.Conv2d(300,self.n_featmaps2,kernel_size=(5,1),padding=(2,0))
         self.maxpool = nn.AdaptiveMaxPool1d(1)
         self.dropout = nn.Dropout(dropout_rate)
-        self.linear = nn.Linear(n_featmaps1+n_featmaps2,len(models_tuple))
+        self.hidden = nn.Linear(n_featmaps1+n_featmaps2,linear_size)
+        self.output = nn.Linear(linear_size,len(models_tuple))
         # vocab layer will combine dec hidden state with context vector, and then project out into vocab space 
     def initEnc(self,batch_size):
         return (Variable(torch.zeros(self.n_layers*self.directions,batch_size,self.hidden_dim).cuda()), 
@@ -488,7 +489,9 @@ class Alpha(nn.Module):
         out = out.squeeze(-1) # bs,n_featmaps1+n_featmaps2,n_de
         out = self.maxpool(out) # bs,n_featmaps1+n_featmaps2,1
         out = out.squeeze(-1) # bs,n_featmaps1+n_featmaps2
-        out = self.linear(out) # bs, len(model_tuple)
+        out = self.hidden(out) # bs, linear_size
+        out = self.dropout(out)
+        out = self.output(out) # bs, len(model_tuple)
         out = F.softmax(out,dim=1) # bs, len(model_tuple)
         out = out.unsqueeze(1) # bs, 1, len(model_tuple)
         out = out.unsqueeze(2) # bs, 1, 1, len(model_tuple)
