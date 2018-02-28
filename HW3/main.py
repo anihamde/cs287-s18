@@ -147,7 +147,7 @@ from models import AttnNetwork, CandList, S2S, AttnGRU
 from helpers import asMinutes, timeSince, escape, flip, freeze_model
 
 if args.interpolated_model:
-    architecture_dict = OrderedDict([ ('model_ype','interpolated'),
+    architecture_dict = OrderedDict([ ('model_type','interpolated'),
         ('embedding_features',args.convolution_embedding_size),('n_featmaps1',args.convolutional_featuremap_1),
         ('n_featmaps2',args.convolutional_featuremap_2),('linear_size',args.alpha_linear_size),
         ('dropout_rate',args.alpha_dropout),('word2vec',args.word2vec),
