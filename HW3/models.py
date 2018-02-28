@@ -394,6 +394,7 @@ class S2S(nn.Module):
         return (Variable(torch.zeros(self.n_layers*self.directions,batch_size,self.hidden_dim).cuda()), 
                 Variable(torch.zeros(self.n_layers*self.directions,batch_size,self.hidden_dim).cuda()))
     def forward(self, x_de, x_en):
+        loss = 0
         bs = x_de.size(0)
         # x_de is bs,n_de. x_en is bs,n_en
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
