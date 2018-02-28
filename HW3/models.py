@@ -451,7 +451,7 @@ class Alpha(nn.Module):
     def __init__(self, models_tuple, embedding_features=300, n_featmaps1=200, n_featmaps2=100, linear_size=300, dropout_rate=0.5, word2vec=False, freeze_models=False):
         super(Alpha, self).__init__()
         if freeze_models:
-            self.members = ( freeze_model(x) for x in models_tuple )
+            self.members = tuple( freeze_model(x) for x in models_tuple )
         else:
             self.members = models_tuple
         self.embedding_dims = (embedding_features, 300)[word2vec == True]
