@@ -244,9 +244,11 @@ class AttnCNN(nn.Module):
         self.vocab_layer_dim = (vocab_layer_size,word_dim)[weight_tying == True]
         self.directions = (1,2)[bidirectional == True]
          # LSTM initialization params: inputsz,hiddensz,n_layers,bias,batch_first,bidirectional
-        self.conv3 = nn.Conv2d(word_dim, self.n_featmaps1,kernel_size=(3,1),padding=(1,0))
-        self.conv5 = nn.Conv2d(word_dim, self.n_featmaps2,kernel_size=(5,1),padding=(2,0))
-        self.decoder = nn.LSTM(word_dim, hidden_dim, num_layers = n_layers, batch_first = True, dropout=LSTM_dropout)
+        self.conv3_enc = nn.Tanh(nn.Conv2d(word_dim, self.n_featmaps1,kernel_size=(3,1),padding=(1,0)))
+        self.conv3_dec = nn.Tanh(nn.Conv2d(word_dim, self.n_featmaps1,kernel_size=(3,1),padding=(1,0)))
+        if self.n_layers > 1:
+            self.c3_seq_enc = nn.Sequential(*[ a for b in tuple( tuple(nn.Conv2d(self.n_featmaps1,self.n_featmaps1,kernel_size=(3,1),padding=(1,0)),nn.Tanh()) for _ in range(1,self.n_layers) ) for a in b ])
+            self.c3_seq_dec = nn.Sequential(*[ a for b in tuple( tuple(nn.Conv2d(self.n_featmaps1,self.n_featmaps1,kernel_size=(3,1),padding=(1,0)),nn.Tanh()) for _ in range(1,self.n_layers) ) for a in b ])            
         self.embedding_de = nn.Embedding(len(DE.vocab), word_dim)
         self.embedding_en = nn.Embedding(len(EN.vocab), word_dim)
         if hidden_dim != (n_featmaps1+n_featmaps2):
@@ -276,12 +278,21 @@ class AttnCNN(nn.Module):
     def encoder(self, emb_de, dummy):
         enc_h = emb_de.unsqueeze(2)
         enc_h = enc_h.permute(0,3,1,2)
-        fw3 = self.conv3(enc_h)
-        fw5 = self.conv5(enc_h)
-        enc_h = torch.cat([fw3,fw5],dim=1)
+        enc_h = self.conv3_enc(enc_h)
+        if args.n_layers > 1:
+            enc_h = self.c3_seq_enc(enc_h)
         enc_h = enc_h.squeeze(3)
         enc_h = enc_h.permute(0,2,1)
         return enc_h, "poop"
+    def decoder(self, emb_en, dummy):
+        dec_h = emb_en.unsqueeze(2)
+        dec_h = dec_h.permute(0,3,1,2)
+        dec_h = self.conv3_enc(dec_h)
+        if args.n_layers > 1:
+            dec_h = self.c3_seq_dec(dec_h)
+        dec_h = dec_h.squeeze(3)
+        dec_h = dec_h.permute(0,2,1)
+        return dec_h, "poop"
     def forward(self, x_de, x_en, update_baseline=True):
         bs = x_de.size(0)
         # x_de is bs,n_de. x_en is bs,n_en
