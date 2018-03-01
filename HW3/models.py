@@ -547,4 +547,4 @@ class Alpha(nn.Module):
         return "poop",masterheaps[0].wordlist,"morepoop"
         #return masterheap.probs,masterheap.wordlist,masterheap.attentions
         #
-        assert(0==1)
+        #assert(0==1)
