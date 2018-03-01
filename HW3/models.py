@@ -238,8 +238,6 @@ class AttnCNN(nn.Module):
         self.attn_type = attn_type
         self.hidden_dim = hidden_dim
         self.n_layers = n_layers
-        self.n_featmaps1 = n_featmaps1
-        self.n_featmaps2 = n_featmaps2
         self.vocab_layer_dim = (vocab_layer_size,word_dim)[weight_tying == True]
         self.directions = (1,2)[bidirectional == True]
          # LSTM initialization params: inputsz,hiddensz,n_layers,bias,batch_first,bidirectional
@@ -304,10 +302,10 @@ class AttnCNN(nn.Module):
         # dec_h is bs,n_en,hidden_size
         # we've gotten our encoder/decoder hidden states so we are ready to do attention
         # first let's get all our scores, which we can do easily since we are using dot-prod attention
-        if self.hidden_dim != (self.n_featmaps1+self.n_featmaps2):
-            scores = torch.bmm(self.dim_reduce(enc_h), dec_h.transpose(1,2))
+        #if self.hidden_dim != (self.n_featmaps1+self.n_featmaps2):
+        #    scores = torch.bmm(self.dim_reduce(enc_h), dec_h.transpose(1,2))
             # TODO: any easier ways to reduce dimension?
-        else:
+        if True:
             scores = torch.bmm(enc_h, dec_h.transpose(1,2))
         # (bs,n_de,hiddensz*n_directions) * (bs,hiddensz*n_directions,n_en) = (bs,n_de,n_en)
         loss = 0
