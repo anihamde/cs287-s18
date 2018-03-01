@@ -49,7 +49,7 @@ parser.add_argument('--alpha_embedding_size','-aes',type=int,default=300,help='s
 parser.add_argument('--convolutional_featuremap_1','-cf1',type=int,default=200,help='Featuremap density for 3x1 conv.')
 parser.add_argument('--convolutional_featuremap_2','-cf2',type=int,default=200,help='Featuremap density for 5x1 conv.')
 parser.add_argument('--alpha_dropout','-ad',type=float,default=0.5,help='Dropout for Alpha.')
-parser.add_argument('--alpha_linear_size','-cls',type=int,default=200,help='Size of hidden fully connected layer in Alpha')
+parser.add_argument('--alpha_linear_size','-als',type=int,default=200,help='Size of hidden fully connected layer in Alpha')
 parser.add_argument('--freeze_models','-fz',action='store_true',help='raise flag to freeze ensemble member parameters.')
 parser.add_argument('--use_beta','-beta',action='store_true',help='Use the Beta function from models to interpolate. This arg is poorly integrated, I know.')
 args = parser.parse_args()
@@ -163,6 +163,7 @@ if args.interpolated_model:
             ('n_layers',args.hidden_depth),('linear_size',args.alpha_linear_size),
             ('dropout_rate',args.alpha_dropout),('bidirectional',args.bidirectional),('word2vec',args.word2vec),
             ('freeze_models',args.freeze_models)
+        ])
     ie_dict = architecture_dict
     #
     with open(args.architecture_file,'w') as fh:
