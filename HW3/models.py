@@ -571,11 +571,11 @@ class Beta(nn.Module):
         # vocab layer will combine dec hidden state with context vector, and then project out into vocab space 
         self.baseline = Variable(torch.cuda.FloatTensor([np.log(1/len(EN.vocab))])) # just to be consistent
     def initEnc(self,batch_size):
-        return (Variable(torch.zeros(self.n_layers*self.directions,batch_size,self.hidden_dim).cuda()), 
-                Variable(torch.zeros(self.n_layers*self.directions,batch_size,self.hidden_dim).cuda()))
+        return (Variable(torch.zeros(self.n_layers*self.directions,batch_size,self.hidden_size).cuda()), 
+                Variable(torch.zeros(self.n_layers*self.directions,batch_size,self.hidden_size).cuda()))
     def initDec(self,batch_size):
-        return (Variable(torch.zeros(self.n_layers,batch_size,self.hidden_dim).cuda()), 
-                Variable(torch.zeros(self.n_layers,batch_size,self.hidden_dim).cuda()))
+        return (Variable(torch.zeros(self.n_layers,batch_size,self.hidden_size).cuda()), 
+                Variable(torch.zeros(self.n_layers,batch_size,self.hidden_size).cuda()))
     def get_alpha(self, x_de):
         bs = x_de.size(0)
         embeds = self.embedding(x_de) # bs,n_de,word_dim
