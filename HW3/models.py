@@ -538,7 +538,7 @@ class Alpha(nn.Module):
             context = tuple( torch.bmm(attn_dist[i].unsqueeze(1),enc_h_expand[i]).squeeze(1) for i in r_dex )
             pred = tuple( self.members[i].vocab_layer(torch.cat([dec_h[i].squeeze(1), context[i]], 1)) for i in r_dex )
             print("size check")
-            print(pred[0].size)
+            print(pred[0].size())
             weighted_pred  = torch.stack(pred,dim=3) * out.squeeze(2)
             ensembled_pred = weighted_pred.sum(3)
             for i in r_dex:
