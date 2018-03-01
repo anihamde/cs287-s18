@@ -45,12 +45,13 @@ parser.add_argument('--vocab_layer_dropout','-vd',type=float,default=0.0,help='D
 parser.add_argument('--interpolated_model','-i',action='store_true',help="Invoke interpolated model, above architecture defining args suppressed, below args activated.")
 parser.add_argument('--saved_parameters','-sp',type=str,nargs='+',help="List of model parameter files (PKLs). Needs to match '--saved_architectures' arg.")
 parser.add_argument('--saved_architectures','-sa',type=str,nargs='+',help="List of model architecture files (YAMLs). Needs to match '--saved_parameters' arg.")
-parser.add_argument('--convolution_embedding_size','-ces',type=int,default=300,help='size of embedding in Alpha.')
+parser.add_argument('--alpha_embedding_size','-aes',type=int,default=300,help='size of embedding in Alpha.')
 parser.add_argument('--convolutional_featuremap_1','-cf1',type=int,default=200,help='Featuremap density for 3x1 conv.')
 parser.add_argument('--convolutional_featuremap_2','-cf2',type=int,default=200,help='Featuremap density for 5x1 conv.')
 parser.add_argument('--alpha_dropout','-ad',type=float,default=0.5,help='Dropout for Alpha.')
 parser.add_argument('--alpha_linear_size','-cls',type=int,default=200,help='Size of hidden fully connected layer in Alpha')
 parser.add_argument('--freeze_models','-fz',action='store_true',help='raise flag to freeze ensemble member parameters.')
+parser.add_argument('--use_beta','-beta',action='store_true',help='Use the Beta function from models to interpolate. This arg is poorly integrated, I know.')
 args = parser.parse_args()
 # You can add MIN_FREQ, MAX_LEN, and BATCH_SIZE as args too
 
@@ -145,16 +146,24 @@ If we have time, we can try the pytorch tutorial script with and without attn, t
 How to run jupyter notebooks in cloud?
 Generate longer full sentences with small beams. Not fixed-length.
 ''' 
-from models import AttnNetwork, CandList, S2S, AttnGRU, Alpha
+from models import AttnNetwork, CandList, S2S, AttnGRU, Alpha, Beta
 from helpers import asMinutes, timeSince, escape, flip, freeze_model
 
 if args.interpolated_model:
-    architecture_dict = OrderedDict([ ('model_type','interpolated'),
-        ('embedding_features',args.convolution_embedding_size),('n_featmaps1',args.convolutional_featuremap_1),
-        ('n_featmaps2',args.convolutional_featuremap_2),('linear_size',args.alpha_linear_size),
-        ('dropout_rate',args.alpha_dropout),('word2vec',args.word2vec),
-        ('freeze_models',args.freeze_models)
-    ])
+    if not args.use_beta:
+        architecture_dict = OrderedDict([ ('model_type','interpolated_alpha'),
+            ('embedding_features',args.alpha_embedding_size),('n_featmaps1',args.convolutional_featuremap_1),
+            ('n_featmaps2',args.convolutional_featuremap_2),('linear_size',args.alpha_linear_size),
+            ('dropout_rate',args.alpha_dropout),('word2vec',args.word2vec),
+            ('freeze_models',args.freeze_models)
+        ])
+    else:
+        architecture_dict = OrderedDict([ ('model_type','interpolated_beta'),
+            ('embedding_features',args.alpha_embedding_size),('hidden_size',args.hidden_size),
+            ('n_layers',args.hidden_depth),('linear_size',args.alpha_linear_size),
+            ('dropout_rate',args.alpha_dropout),('bidirectional',args.bidirectional),('word2vec',args.word2vec),
+            ('freeze_models',args.freeze_models)
+    ie_dict = architecture_dict
     #
     with open(args.architecture_file,'w') as fh:
         [ fh.write("{}: {}\n".format(key,value)) for key,value in architecture_dict.items() ]
@@ -184,10 +193,16 @@ if args.interpolated_model:
         model_grab.cuda()
         model_list.append(model_grab)
     model_list = tuple(model_list)    
-    model = Alpha(model_list, embedding_features=args.convolution_embedding_size, n_featmaps1=args.convolutional_featuremap_1, 
-                  n_featmaps2=args.convolutional_featuremap_2, linear_size=args.alpha_linear_size, 
-                  dropout_rate=args.alpha_dropout, word2vec=args.word2vec, 
-                  freeze_models=args.freeze_models)
+    if not args.use_beta:
+        model = Alpha(model_list, embedding_features=ie_dict['embedding_features'], n_featmaps1=ie_dict['n_featmaps1'], 
+                      n_featmaps2=ie_dict['n_featmaps2'], linear_size=ie_dict['linear_size'], 
+                      dropout_rate=ie_dict['dropout_rate'], word2vec=ie_dict['word2vec'], 
+                      freeze_models=ie_dict['freeze_models'])
+    else:
+        model = Beta(model_list, embedding_features=ie_dict['embedding_features'], hidden_size=ie_dict['hidden_size'], 
+                      n_layers=ie_dict['n_layers'], linear_size=ie_dict['linear_size'], 
+                      dropout_rate=ie_dict['dropout_rate'],bidirectional=ie_dict['bidirectional'], 
+                      word2vec=ie_dict['word2vec'],freeze_models=ie_dict['freeze_models'])
 else:        
     architecture_dict = OrderedDict([ ('model_type',args.model_type),
         ('word_dim',args.embedding_dims),('n_layers',args.hidden_depth),
