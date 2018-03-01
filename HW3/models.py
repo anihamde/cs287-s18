@@ -256,7 +256,7 @@ class AttnCNN(nn.Module):
             self.embedding_en.weight.data.copy_(EN.vocab.vectors)
         # vocab layer will combine dec hidden state with context vector, and then project out into vocab space 
         self.vocab_layer = nn.Sequential(OrderedDict([
-            ('h2e',nn.Linear(hidden_dim*(self.directions+1), self.vocab_layer_dim)),
+            ('h2e',nn.Linear(hidden_dim+n_featmaps1+n_featmaps2, self.vocab_layer_dim)),
             ('tanh',nn.Tanh()),
             ('drp',nn.Dropout(vocab_layer_dropout)),
             ('e2v',nn.Linear(self.vocab_layer_dim, len(EN.vocab))),
