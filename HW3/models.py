@@ -244,8 +244,8 @@ class AttnCNN(nn.Module):
         self.vocab_layer_dim = (vocab_layer_size,word_dim)[weight_tying == True]
         self.directions = (1,2)[bidirectional == True]
          # LSTM initialization params: inputsz,hiddensz,n_layers,bias,batch_first,bidirectional
-        self.conv3_enc = nn.Tanh(nn.Conv2d(word_dim, self.n_featmaps1,kernel_size=(3,1),padding=(1,0)))
-        self.conv3_dec = nn.Tanh(nn.Conv2d(word_dim, self.n_featmaps1,kernel_size=(3,1),padding=(1,0)))
+        self.conv3_enc = nn.Sequential(nn.Conv2d(word_dim, self.n_featmaps1,kernel_size=(3,1),padding=(1,0)),nn.Tanh())
+        self.conv3_dec = nn.Sequential(nn.Conv2d(word_dim, self.n_featmaps1,kernel_size=(3,1),padding=(1,0)),nn.Tanh())
         if self.n_layers > 1:
             self.c3_seq_enc = nn.Sequential(*[ a for b in tuple( tuple(nn.Conv2d(self.n_featmaps1,self.n_featmaps1,kernel_size=(3,1),padding=(1,0)),nn.Tanh()) for _ in range(1,self.n_layers) ) for a in b ])
             self.c3_seq_dec = nn.Sequential(*[ a for b in tuple( tuple(nn.Conv2d(self.n_featmaps1,self.n_featmaps1,kernel_size=(3,1),padding=(1,0)),nn.Tanh()) for _ in range(1,self.n_layers) ) for a in b ])            
@@ -332,17 +332,7 @@ class AttnCNN(nn.Module):
     # predict with greedy decoding and teacher forcing
     def predict(self, x_de, x_en):
         bs = x_de.size(0)
-        emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
-        emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
-        # Encoder start
-        enc_h = emb_de.unsqueeze(2)
-        enc_h = enc_h.permute(0,3,1,2)
-        fw3 = self.conv3(enc_h)
-        fw5 = self.conv5(enc_h)
-        enc_h = torch.cat([fw3,fw5],dim=1)
-        enc_h = enc_h.squeeze(3)
-        enc_h = enc_h.permute(0,2,1)
-        # Encoder end
+        enc_h, _ = self.encoder(emb_de, self.initEnc(bs))
         dec_h, _ = self.decoder(emb_en, self.initDec(bs)) # (bs,n_en,hiddensz)
         # all the same. enc_h is bs,n_de,hiddensz*n_directions. h and c are both n_layers*n_directions,bs,hiddensz
         if self.directions == 2:
