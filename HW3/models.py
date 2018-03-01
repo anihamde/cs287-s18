@@ -521,8 +521,8 @@ class Alpha(nn.Module):
         out = self.get_alpha(x_de)
         #
         r_dex = range(self.member_count)
-        emb_de = tuple( m.embedding_de(x_de) for m in self.members )
-        enc_h  = tuple( m.encoder(emb_de,m.initEnc(1))[0] for m in self.members )
+        emb_de = tuple( self.members[i].embedding_de(x_de) for i in r_dex )
+        enc_h  = tuple( self.members[i].encoder(emb_de[i],self.members[i].initEnc(1))[0] for i in r_dex )
         masterheaps = tuple( CandList(enc_h[i],self.members[i].initDec(1),beamsz) for i in r_dex )
         for _ in range(gen_len):
             prev  = tuple( heap.get_prev() for heap in masterheaps )
