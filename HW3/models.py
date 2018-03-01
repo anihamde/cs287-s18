@@ -279,7 +279,7 @@ class AttnCNN(nn.Module):
         enc_h = emb_de.unsqueeze(2)
         enc_h = enc_h.permute(0,3,1,2)
         enc_h = self.conv3_enc(enc_h)
-        if args.n_layers > 1:
+        if self.n_layers > 1:
             enc_h = self.c3_seq_enc(enc_h)
         enc_h = enc_h.squeeze(3)
         enc_h = enc_h.permute(0,2,1)
@@ -288,7 +288,7 @@ class AttnCNN(nn.Module):
         dec_h = emb_en.unsqueeze(2)
         dec_h = dec_h.permute(0,3,1,2)
         dec_h = self.conv3_enc(dec_h)
-        if args.n_layers > 1:
+        if self.n_layers > 1:
             dec_h = self.c3_seq_dec(dec_h)
         dec_h = dec_h.squeeze(3)
         dec_h = dec_h.permute(0,2,1)
