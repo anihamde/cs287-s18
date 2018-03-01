@@ -564,7 +564,7 @@ class Beta(nn.Module):
         self.embedding = nn.Embedding(len(DE.vocab), self.embedding_dims)
         if word2vec:
             self.embedding.weight.data.copy_(DE.vocab.vectors)
-        self.lstm = nn.LSTM(word2vec.size(1), self.hidden_size, self.n_layers, dropout=dropout_rate, bidirectional=bidirectional, batch_first=True)
+        self.lstm = nn.LSTM(self.embedding_dims, self.hidden_size, self.n_layers, dropout=dropout_rate, bidirectional=bidirectional, batch_first=bidirectional)
         self.dropout = nn.Dropout(dropout_rate)
         self.linear = nn.Linear(hidden_size*self.directions, self.linear_size)#len(TEXT.vocab))        
         self.output = nn.Linear(self.linear_size,self.member_count)
