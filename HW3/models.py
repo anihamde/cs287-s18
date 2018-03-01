@@ -229,6 +229,7 @@ class AttnNetwork(nn.Module):
             masterheap.update_attentions(attn_dist)
             masterheap.firstloop = False
         return masterheap.probs,masterheap.wordlist,masterheap.attentions
+
 class AttnCNN(nn.Module):
     def __init__(self, word_dim=300, n_layers=1, hidden_dim=500, word2vec=False,
                  n_featmaps1=400,n_featmaps2=100,
@@ -272,12 +273,7 @@ class AttnCNN(nn.Module):
     def initDec(self,batch_size):
         return (Variable(torch.zeros(self.n_layers,batch_size,self.hidden_dim).cuda()), 
                 Variable(torch.zeros(self.n_layers,batch_size,self.hidden_dim).cuda()))
-    def forward(self, x_de, x_en, update_baseline=True):
-        bs = x_de.size(0)
-        # x_de is bs,n_de. x_en is bs,n_en
-        emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
-        emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
-        # hidden vars have dimension n_layers*n_directions,bs,hiddensz
+    def encoder(self, emb_de, dummy):
         enc_h = emb_de.unsqueeze(2)
         enc_h = enc_h.permute(0,3,1,2)
         fw3 = self.conv3(enc_h)
@@ -285,7 +281,15 @@ class AttnCNN(nn.Module):
         enc_h = torch.cat([fw3,fw5],dim=1)
         enc_h = enc_h.squeeze(3)
         enc_h = enc_h.permute(0,2,1)
+        return enc_h, "poop"
+    def forward(self, x_de, x_en, update_baseline=True):
+        bs = x_de.size(0)
+        # x_de is bs,n_de. x_en is bs,n_en
+        emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
+        emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
+        # hidden vars have dimension n_layers*n_directions,bs,hiddensz
         # enc_h is bs,n_de,hiddensz*n_directions. ordering is different from last week because batch_first=True
+        enc_h, _ = self.encoder(emb_de, self.initEnc(bs))
         dec_h, _ = self.decoder(emb_en, self.initDec(bs))
         # dec_h is bs,n_en,hidden_size
         # we've gotten our encoder/decoder hidden states so we are ready to do attention
@@ -319,7 +323,15 @@ class AttnCNN(nn.Module):
         bs = x_de.size(0)
         emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
         emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
-        enc_h, _ = self.encoder(emb_de, self.initEnc(bs)) # (bs,n_de,hiddensz*2)
+        # Encoder start
+        enc_h = emb_de.unsqueeze(2)
+        enc_h = enc_h.permute(0,3,1,2)
+        fw3 = self.conv3(enc_h)
+        fw5 = self.conv5(enc_h)
+        enc_h = torch.cat([fw3,fw5],dim=1)
+        enc_h = enc_h.squeeze(3)
+        enc_h = enc_h.permute(0,2,1)
+        # Encoder end
         dec_h, _ = self.decoder(emb_en, self.initDec(bs)) # (bs,n_en,hiddensz)
         # all the same. enc_h is bs,n_de,hiddensz*n_directions. h and c are both n_layers*n_directions,bs,hiddensz
         if self.directions == 2:
