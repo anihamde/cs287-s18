@@ -232,7 +232,6 @@ class AttnNetwork(nn.Module):
 
 class AttnCNN(nn.Module):
     def __init__(self, word_dim=300, n_layers=1, hidden_dim=500, word2vec=False,
-                 n_featmaps1=400,n_featmaps2=100,
                 vocab_layer_size=500, LSTM_dropout=0.0, vocab_layer_dropout=0.0, 
                  weight_tying=False, bidirectional=False, attn_type="soft"):
         super(AttnCNN, self).__init__()
@@ -244,21 +243,21 @@ class AttnCNN(nn.Module):
         self.vocab_layer_dim = (vocab_layer_size,word_dim)[weight_tying == True]
         self.directions = (1,2)[bidirectional == True]
          # LSTM initialization params: inputsz,hiddensz,n_layers,bias,batch_first,bidirectional
-        self.conv3_enc = nn.Sequential(nn.Conv2d(word_dim, self.n_featmaps1,kernel_size=(3,1),padding=(1,0)),nn.Tanh())
-        self.conv3_dec = nn.Sequential(nn.Conv2d(word_dim, self.n_featmaps1,kernel_size=(3,1),padding=(1,0)),nn.Tanh())
+        self.conv3_enc = nn.Sequential(nn.Conv2d(word_dim, self.hidden_dim,kernel_size=(3,1),padding=(1,0)),nn.Tanh())
+        self.conv3_dec = nn.Sequential(nn.Conv2d(word_dim, self.hidden_dim,kernel_size=(3,1),padding=(1,0)),nn.Tanh())
         if self.n_layers > 1:
-            self.c3_seq_enc = nn.Sequential(*[ a for b in tuple( tuple((nn.Conv2d(self.n_featmaps1,self.n_featmaps1,kernel_size=(3,1),padding=(1,0)),nn.Tanh())) for _ in range(1,self.n_layers) ) for a in b ])
-            self.c3_seq_dec = nn.Sequential(*[ a for b in tuple( tuple((nn.Conv2d(self.n_featmaps1,self.n_featmaps1,kernel_size=(3,1),padding=(1,0)),nn.Tanh())) for _ in range(1,self.n_layers) ) for a in b ])            
+            self.c3_seq_enc = nn.Sequential(*[ a for b in tuple( tuple((nn.Conv2d(self.hidden_dim,self.hidden_dim,kernel_size=(3,1),padding=(1,0)),nn.Tanh())) for _ in range(1,self.n_layers) ) for a in b ])
+            self.c3_seq_dec = nn.Sequential(*[ a for b in tuple( tuple((nn.Conv2d(self.hidden_dim,self.hidden_dim,kernel_size=(3,1),padding=(1,0)),nn.Tanh())) for _ in range(1,self.n_layers) ) for a in b ])            
         self.embedding_de = nn.Embedding(len(DE.vocab), word_dim)
         self.embedding_en = nn.Embedding(len(EN.vocab), word_dim)
-        if hidden_dim != (n_featmaps1+n_featmaps2):
-            self.dim_reduce = nn.Linear(n_featmaps1+n_featmaps2,hidden_dim)
+        #if hidden_dim != (n_featmaps1+n_featmaps2):
+        #    self.dim_reduce = nn.Linear(n_featmaps1+n_featmaps2,hidden_dim)
         if word2vec:
             self.embedding_de.weight.data.copy_(DE.vocab.vectors)
             self.embedding_en.weight.data.copy_(EN.vocab.vectors)
         # vocab layer will combine dec hidden state with context vector, and then project out into vocab space 
         self.vocab_layer = nn.Sequential(OrderedDict([
-            ('h2e',nn.Linear(hidden_dim+n_featmaps1+n_featmaps2, self.vocab_layer_dim)),
+            ('h2e',nn.Linear(self.hidden_dim+self.hidden_dim, self.vocab_layer_dim)),
             ('tanh',nn.Tanh()),
             ('drp',nn.Dropout(vocab_layer_dropout)),
             ('e2v',nn.Linear(self.vocab_layer_dim, len(EN.vocab))),
