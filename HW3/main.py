@@ -146,7 +146,7 @@ If we have time, we can try the pytorch tutorial script with and without attn, t
 How to run jupyter notebooks in cloud?
 Generate longer full sentences with small beams. Not fixed-length.
 ''' 
-from models import AttnNetwork, CandList, S2S, AttnGRU, Alpha, Beta
+from models import AttnNetwork, CandList, S2S, AttnGRU, AttnCNN, Alpha, Beta
 from helpers import asMinutes, timeSince, escape, flip, freeze_model
 
 if args.interpolated_model:
@@ -190,6 +190,13 @@ if args.interpolated_model:
                                           vocab_layer_size=arch['vocab_layer_size'], LSTM_dropout=arch['LSTM_dropout'], 
                                           vocab_layer_dropout=arch['vocab_layer_dropout'], weight_tying=arch['weight_tying'], 
                                           bidirectional=arch['bidirectional'], attn_type=arch['attn_type'])
+        elif arch['model_type'] == 3:
+            model_grab = AttnCNN(word_dim=arch['word_dim'], n_layers=arch['n_layers'], 
+                                          hidden_dim=arch['hidden_dim'], word2vec=arch['word2vec'],
+                                          n_featmaps1=400,n_featmaps2=100,
+                                          vocab_layer_size=arch['vocab_layer_size'], LSTM_dropout=arch['LSTM_dropout'], 
+                                          vocab_layer_dropout=arch['vocab_layer_dropout'], weight_tying=arch['weight_tying'], 
+                                          bidirectional=arch['bidirectional'], attn_type=arch['attn_type'])
         model_grab.load_state_dict(torch.load(params))
         model_grab.cuda()
         model_list.append(model_grab)
@@ -230,7 +237,13 @@ else:
         model = AttnGRU(word_dim=arch['word_dim'], n_layers=arch['n_layers'], hidden_dim=arch['hidden_dim'], word2vec=arch['word2vec'],
                             vocab_layer_size=arch['vocab_layer_size'], LSTM_dropout=arch['LSTM_dropout'], vocab_layer_dropout=arch['vocab_layer_dropout'], 
                             weight_tying=arch['weight_tying'], bidirectional=arch['bidirectional'], attn_type=arch['attn_type'])
-
+    elif arch['model_type'] == 3:
+        model = AttnCNN(word_dim=arch['word_dim'], n_layers=arch['n_layers'], 
+                                          hidden_dim=arch['hidden_dim'], word2vec=arch['word2vec'],
+                                          n_featmaps1=400,n_featmaps2=100,
+                                          vocab_layer_size=arch['vocab_layer_size'], LSTM_dropout=arch['LSTM_dropout'], 
+                                          vocab_layer_dropout=arch['vocab_layer_dropout'], weight_tying=arch['weight_tying'], 
+                                          bidirectional=arch['bidirectional'], attn_type=arch['attn_type'])
 model.cuda()
 
 start = time.time()
