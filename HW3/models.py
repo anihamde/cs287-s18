@@ -581,7 +581,7 @@ class Beta(nn.Module):
         embeds = self.embedding(x_de) # bs,n_de,word_dim
         out = self.dropout(embeds) # bs,n_de,word_dim
         out, hidden = self.lstm(out, self.initEnc(bs)) # n_de,bs,directions*hidden_dim
-        out = out[-1,:,:] # bs,directions*hidden_dim
+        out = out[:,-1,:] # bs,directions*hidden_dim
         out = self.dropout(out) # bs,directions*hidden_dim
         out = self.linear(out) # bs,linear_size
         out = self.output(out) # bs, len(model_tuple)
