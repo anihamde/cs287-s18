@@ -835,20 +835,6 @@ class Gamma(nn.Module):
     def initDec(self,batch_size):
         return (Variable(torch.zeros(self.n_layers,batch_size,self.hidden_size).cuda()), 
                 Variable(torch.zeros(self.n_layers,batch_size,self.hidden_size).cuda()))
-    def get_alpha(self, x_de):
-        bs = x_de.size(0)
-        embeds = self.embedding(x_de) # bs,n_de,word_dim
-        out = self.dropout(embeds) # bs,n_de,word_dim
-        out, hidden = self.lstm(out, self.initEnc(bs)) # n_de,bs,directions*hidden_dim
-        out = out[:,-1,:] # bs,directions*hidden_dim
-        out = self.dropout(out) # bs,directions*hidden_dim
-        out = self.linear(out) # bs,linear_size
-        out = self.output(out) # bs, len(model_tuple)
-        out = F.softmax(out,dim=1) # bs, len(model_tuple)
-        out = out.unsqueeze(1) # bs, 1, len(model_tuple)
-        out = out.unsqueeze(2) # bs, 1, 1, len(model_tuple)
-        return out
-        #
     def forward(self, x_de, x_en, update_baseline=True):
         bs = x_de.size(0)
         # x_de is bs,n_de. x_en is bs,n_en
@@ -904,36 +890,16 @@ class Gamma(nn.Module):
         attn_dist = F.softmax(scores,dim=1) # bs,n_de,n_en
         context = torch.bmm(attn_dist.transpose(2,1),enc_h)
         # (bs,n_en,n_de) * (bs,n_de,hiddensz*ndirections) = (bs,n_en,hiddensz*ndirections)
-        pred = self.vocab_layer(torch.cat([dec_h,context],2)) # bs,n_en,len(EN.vocab)
+        alpha_seq = self.vocab_layer(torch.cat([dec_h,context],2)) # bs,n_en,len(modles_tuple)
+        alpha_seq = alpha_seq[:,:-1,:] # alignment
+        models_stack = torch.stack(tuple( x.forward(x_de,x_en)[3] for x in self.members ),dim=3) # bs,n_en,len(EN.vocab),len(models_tuple)
+        out = models_stack * alpha_seq.unsqueeze(2)
+        pred = out.sum(3) # bs,n_en,len(EN.vocab) 
         # pred[:,:,[unk_token,pad_token]] = -math.inf # TODO: testing this out kill pad unk
-        pred = pred[:,:-1,:] # alignment
         _, tokens = pred.max(2) # bs,n_en-1
         sauce = Variable(torch.cuda.LongTensor([[sos_token]]*bs)) # bs
         return torch.cat([sauce,tokens],1), attn_dist
     # Singleton batch with BSO
-    def forward(self, x_de, x_en):
-        loss = 0
-        out = self.get_alpha(x_de)
-        models_stack = torch.stack(tuple( x.forward(x_de,x_en)[3] for x in self.members ),dim=3) # bs,n_en,len(EN.vocab),len(models_tuple)
-        out = models_stack * out
-        pred = out.sum(3) # bs,n_en,len(EN.vocab) 
-        y = x_en[:,1:]
-        reward = torch.gather(pred,2,y.unsqueeze(2)) # bs,n_en,1
-        no_pad = (y != pad_token)
-        reward = reward.squeeze(2)[no_pad]
-        loss -= reward.sum() / no_pad.data.sum()
-        avg_reward = -loss.data[0]
-        # hard attention baseline and reinforce stuff causing me trouble
-        return loss, 0, avg_reward, pred
-    def predict(self, x_de, x_en):
-        out = self.get_alpha(x_de)
-        models_stack = torch.stack(tuple( x.forward(x_de,x_en)[3] for x in self.members ),dim=3) # bs,n_en,len(EN.vocab),len(models_tuple)
-        out = models_stack * out
-        pred = out.sum(3) # bs,n_en,len(EN.vocab)
-        # the below is literally copy pasted from previous predict fnctions
-        _, tokens = pred.max(2) # bs,n_en-1
-        sauce = Variable(torch.cuda.LongTensor([[sos_token]]*bs)) # bs
-        return torch.cat([sauce,tokens],1), attn_dist
     def predict2(self,x_de,beamsz,gen_len):
         out = self.get_alpha(x_de)
         #
