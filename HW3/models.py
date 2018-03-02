@@ -821,7 +821,7 @@ class Gamma(nn.Module):
             self.embedding_en.weight.data.copy_(EN.vocab.vectors)
         # vocab layer will combine dec hidden state with context vector, and then project out into vocab space 
         self.vocab_layer = nn.Sequential(OrderedDict([
-            ('h2e',nn.Linear(hidden_dim*(self.directions+1), self.linear_size)),
+            ('h2e',nn.Linear(self.hidden_size*(self.directions+1), self.linear_size)),
             ('tanh',nn.Tanh()),
             ('drp',nn.Dropout(dropout_rate)),
             ('e2a',nn.Linear(self.linear_size, self.member_count)),
