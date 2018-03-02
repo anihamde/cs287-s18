@@ -862,8 +862,11 @@ class Gamma(nn.Module):
         # (bs,n_en,n_de) * (bs,n_de,hiddensz) = (bs,n_en,hiddensz)
         alpha_seq = self.vocab_layer(torch.cat([dec_h,context],2)) # bs,n_en,len(modles_tuple)
         alpha_seq = alpha_seq[:,:-1,:] # alignment
+        alpha_seq = alpha_seq.unsqueeze(2)
+        print(alpha_seq.size())
+        print(alpha_seq.view(-1,3))
         models_stack = torch.stack(tuple( x.forward(x_de,x_en)[3] for x in self.members ),dim=3) # bs,n_en,len(EN.vocab),len(models_tuple)
-        out = models_stack * alpha_seq.unsqueeze(2)
+        out = models_stack * alpha_seq
         pred = out.sum(3) # bs,n_en,len(EN.vocab) 
         y = x_en[:,1:]
         reward = torch.gather(pred,2,y.unsqueeze(2)) # bs,n_en,1
