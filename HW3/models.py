@@ -241,11 +241,11 @@ class AttnCNN(nn.Module):
         self.vocab_layer_dim = (vocab_layer_size,word_dim)[weight_tying == True]
         self.directions = 1
          # LSTM initialization params: inputsz,hiddensz,n_layers,bias,batch_first,bidirectional
-        self.conv3_enc = nn.Sequential(nn.Conv2d(word_dim, self.hidden_dim*2,kernel_size=(3,1),padding=(1,0)),nn.GLU(1))
-        self.conv3_dec = nn.Sequential(nn.Conv2d(word_dim, self.hidden_dim*2,kernel_size=(3,1),padding=(2,0))[:,:,0:-2,:],nn.GLU(1))
+        self.conv3_enc = nn.Sequential(nn.ReplicationPad2d((0,0,1,1)),nn.Conv2d(word_dim, self.hidden_dim*2,kernel_size=(3,1)),nn.GLU(1))
+        self.conv3_dec = nn.Sequential(nn.ReplicationPad2d((0,0,2,0)),nn.Conv2d(word_dim, self.hidden_dim*2,kernel_size=(3,1)),nn.GLU(1))
         if self.n_layers > 1:
-            self.c3_seq_enc = nn.Sequential(*[ a for b in tuple( tuple((nn.Dropout(LSTM_dropout),nn.Conv2d(self.hidden_dim,self.hidden_dim*2,kernel_size=(3,1),padding=(1,0)),nn.GLU(1))) for _ in range(1,self.n_layers) ) for a in b ])
-            self.c3_seq_dec = nn.Sequential(*[ a for b in tuple( tuple((nn.Dropout(LSTM_dropout),nn.Conv2d(self.hidden_dim,self.hidden_dim*2,kernel_size=(3,1),padding=(2,0))[:,:,0:-2,:],nn.GLU(1))) for _ in range(1,self.n_layers) ) for a in b ])            
+            self.c3_seq_enc = nn.Sequential(*[ a for b in tuple( tuple((nn.Dropout(LSTM_dropout),nn.ReplicationPad2d((0,0,1,1)),nn.Conv2d(self.hidden_dim,self.hidden_dim*2,kernel_size=(3,1),padding=(1,0)),nn.GLU(1))) for _ in range(1,self.n_layers) ) for a in b ])
+            self.c3_seq_dec = nn.Sequential(*[ a for b in tuple( tuple((nn.Dropout(LSTM_dropout),nn.ReplicationPad2d((0,0,2,0)),nn.Conv2d(self.hidden_dim,self.hidden_dim*2,kernel_size=(3,1),padding=(2,0)),nn.GLU(1))) for _ in range(1,self.n_layers) ) for a in b ])            
         self.embedding_de = nn.Embedding(len(DE.vocab), word_dim)
         self.embedding_en = nn.Embedding(len(EN.vocab), word_dim)
         if word2vec:
