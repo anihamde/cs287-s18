@@ -311,7 +311,7 @@ class AttnCNN(nn.Module):
         scores[(x_de == pad_token).unsqueeze(2).expand(scores.size())] = -math.inf # binary mask
         attn_dist = F.softmax(scores,dim=1) # bs,n_de,n_en
         # hard attn requires stacking to fit into torch.distributions.Categorical
-        context = torch.bmm(attn_dist.transpose(2,1), enc_h+)
+        context = torch.bmm(attn_dist.transpose(2,1), enc_h)
         # (bs,n_en,n_de) * (bs,n_de,hiddensz) = (bs,n_en,hiddensz)
         pred = self.vocab_layer(torch.cat([dec_h,context],2)) # bs,n_en,len(EN.vocab)
         pred = pred[:,:-1,:] # alignment
