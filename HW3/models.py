@@ -244,8 +244,8 @@ class AttnCNN(nn.Module):
         self.conv3_enc = nn.Sequential(nn.Conv2d(word_dim, self.hidden_dim,kernel_size=(3,1),padding=(1,0)),nn.Tanh())
         self.conv3_dec = nn.Sequential(nn.Conv2d(word_dim, self.hidden_dim,kernel_size=(3,1),padding=(1,0)),nn.Tanh())
         if self.n_layers > 1:
-            self.c3_seq_enc = nn.Sequential(*[ a for b in tuple( tuple((nn.Conv2d(self.hidden_dim,self.hidden_dim,kernel_size=(3,1),padding=(1,0)),nn.Tanh())) for _ in range(1,self.n_layers) ) for a in b ])
-            self.c3_seq_dec = nn.Sequential(*[ a for b in tuple( tuple((nn.Conv2d(self.hidden_dim,self.hidden_dim,kernel_size=(3,1),padding=(1,0)),nn.Tanh())) for _ in range(1,self.n_layers) ) for a in b ])            
+            self.c3_seq_enc = nn.Sequential(*[ a for b in tuple( tuple((nn.Dropout(LSTM_dropout),nn.Conv2d(self.hidden_dim,self.hidden_dim,kernel_size=(3,1),padding=(1,0)),nn.Tanh())) for _ in range(1,self.n_layers) ) for a in b ])
+            self.c3_seq_dec = nn.Sequential(*[ a for b in tuple( tuple((nn.Dropout(LSTM_dropout),nn.Conv2d(self.hidden_dim,self.hidden_dim,kernel_size=(3,1),padding=(1,0)),nn.Tanh())) for _ in range(1,self.n_layers) ) for a in b ])            
         self.embedding_de = nn.Embedding(len(DE.vocab), word_dim)
         self.embedding_en = nn.Embedding(len(EN.vocab), word_dim)
         #if hidden_dim != (n_featmaps1+n_featmaps2):
