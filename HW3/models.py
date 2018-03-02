@@ -284,7 +284,7 @@ class AttnCNN(nn.Module):
     def decoder(self, emb_en, dummy):
         dec_h = emb_en.unsqueeze(2)
         dec_h = dec_h.permute(0,3,1,2)
-        dec_h = self.conv3_enc(dec_h)
+        dec_h = self.conv3_dec(dec_h)
         if self.n_layers > 1:
             dec_h = self.c3_seq_dec(dec_h)
         dec_h = dec_h.squeeze(3)
