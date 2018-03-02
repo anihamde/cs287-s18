@@ -332,9 +332,9 @@ class AttnCNN(nn.Module):
         enc_h, _ = self.encoder(emb_de, self.initEnc(bs))
         dec_h, _ = self.decoder(emb_en, self.initDec(bs)) # (bs,n_en,hiddensz)
         # all the same. enc_h is bs,n_de,hiddensz*n_directions. h and c are both n_layers*n_directions,bs,hiddensz
-        if self.directions == 2:
-            scores = torch.bmm(self.dim_reduce(enc_h), dec_h.transpose(1,2))
-        else:
+        #if self.directions == 2:
+        #    scores = torch.bmm(self.dim_reduce(enc_h), dec_h.transpose(1,2))
+        if True:
             scores = torch.bmm(enc_h, dec_h.transpose(1,2))
         # (bs,n_de,hiddensz) * (bs,hiddensz,n_en) = (bs,n_de,n_en)
         scores[(x_de == pad_token).unsqueeze(2).expand(scores.size())] = -math.inf # binary mask
@@ -361,9 +361,9 @@ class AttnCNN(nn.Module):
             #
             hidd = masterheap.get_hiddens() # (n_layers,beamsz,hiddensz),(n_layers,beamsz,hiddensz)
             dec_h, hidd = self.decoder(emb_t.unsqueeze(1), hidd) # dec_h is beamsz,1,hiddensz (batch_first=True)
-            if self.directions == 2:
-                scores = torch.bmm(self.dim_reduce(enc_h_expand), dec_h.transpose(1,2)).squeeze(2)
-            else:
+            #if self.directions == 2:
+            #    scores = torch.bmm(self.dim_reduce(enc_h_expand), dec_h.transpose(1,2)).squeeze(2)
+            if True:
                 scores = torch.bmm(enc_h_expand, dec_h.transpose(1,2)).squeeze(2)
             # (beamsz,n_de,hiddensz) * (beamsz,hiddensz,1) = (beamsz,n_de,1). squeeze to beamsz,n_de
             scores[(x_de == pad_token)] = -math.inf # binary mask
