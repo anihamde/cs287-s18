@@ -280,7 +280,7 @@ class AttnCNN(nn.Module):
             enc_h = self.c3_seq_enc(enc_h)
         enc_h = enc_h.squeeze(3)
         enc_h = enc_h.permute(0,2,1)
-        return enc_h, "poop"
+        return enc_h, dummy
     def decoder(self, emb_en, dummy):
         dec_h = emb_en.unsqueeze(2)
         dec_h = dec_h.permute(0,3,1,2)
@@ -289,7 +289,7 @@ class AttnCNN(nn.Module):
             dec_h = self.c3_seq_dec(dec_h)
         dec_h = dec_h.squeeze(3)
         dec_h = dec_h.permute(0,2,1)
-        return dec_h, "poop"
+        return dec_h, dummy
     def forward(self, x_de, x_en, update_baseline=True):
         bs = x_de.size(0)
         # x_de is bs,n_de. x_en is bs,n_en
