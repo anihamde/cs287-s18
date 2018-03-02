@@ -812,8 +812,8 @@ class Gamma(nn.Module):
          # LSTM initialization params: inputsz,hiddensz,n_layers,bias,batch_first,bidirectional
         self.encoder = nn.LSTM(self.embedding_dims, self.hidden_size, num_layers = n_layers, batch_first = True, dropout=dropout_rate, bidirectional=bidirectional)
         self.decoder = nn.LSTM(self.embedding_dims, self.hidden_size, num_layers = n_layers, batch_first = True, dropout=dropout_rate)
-        self.embedding_de = nn.Embedding(len(DE.vocab), word_dim)
-        self.embedding_en = nn.Embedding(len(EN.vocab), word_dim)
+        self.embedding_de = nn.Embedding(len(DE.vocab), self.embedding_dims)
+        self.embedding_en = nn.Embedding(len(EN.vocab), self.embedding_dims)
         if bidirectional:
             self.dim_reduce = nn.Linear(hidden_dim*2,hidden_dim)
         if word2vec:
