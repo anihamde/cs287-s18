@@ -908,22 +908,22 @@ class Gamma(nn.Module):
         #
         r_dex = range(self.member_count+1)
         members_plus = tuple(list(self.members) + [self])
-        emb_de = tuple( self.members[i].embedding_de(x_de) for i in r_dex )
-        enc_h  = tuple( self.members[i].encoder(emb_de[i],self.members[i].initEnc(1))[0] for i in r_dex )
-        masterheaps = tuple( CandList(enc_h[i],self.members[i].initDec(1),beamsz) for i in r_dex )
+        emb_de = tuple( members_plus[i].embedding_de(x_de) for i in r_dex )
+        enc_h  = tuple( members_plus[i].encoder(emb_de[i],members_plus[i].initEnc(1))[0] for i in r_dex )
+        masterheaps = tuple( CandList(enc_h[i],members_plus[i].initDec(1),beamsz) for i in r_dex )
         for _ in range(gen_len):
             prev  = tuple( heap.get_prev() for heap in masterheaps )
-            emb_t = tuple( self.members[i].embedding_en(prev[i]) for i in r_dex )
+            emb_t = tuple( members_plus[i].embedding_en(prev[i]) for i in r_dex )
             enc_h_expand = tuple( enc_h[i].expand(prev[i].size(0),-1,-1) for i in r_dex )
             hidd = tuple( heap.get_hiddens() for heap in masterheaps )
-            hold = tuple( self.members[i].decoder(emb_t[i].unsqueeze(1),hidd[i]) for i in r_dex )
+            hold = tuple( members_plus[i].decoder(emb_t[i].unsqueeze(1),hidd[i]) for i in r_dex )
             dec_h, hidd = tuple(zip(*hold))
-            scores = tuple( torch.bmm(self.members[i].dim_reduce(enc_h_expand[i]), dec_h[i].transpose(1,2)).squeeze(2) if self.members[i].directions == 2 else torch.bmm(enc_h_expand[i], dec_h[i].transpose(1,2)).squeeze(2) for i in r_dex )
+            scores = tuple( torch.bmm(members_plus[i].dim_reduce(enc_h_expand[i]), dec_h[i].transpose(1,2)).squeeze(2) if members_plus[i].directions == 2 else torch.bmm(enc_h_expand[i], dec_h[i].transpose(1,2)).squeeze(2) for i in r_dex )
             for i in r_dex:
                 scores[i][(x_de == pad_token)] = -math.inf
             attn_dist = tuple( F.softmax(scores[i],dim=1) for i in r_dex )
             context = tuple( torch.bmm(attn_dist[i].unsqueeze(1),enc_h_expand[i]).squeeze(1) for i in r_dex )
-            pred = tuple( self.members[i].vocab_layer(torch.cat([dec_h[i].squeeze(1), context[i]], 1)) for i in r_dex )
+            pred = tuple( members_plus[i].vocab_layer(torch.cat([dec_h[i].squeeze(1), context[i]], 1)) for i in r_dex )
             alpha_seq = pred[-1] # bs,n_en,len(modles_tuple)
             #alpha_seq = alpha_seq[:,:,:] # alignment
             #alpha_seq = alpha_seq.unsqueeze(2).contiguous()
