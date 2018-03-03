@@ -651,8 +651,8 @@ class Alpha(nn.Module):
         loss = 0
         out = self.get_alpha(x_de)
         models_stack = torch.stack(tuple( x.forward(x_de,x_en)[3] for x in self.members ),dim=3) # bs,n_en,len(EN.vocab),len(models_tuple)
-        out = models_stack * out
-        pred = out.sum(3) # bs,n_en,len(EN.vocab) 
+        out = torch.exp(models_stack) * out
+        pred = torch.log(out.mean(3)) # bs,n_en,len(EN.vocab) 
         y = x_en[:,1:]
         reward = torch.gather(pred,2,y.unsqueeze(2)) # bs,n_en,1
         no_pad = (y != pad_token)
@@ -664,8 +664,8 @@ class Alpha(nn.Module):
     def predict(self, x_de, x_en):
         out = self.get_alpha(x_de)
         models_stack = torch.stack(tuple( x.forward(x_de,x_en)[3] for x in self.members ),dim=3) # bs,n_en,len(EN.vocab),len(models_tuple)
-        out = models_stack * out
-        pred = out.sum(3) # bs,n_en,len(EN.vocab)
+        out = torch.exp(models_stack) * out
+        pred = torch.log(out.mean(3)) # bs,n_en,len(EN.vocab)
         # the below is literally copy pasted from previous predict fnctions
         _, tokens = pred.max(2) # bs,n_en-1
         sauce = Variable(torch.cuda.LongTensor([[sos_token]]*bs)) # bs
@@ -690,8 +690,8 @@ class Alpha(nn.Module):
             attn_dist = tuple( F.softmax(scores[i],dim=1) for i in r_dex )
             context = tuple( torch.bmm(attn_dist[i].unsqueeze(1),enc_h_expand[i]).squeeze(1) for i in r_dex )
             pred = tuple( self.members[i].vocab_layer(torch.cat([dec_h[i].squeeze(1), context[i]], 1)) for i in r_dex )
-            weighted_pred  = torch.stack(pred,dim=2) * out.squeeze(2)
-            ensembled_pred = weighted_pred.sum(2)
+            weighted_pred  = torch.exp(torch.stack(pred,dim=2)) * out.squeeze(2)
+            ensembled_pred = torch.log(weighted_pred.mean(2))
             for i in r_dex:
                 masterheaps[i].update_beam(ensembled_pred)
                 masterheaps[i].update_hiddens(hidd[i])
@@ -747,8 +747,8 @@ class Beta(nn.Module):
         loss = 0
         out = self.get_alpha(x_de)
         models_stack = torch.stack(tuple( x.forward(x_de,x_en)[3] for x in self.members ),dim=3) # bs,n_en,len(EN.vocab),len(models_tuple)
-        out = models_stack * out
-        pred = out.sum(3) # bs,n_en,len(EN.vocab) 
+        out = torch.exp(models_stack) * out
+        pred = torch.log(out.mean(3)) # bs,n_en,len(EN.vocab) 
         y = x_en[:,1:]
         reward = torch.gather(pred,2,y.unsqueeze(2)) # bs,n_en,1
         no_pad = (y != pad_token)
@@ -760,8 +760,8 @@ class Beta(nn.Module):
     def predict(self, x_de, x_en):
         out = self.get_alpha(x_de)
         models_stack = torch.stack(tuple( x.forward(x_de,x_en)[3] for x in self.members ),dim=3) # bs,n_en,len(EN.vocab),len(models_tuple)
-        out = models_stack * out
-        pred = out.sum(3) # bs,n_en,len(EN.vocab)
+        out = torch.exp(models_stack) * out
+        pred = torch.log(out.mean(3)) # bs,n_en,len(EN.vocab)
         # the below is literally copy pasted from previous predict fnctions
         _, tokens = pred.max(2) # bs,n_en-1
         sauce = Variable(torch.cuda.LongTensor([[sos_token]]*bs)) # bs
@@ -787,7 +787,7 @@ class Beta(nn.Module):
             context = tuple( torch.bmm(attn_dist[i].unsqueeze(1),enc_h_expand[i]).squeeze(1) for i in r_dex )
             pred = tuple( self.members[i].vocab_layer(torch.cat([dec_h[i].squeeze(1), context[i]], 1)) for i in r_dex )
             weighted_pred  = torch.exp(torch.stack(pred,dim=2)) * out.squeeze(2)
-            ensembled_pred = torch.log(weighted_pred.sum(2))
+            ensembled_pred = torch.log(weighted_pred.mean(2))
             for i in r_dex:
                 masterheaps[i].update_beam(ensembled_pred)
                 masterheaps[i].update_hiddens(hidd[i])
@@ -866,8 +866,8 @@ class Gamma(nn.Module):
         #print(alpha_seq.size())
         #print(alpha_seq.view(-1,self.member_count))
         models_stack = torch.stack(tuple( x.forward(x_de,x_en)[3] for x in self.members ),dim=3) # bs,n_en,len(EN.vocab),len(models_tuple)
-        out = models_stack * alpha_seq
-        pred = out.sum(3) # bs,n_en,len(EN.vocab) 
+        out = torch.exp(models_stack) * alpha_seq
+        pred = torch.log(out.mean(3)) # bs,n_en,len(EN.vocab) 
         y = x_en[:,1:]
         reward = torch.gather(pred,2,y.unsqueeze(2)) # bs,n_en,1
         no_pad = (y != pad_token)
@@ -896,8 +896,8 @@ class Gamma(nn.Module):
         alpha_seq = self.vocab_layer(torch.cat([dec_h,context],2)) # bs,n_en,len(modles_tuple)
         alpha_seq = alpha_seq[:,:-1,:] # alignment
         models_stack = torch.stack(tuple( x.forward(x_de,x_en)[3] for x in self.members ),dim=3) # bs,n_en,len(EN.vocab),len(models_tuple)
-        out = models_stack * alpha_seq.unsqueeze(2)
-        pred = out.sum(3) # bs,n_en,len(EN.vocab) 
+        out = torch.exp(models_stack) * alpha_seq.unsqueeze(2)
+        pred = toch.log(out.mean(3)) # bs,n_en,len(EN.vocab) 
         # pred[:,:,[unk_token,pad_token]] = -math.inf # TODO: testing this out kill pad unk
         _, tokens = pred.max(2) # bs,n_en-1
         sauce = Variable(torch.cuda.LongTensor([[sos_token]]*bs)) # bs
@@ -928,7 +928,7 @@ class Gamma(nn.Module):
             #alpha_seq = alpha_seq[:,:,:] # alignment
             #alpha_seq = alpha_seq.unsqueeze(2).contiguous()
             weighted_pred  = torch.exp(torch.stack(pred[:-1],dim=2)) * alpha_seq
-            ensembled_pred = torch.log(weighted_pred.sum(2))
+            ensembled_pred = torch.log(weighted_pred.mean(2))
             for i in r_dex:
                 masterheaps[i].update_beam(ensembled_pred)
                 masterheaps[i].update_hiddens(hidd[i])
