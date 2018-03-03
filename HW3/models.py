@@ -929,7 +929,7 @@ class Gamma(nn.Module):
             print(pred[0].size())
             #alpha_seq = alpha_seq[:,:,:] # alignment
             #alpha_seq = alpha_seq.unsqueeze(2).contiguous()
-            weighted_pred  = torch.exp(torch.stack(pred[:-1],dim=2)) * alpha_seq
+            weighted_pred  = torch.exp(torch.stack(pred[:-1],dim=2)) * alpha_seq.unsqueeze(1)
             ensembled_pred = torch.log(weighted_pred.mean(2))
             for i in r_dex:
                 masterheaps[i].update_beam(ensembled_pred)
