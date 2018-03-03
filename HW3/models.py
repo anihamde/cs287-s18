@@ -925,6 +925,8 @@ class Gamma(nn.Module):
             context = tuple( torch.bmm(attn_dist[i].unsqueeze(1),enc_h_expand[i]).squeeze(1) for i in r_dex )
             pred = tuple( members_plus[i].vocab_layer(torch.cat([dec_h[i].squeeze(1), context[i]], 1)) for i in r_dex )
             alpha_seq = pred[-1] # bs,n_en,len(modles_tuple)
+            print(alpha_seq.size())
+            print(pred[0].size())
             #alpha_seq = alpha_seq[:,:,:] # alignment
             #alpha_seq = alpha_seq.unsqueeze(2).contiguous()
             weighted_pred  = torch.exp(torch.stack(pred[:-1],dim=2)) * alpha_seq
