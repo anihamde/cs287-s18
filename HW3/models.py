@@ -864,7 +864,7 @@ class Gamma(nn.Module):
         alpha_seq = alpha_seq[:,:-1,:] # alignment
         alpha_seq = alpha_seq.unsqueeze(2)
         print(alpha_seq.size())
-        print(alpha_seq.view(-1,3))
+        print(alpha_seq.view(-1,self.member_count))
         models_stack = torch.stack(tuple( x.forward(x_de,x_en)[3] for x in self.members ),dim=3) # bs,n_en,len(EN.vocab),len(models_tuple)
         out = models_stack * alpha_seq
         pred = out.sum(3) # bs,n_en,len(EN.vocab) 
