@@ -825,7 +825,7 @@ class Gamma(nn.Module):
             ('tanh',nn.Tanh()),
             ('drp',nn.Dropout(dropout_rate)),
             ('e2a',nn.Linear(self.linear_size, self.member_count)),
-            ('lsft',nn.LogSoftmax(dim=-1))
+            ('lsft',nn.Softmax(dim=-1))
         ]))
         # baseline reward, which we initialize with log 1/V
         self.baseline = Variable(torch.cuda.FloatTensor([np.log(1/len(EN.vocab))]))
@@ -863,8 +863,8 @@ class Gamma(nn.Module):
         alpha_seq = self.vocab_layer(torch.cat([dec_h,context],2)) # bs,n_en,len(modles_tuple)
         alpha_seq = alpha_seq[:,:-1,:] # alignment
         alpha_seq = alpha_seq.unsqueeze(2).contiguous()
-        print(alpha_seq.size())
-        print(alpha_seq.view(-1,self.member_count))
+        #print(alpha_seq.size())
+        #print(alpha_seq.view(-1,self.member_count))
         models_stack = torch.stack(tuple( x.forward(x_de,x_en)[3] for x in self.members ),dim=3) # bs,n_en,len(EN.vocab),len(models_tuple)
         out = models_stack * alpha_seq
         pred = out.sum(3) # bs,n_en,len(EN.vocab) 
