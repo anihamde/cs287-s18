@@ -904,9 +904,10 @@ class Gamma(nn.Module):
         return torch.cat([sauce,tokens],1), attn_dist
     # Singleton batch with BSO
     def predict2(self,x_de,beamsz,gen_len):
-        out = self.get_alpha(x_de)
+        #out = self.get_alpha(x_de)
         #
-        r_dex = range(self.member_count)
+        r_dex = range(self.member_count+1)
+        members_plus = self.members + tuple((self))
         emb_de = tuple( self.members[i].embedding_de(x_de) for i in r_dex )
         enc_h  = tuple( self.members[i].encoder(emb_de[i],self.members[i].initEnc(1))[0] for i in r_dex )
         masterheaps = tuple( CandList(enc_h[i],self.members[i].initDec(1),beamsz) for i in r_dex )
@@ -923,8 +924,11 @@ class Gamma(nn.Module):
             attn_dist = tuple( F.softmax(scores[i],dim=1) for i in r_dex )
             context = tuple( torch.bmm(attn_dist[i].unsqueeze(1),enc_h_expand[i]).squeeze(1) for i in r_dex )
             pred = tuple( self.members[i].vocab_layer(torch.cat([dec_h[i].squeeze(1), context[i]], 1)) for i in r_dex )
-            weighted_pred  = torch.stack(pred,dim=2) * out.squeeze(2)
-            ensembled_pred = weighted_pred.sum(2)
+            alpha_seq = pred[-1] # bs,n_en,len(modles_tuple)
+            #alpha_seq = alpha_seq[:,:,:] # alignment
+            #alpha_seq = alpha_seq.unsqueeze(2).contiguous()
+            weighted_pred  = torch.exp(torch.stack(pred[:-1],dim=2)) * alpha_seq
+            ensembled_pred = torch.log(weighted_pred.sum(2))
             for i in r_dex:
                 masterheaps[i].update_beam(ensembled_pred)
                 masterheaps[i].update_hiddens(hidd[i])
