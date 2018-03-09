@@ -271,8 +271,8 @@ class AttnCNN(nn.Module):
         return (Variable(torch.zeros(self.n_layers,batch_size,self.hidden_dim).cuda()), 
                 Variable(torch.zeros(self.n_layers,batch_size,self.hidden_dim).cuda()))
     def encoder(self, emb_de, dummy):
-        enc_h = emb_de.unsqueeze(2)
-        enc_h = enc_h.permute(0,3,1,2)
+        enc_h = emb_de.unsqueeze(2) # bs,n_de,1,word_dim
+        enc_h = enc_h.permute(0,3,1,2) # bs,word_dim,n_de,1
         enc_h = self.conv3_enc(enc_h)
         if self.n_layers > 1:
             enc_h = self.c3_seq_enc(enc_h)
