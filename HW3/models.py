@@ -241,11 +241,11 @@ class AttnCNN(nn.Module):
         self.vocab_layer_dim = (vocab_layer_size,word_dim)[weight_tying == True]
         self.directions = 1
          # LSTM initialization params: inputsz,hiddensz,n_layers,bias,batch_first,bidirectional
-        self.conv3_enc = nn.Sequential(nn.Conv2d(word_dim, self.hidden_dim,kernel_size=(3,1),padding=(1,0)),nn.Tanh())
-        self.conv3_dec = nn.Sequential(nn.Conv2d(word_dim, self.hidden_dim,kernel_size=(3,1),padding=(1,0)),nn.Tanh())
+        self.conv3_enc = nn.Sequential(nn.ReplicationPad2d((0,0,1,1)),nn.Conv2d(word_dim, self.hidden_dim*2,kernel_size=(3,1)),nn.GLU(1))
+        self.conv3_dec = nn.Sequential(nn.ReplicationPad2d((0,0,2,0)),nn.Conv2d(word_dim, self.hidden_dim*2,kernel_size=(3,1)),nn.GLU(1))
         if self.n_layers > 1:
-            self.c3_seq_enc = nn.Sequential(*[ a for b in tuple( tuple((nn.Dropout(LSTM_dropout),nn.Conv2d(self.hidden_dim,self.hidden_dim,kernel_size=(3,1),padding=(1,0)),nn.Tanh())) for _ in range(1,self.n_layers) ) for a in b ])
-            self.c3_seq_dec = nn.Sequential(*[ a for b in tuple( tuple((nn.Dropout(LSTM_dropout),nn.Conv2d(self.hidden_dim,self.hidden_dim,kernel_size=(3,1),padding=(1,0)),nn.Tanh())) for _ in range(1,self.n_layers) ) for a in b ])            
+            self.c3_seq_enc = nn.Sequential(*[ a for b in tuple( tuple((nn.ReplicationPad2d((0,0,1,1)),nn.Dropout(LSTM_dropout),nn.Conv2d(self.hidden_dim,self.hidden_dim*2,kernel_size=(3,1)),nn.GLU(1))) for _ in range(1,self.n_layers) ) for a in b ])
+            self.c3_seq_dec = nn.Sequential(*[ a for b in tuple( tuple((nn.ReplicationPad2d((0,0,2,0)),nn.Dropout(LSTM_dropout),nn.Conv2d(self.hidden_dim,self.hidden_dim*2,kernel_size=(3,1)),nn.GLU(1))) for _ in range(1,self.n_layers) ) for a in b ])            
         self.embedding_de = nn.Embedding(len(DE.vocab), word_dim)
         self.embedding_en = nn.Embedding(len(EN.vocab), word_dim)
         if word2vec:
@@ -651,8 +651,8 @@ class Alpha(nn.Module):
         loss = 0
         out = self.get_alpha(x_de)
         models_stack = torch.stack(tuple( x.forward(x_de,x_en)[3] for x in self.members ),dim=3) # bs,n_en,len(EN.vocab),len(models_tuple)
-        out = models_stack * out
-        pred = out.sum(3) # bs,n_en,len(EN.vocab) 
+        out = torch.exp(models_stack) * out
+        pred = torch.log(out.sum(3)) # bs,n_en,len(EN.vocab) 
         y = x_en[:,1:]
         reward = torch.gather(pred,2,y.unsqueeze(2)) # bs,n_en,1
         no_pad = (y != pad_token)
@@ -664,8 +664,8 @@ class Alpha(nn.Module):
     def predict(self, x_de, x_en):
         out = self.get_alpha(x_de)
         models_stack = torch.stack(tuple( x.forward(x_de,x_en)[3] for x in self.members ),dim=3) # bs,n_en,len(EN.vocab),len(models_tuple)
-        out = models_stack * out
-        pred = out.sum(3) # bs,n_en,len(EN.vocab)
+        out = torch.exp(models_stack) * out
+        pred = torch.log(out.sum(3)) # bs,n_en,len(EN.vocab)
         # the below is literally copy pasted from previous predict fnctions
         _, tokens = pred.max(2) # bs,n_en-1
         sauce = Variable(torch.cuda.LongTensor([[sos_token]]*bs)) # bs
@@ -690,8 +690,8 @@ class Alpha(nn.Module):
             attn_dist = tuple( F.softmax(scores[i],dim=1) for i in r_dex )
             context = tuple( torch.bmm(attn_dist[i].unsqueeze(1),enc_h_expand[i]).squeeze(1) for i in r_dex )
             pred = tuple( self.members[i].vocab_layer(torch.cat([dec_h[i].squeeze(1), context[i]], 1)) for i in r_dex )
-            weighted_pred  = torch.stack(pred,dim=2) * out.squeeze(2)
-            ensembled_pred = weighted_pred.sum(2)
+            weighted_pred  = torch.exp(torch.stack(pred,dim=2)) * out.squeeze(2)
+            ensembled_pred = torch.log(weighted_pred.sum(2))
             for i in r_dex:
                 masterheaps[i].update_beam(ensembled_pred)
                 masterheaps[i].update_hiddens(hidd[i])
@@ -747,8 +747,8 @@ class Beta(nn.Module):
         loss = 0
         out = self.get_alpha(x_de)
         models_stack = torch.stack(tuple( x.forward(x_de,x_en)[3] for x in self.members ),dim=3) # bs,n_en,len(EN.vocab),len(models_tuple)
-        out = models_stack * out
-        pred = out.sum(3) # bs,n_en,len(EN.vocab) 
+        out = torch.exp(models_stack) * out
+        pred = torch.log(out.sum(3)) # bs,n_en,len(EN.vocab) 
         y = x_en[:,1:]
         reward = torch.gather(pred,2,y.unsqueeze(2)) # bs,n_en,1
         no_pad = (y != pad_token)
@@ -760,8 +760,8 @@ class Beta(nn.Module):
     def predict(self, x_de, x_en):
         out = self.get_alpha(x_de)
         models_stack = torch.stack(tuple( x.forward(x_de,x_en)[3] for x in self.members ),dim=3) # bs,n_en,len(EN.vocab),len(models_tuple)
-        out = models_stack * out
-        pred = out.sum(3) # bs,n_en,len(EN.vocab)
+        out = torch.exp(models_stack) * out
+        pred = torch.log(out.sum(3)) # bs,n_en,len(EN.vocab)
         # the below is literally copy pasted from previous predict fnctions
         _, tokens = pred.max(2) # bs,n_en-1
         sauce = Variable(torch.cuda.LongTensor([[sos_token]]*bs)) # bs
@@ -786,8 +786,149 @@ class Beta(nn.Module):
             attn_dist = tuple( F.softmax(scores[i],dim=1) for i in r_dex )
             context = tuple( torch.bmm(attn_dist[i].unsqueeze(1),enc_h_expand[i]).squeeze(1) for i in r_dex )
             pred = tuple( self.members[i].vocab_layer(torch.cat([dec_h[i].squeeze(1), context[i]], 1)) for i in r_dex )
-            weighted_pred  = torch.stack(pred,dim=2) * out.squeeze(2)
-            ensembled_pred = weighted_pred.sum(2)
+            weighted_pred  = torch.exp(torch.stack(pred,dim=2)) * out.squeeze(2)
+            ensembled_pred = torch.log(weighted_pred.sum(2))
+            for i in r_dex:
+                masterheaps[i].update_beam(ensembled_pred)
+                masterheaps[i].update_hiddens(hidd[i])
+                masterheaps[i].update_attentions(attn_dist[i])
+                masterheaps[i].firstloop = False
+        return "poop",masterheaps[0].wordlist,"morepoop"
+
+class Gamma(nn.Module):
+    def __init__(self, models_tuple, embedding_features=300, hidden_size=200, n_layers=2, linear_size=300, dropout_rate=0.5, bidirectional=False, word2vec=False, freeze_models=False):
+        super(Gamma, self).__init__()
+        if freeze_models:
+            self.members = tuple( freeze_model(x) for x in models_tuple )
+        else:
+            self.members = models_tuple
+        self.attn_type = "soft"
+        self.member_count = len(models_tuple)
+        self.embedding_dims = (embedding_features, 300)[word2vec == True]
+        self.hidden_size = hidden_size
+        self.n_layers = n_layers
+        self.linear_size = linear_size
+        self.directions = (1,2)[bidirectional == True]
+         # LSTM initialization params: inputsz,hiddensz,n_layers,bias,batch_first,bidirectional
+        self.encoder = nn.LSTM(self.embedding_dims, self.hidden_size, num_layers = n_layers, batch_first = True, dropout=dropout_rate, bidirectional=bidirectional)
+        self.decoder = nn.LSTM(self.embedding_dims, self.hidden_size, num_layers = n_layers, batch_first = True, dropout=dropout_rate)
+        self.embedding_de = nn.Embedding(len(DE.vocab), self.embedding_dims)
+        self.embedding_en = nn.Embedding(len(EN.vocab), self.embedding_dims)
+        if bidirectional:
+            self.dim_reduce = nn.Linear(hidden_dim*2,hidden_dim)
+        if word2vec:
+            self.embedding_de.weight.data.copy_(DE.vocab.vectors)
+            self.embedding_en.weight.data.copy_(EN.vocab.vectors)
+        # vocab layer will combine dec hidden state with context vector, and then project out into vocab space 
+        self.vocab_layer = nn.Sequential(OrderedDict([
+            ('h2e',nn.Linear(self.hidden_size*(self.directions+1), self.linear_size)),
+            ('tanh',nn.Tanh()),
+            ('drp',nn.Dropout(dropout_rate)),
+            ('e2a',nn.Linear(self.linear_size, self.member_count)),
+            ('lsft',nn.Softmax(dim=-1))
+        ]))
+        # baseline reward, which we initialize with log 1/V
+        self.baseline = Variable(torch.cuda.FloatTensor([np.log(1/len(EN.vocab))]))
+    def initEnc(self,batch_size):
+        return (Variable(torch.zeros(self.n_layers*self.directions,batch_size,self.hidden_size).cuda()), 
+                Variable(torch.zeros(self.n_layers*self.directions,batch_size,self.hidden_size).cuda()))
+    def initDec(self,batch_size):
+        return (Variable(torch.zeros(self.n_layers,batch_size,self.hidden_size).cuda()), 
+                Variable(torch.zeros(self.n_layers,batch_size,self.hidden_size).cuda()))
+    def forward(self, x_de, x_en, update_baseline=True):
+        bs = x_de.size(0)
+        # x_de is bs,n_de. x_en is bs,n_en
+        emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
+        emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
+        # hidden vars have dimension n_layers*n_directions,bs,hiddensz
+        enc_h, _ = self.encoder(emb_de, self.initEnc(bs))
+        # enc_h is bs,n_de,hiddensz*n_directions. ordering is different from last week because batch_first=True
+        dec_h, _ = self.decoder(emb_en, self.initDec(bs))
+        # dec_h is bs,n_en,hidden_size
+        # we've gotten our encoder/decoder hidden states so we are ready to do attention
+        # first let's get all our scores, which we can do easily since we are using dot-prod attention
+        if self.directions == 2:
+            scores = torch.bmm(self.dim_reduce(enc_h), dec_h.transpose(1,2))
+            # TODO: any easier ways to reduce dimension?
+        else:
+            scores = torch.bmm(enc_h, dec_h.transpose(1,2))
+        # (bs,n_de,hiddensz*n_directions) * (bs,hiddensz*n_directions,n_en) = (bs,n_de,n_en)
+        loss = 0
+        avg_reward = 0
+        scores[(x_de == pad_token).unsqueeze(2).expand(scores.size())] = -math.inf # binary mask
+        attn_dist = F.softmax(scores,dim=1) # bs,n_de,n_en
+        # hard attn requires stacking to fit into torch.distributions.Categorical
+        context = torch.bmm(attn_dist.transpose(2,1), enc_h)
+        # (bs,n_en,n_de) * (bs,n_de,hiddensz) = (bs,n_en,hiddensz)
+        alpha_seq = self.vocab_layer(torch.cat([dec_h,context],2)) # bs,n_en,len(modles_tuple)
+        alpha_seq = alpha_seq[:,:-1,:] # alignment
+        alpha_seq = alpha_seq.unsqueeze(2).contiguous()
+        #print(alpha_seq.size())
+        #print(alpha_seq.view(-1,self.member_count))
+        models_stack = torch.stack(tuple( x.forward(x_de,x_en)[3] for x in self.members ),dim=3) # bs,n_en,len(EN.vocab),len(models_tuple)
+        out = torch.exp(models_stack) * alpha_seq
+        pred = torch.log(out.sum(3)) # bs,n_en,len(EN.vocab) 
+        y = x_en[:,1:]
+        reward = torch.gather(pred,2,y.unsqueeze(2)) # bs,n_en,1
+        no_pad = (y != pad_token)
+        reward = reward.squeeze(2)[no_pad]
+        loss -= reward.sum() / no_pad.data.sum()
+        avg_reward = -loss.data[0]
+        # hard attention baseline and reinforce stuff causing me trouble
+        return loss, 0, avg_reward, pred
+    # predict with greedy decoding and teacher forcing
+    def predict(self, x_de, x_en):
+        bs = x_de.size(0)
+        emb_de = self.embedding_de(x_de) # bs,n_de,word_dim
+        emb_en = self.embedding_en(x_en) # bs,n_en,word_dim
+        enc_h, _ = self.encoder(emb_de, self.initEnc(bs)) # (bs,n_de,hiddensz*2)
+        dec_h, _ = self.decoder(emb_en, self.initDec(bs)) # (bs,n_en,hiddensz)
+        # all the same. enc_h is bs,n_de,hiddensz*n_directions. h and c are both n_layers*n_directions,bs,hiddensz
+        if self.directions == 2:
+            scores = torch.bmm(self.dim_reduce(enc_h), dec_h.transpose(1,2))
+        else:
+            scores = torch.bmm(enc_h, dec_h.transpose(1,2))
+        # (bs,n_de,hiddensz) * (bs,hiddensz,n_en) = (bs,n_de,n_en)
+        scores[(x_de == pad_token).unsqueeze(2).expand(scores.size())] = -math.inf # binary mask
+        attn_dist = F.softmax(scores,dim=1) # bs,n_de,n_en
+        context = torch.bmm(attn_dist.transpose(2,1),enc_h)
+        # (bs,n_en,n_de) * (bs,n_de,hiddensz*ndirections) = (bs,n_en,hiddensz*ndirections)
+        alpha_seq = self.vocab_layer(torch.cat([dec_h,context],2)) # bs,n_en,len(modles_tuple)
+        alpha_seq = alpha_seq[:,:-1,:] # alignment
+        models_stack = torch.stack(tuple( x.forward(x_de,x_en)[3] for x in self.members ),dim=3) # bs,n_en,len(EN.vocab),len(models_tuple)
+        out = torch.exp(models_stack) * alpha_seq.unsqueeze(2)
+        pred = toch.log(out.sum(3)) # bs,n_en,len(EN.vocab) 
+        # pred[:,:,[unk_token,pad_token]] = -math.inf # TODO: testing this out kill pad unk
+        _, tokens = pred.max(2) # bs,n_en-1
+        sauce = Variable(torch.cuda.LongTensor([[sos_token]]*bs)) # bs
+        return torch.cat([sauce,tokens],1), attn_dist
+    # Singleton batch with BSO
+    def predict2(self,x_de,beamsz,gen_len):
+        #out = self.get_alpha(x_de)
+        #
+        r_dex = range(self.member_count+1)
+        members_plus = tuple(list(self.members) + [self])
+        emb_de = tuple( members_plus[i].embedding_de(x_de) for i in r_dex )
+        enc_h  = tuple( members_plus[i].encoder(emb_de[i],members_plus[i].initEnc(1))[0] for i in r_dex )
+        masterheaps = tuple( CandList(enc_h[i],members_plus[i].initDec(1),beamsz) for i in r_dex )
+        for _ in range(gen_len):
+            prev  = tuple( heap.get_prev() for heap in masterheaps )
+            emb_t = tuple( members_plus[i].embedding_en(prev[i]) for i in r_dex )
+            enc_h_expand = tuple( enc_h[i].expand(prev[i].size(0),-1,-1) for i in r_dex )
+            hidd = tuple( heap.get_hiddens() for heap in masterheaps )
+            hold = tuple( members_plus[i].decoder(emb_t[i].unsqueeze(1),hidd[i]) for i in r_dex )
+            dec_h, hidd = tuple(zip(*hold))
+            scores = tuple( torch.bmm(members_plus[i].dim_reduce(enc_h_expand[i]), dec_h[i].transpose(1,2)).squeeze(2) if members_plus[i].directions == 2 else torch.bmm(enc_h_expand[i], dec_h[i].transpose(1,2)).squeeze(2) for i in r_dex )
+            for i in r_dex:
+                scores[i][(x_de == pad_token)] = -math.inf
+            attn_dist = tuple( F.softmax(scores[i],dim=1) for i in r_dex )
+            context = tuple( torch.bmm(attn_dist[i].unsqueeze(1),enc_h_expand[i]).squeeze(1) for i in r_dex )
+            pred = tuple( members_plus[i].vocab_layer(torch.cat([dec_h[i].squeeze(1), context[i]], 1)) for i in r_dex )
+            alpha_seq = pred[-1] # bs,n_en,len(modles_tuple)
+            #alpha_seq = alpha_seq[:,:,:] # alignment
+            #alpha_seq = alpha_seq.unsqueeze(2).contiguous()
+            weighted_pred  = torch.exp(torch.stack(pred[:-1],dim=2)) * alpha_seq.unsqueeze(1)
+            ensembled_pred = torch.log(weighted_pred.sum(2))
             for i in r_dex:
                 masterheaps[i].update_beam(ensembled_pred)
                 masterheaps[i].update_hiddens(hidd[i])
