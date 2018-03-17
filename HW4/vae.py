@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 from torch.autograd import Variable as V
 import torch.nn.functional as F
@@ -6,15 +5,24 @@ import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 from torch.distributions import Normal
 from torch.distributions.kl import kl_divergence
+import numpy as np
+import argparse
 
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
-LATENT_DIM = 2
-BATCH_SIZE = 100
-NUM_EPOCHS = 50
-alpha = 1
-learning_rate = 0.02
+parser.add_argument('--latent_dim','-ld',type=int,default=2,help='Latent dimension')
+parser.add_argument('--batch_size','-bs',type=int,default=100,help='Batch size')
+parser.add_argument('--num_epochs','-ne',type=int,default=50,help='Number of epochs')
+parser.add_argument('--learning_rate','-lr',type=float,default=0.02,help='Learning rate')
+parser.add_argument('--alpha','-a',type=float,default=1.0,help='Alpha (weight of KL term in Elbo)')
+args = parser.parse_args()
+
+LATENT_DIM = args.latent_dim
+BATCH_SIZE = args.batch_size
+NUM_EPOCHS = args.num_epochs
+learning_rate = args.learning_rate
+alpha = args.alpha
 
 train_dataset = datasets.MNIST(root='./data/',
                             train=True, 
@@ -100,6 +108,7 @@ mse_loss = nn.L1Loss(size_average=False)
 encoder = Encoder()
 decoder = Decoder()
 vae = NormalVAE(encoder, decoder)
+vae.cuda() # TODO: need to set encoder.cuda() and decoder.cuda()?
 optim = torch.optim.SGD(vae.parameters(), lr = learning_rate)
 
 # p(z)
@@ -111,9 +120,11 @@ for epoch in range(NUM_EPOCHS):
     total_recon_loss = 0
     total_kl = 0
     total = 0
+    model.train()
     for img, label in train_loader:
         if img.size(0) < BATCH_SIZE: continue
         img = img.squeeze(1) # there's an extra dimension for some reason
+        img = img.cuda()
         vae.zero_grad()
         out, q = vae(img) # out is decoded distro sample, q is distro
         kl = kl_divergence(q, p).sum() # KL term
@@ -126,6 +137,9 @@ for epoch in range(NUM_EPOCHS):
         loss.backward()
         optim.step()
     print(i, total_recon_loss / total , total_kl / total)
+    # TODO: add a val loop for early stopping
+
+################### VISUALIZATION ########################
 
 # viz 1: generate a digit
 seed_distribution = Normal(V(torch.zeros(1,LATENT_DIM)), 
@@ -165,5 +179,23 @@ plt.legend([str(i) for i in range(10)])
 plt.show()
 
 # viz 4
-np.meshgrid(np.linspace(-2, 2, 10), np.linspace(-2, 2, 10))
+np.meshgrid(np.linspace(-2, 2, 10), np.linspace(-2, 2, 10)) # sasha's suggestion
 # for each point in the grid, generate x and show digit in 2d plot
+nx = ny = 20
+x_values = np.linspace(-3, 3, nx)
+y_values = np.linspace(-3, 3, ny)
+canvas = np.empty((28 * ny, 28 * nx))
+for ii, yi in enumerate(x_values):
+    for j, xi in enumerate(y_values):
+        np_z = np.array([[xi, yi]])
+        x_mean = decoder(torch.FloatTensor(np_z))
+        canvas[(nx - ii - 1) * 28:(nx - ii) * 28, j *
+               28:(j + 1) * 28] = x_mean[0].data.reshape(28, 28)
+imsave(os.path.join(FLAGS.logdir,
+                    'prior_predictive_map_frame_%d.png' % i), canvas)
+# plt.figure(figsize=(8, 10))
+# Xi, Yi = np.meshgrid(x_values, y_values)
+# plt.imshow(canvas, origin="upper")
+# plt.tight_layout()
+# plt.savefig()
+# literally just lifted this out of altosaar demo, so no idea if it works

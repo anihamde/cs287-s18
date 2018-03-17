@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 from torch.autograd import Variable as V
 import torch.nn.functional as F
@@ -6,15 +5,22 @@ import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 from torch.distributions import Normal
 from torch.distributions.kl import kl_divergence
+import numpy as np
+import argparse
 
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
-LATENT_DIM = 32
-BATCH_SIZE = 100
-NUM_EPOCHS = 50
-alpha = 1
-learning_rate = 0.01
+parser.add_argument('--latent_dim','-ld',type=int,default=32,help='Latent dimension')
+parser.add_argument('--batch_size','-bs',type=int,default=100,help='Batch size')
+parser.add_argument('--num_epochs','-ne',type=int,default=50,help='Number of epochs')
+parser.add_argument('--learning_rate','-lr',type=float,default=0.01,help='Learning rate')
+args = parser.parse_args()
+
+LATENT_DIM = args.latent_dim
+BATCH_SIZE = args.batch_size
+NUM_EPOCHS = args.num_epochs
+learning_rate = args.learning_rate
 
 train_dataset = datasets.MNIST(root='./data/',
                             train=True, 
@@ -77,6 +83,8 @@ class Discriminator(nn.Module):
 
 G = Generator()
 D = Discriminator()
+G.cuda()
+D.cuda()
 optim_gen = torch.optim.SGD(G.parameters(), lr=learning_rate)
 optim_disc = torch.optim.SGD(D.parameters(), lr=learning_rate)
 seed_distribution = Normal(V(torch.zeros(BATCH_SIZE, LATENT_DIM)), 
@@ -89,6 +97,7 @@ for epoch in range(NUM_EPOCHS):
     for img, label in train_loader:
         if img.size(0) < BATCH_SIZE: continue
         img = img.squeeze(1) # there's an extra dimension for some reason
+        img = img.cuda()
         # Grad discriminator real: -E[log(D(x))]
         optim_disc.zero_grad()
         optim_gen.zero_grad()
@@ -114,6 +123,7 @@ for epoch in range(NUM_EPOCHS):
         total += 1
     print(i, total_disc_loss /  total, total_gen_loss / total)
 
+################### VISUALIZATION ########################
 # section has code to generate a bunch and plot discriminator's results
 
 # viz 1: generate a digit
