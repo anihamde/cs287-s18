@@ -141,16 +141,15 @@ for epoch in range(NUM_EPOCHS):
         total += 1
         loss.backward()
         optim.step()
-        if total % 100 == 0:
-            timenow = timeSince(start)
-            print ('Time %s, Epoch [%d/%d], Iter [%d/%d], Recon Loss: %.4f, KL Loss: %.4f, ELBO Loss: %.4f' 
-                    %(timenow, epoch+1, NUM_EPOCHS, total, len(train_loader),
-                        total_recon_loss/total , total_kl/total, (total_recon_loss+total_kl)/total))
+        timenow = timeSince(start)
+        print ('Time %s, Epoch [%d/%d], Recon Loss: %.4f, KL Loss: %.4f, ELBO Loss: %.4f' 
+                %(timenow, epoch+1, NUM_EPOCHS, total_recon_loss/total , total_kl/total, (total_recon_loss+total_kl)/total))
+    # TODO: maybe print every 100 batches?
     # TODO: add a val loop for early stopping (and for GAN too!)
 
 # temporary code because matplotlib doesn't work
-model.cpu()
-torch.save(model.state_dict(), 'stupidvae.pkl')
+vae.cpu()
+torch.save(vae.state_dict(), 'stupidvae.pkl')
 
 ################### VISUALIZATION ########################
 
