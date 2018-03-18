@@ -4,7 +4,6 @@ import torch.nn.functional as F
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 from torch.distributions import Normal
-from torch.distributions.kl import kl_divergence
 import numpy as np
 import argparse
 
