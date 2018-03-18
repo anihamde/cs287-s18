@@ -141,9 +141,9 @@ for epoch in range(NUM_EPOCHS):
         total += 1
         loss.backward()
         optim.step()
-        timenow = timeSince(start)
-        print ('Time %s, Epoch [%d/%d], Recon Loss: %.4f, KL Loss: %.4f, ELBO Loss: %.4f' 
-                %(timenow, epoch+1, NUM_EPOCHS, total_recon_loss/total , total_kl/total, (total_recon_loss+total_kl)/total))
+    timenow = timeSince(start)
+    print ('Time %s, Epoch [%d/%d], Recon Loss: %.4f, KL Loss: %.4f, ELBO Loss: %.4f' 
+            %(timenow, epoch+1, NUM_EPOCHS, total_recon_loss/total , total_kl/total, (total_recon_loss+total_kl)/total))
     # TODO: maybe print every 100 batches?
     # TODO: add a val loop for early stopping (and for GAN too!)
 
