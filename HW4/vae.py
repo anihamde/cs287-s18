@@ -11,8 +11,8 @@ import argparse
 import time
 from helpers import timeSince
 
-import matplotlib.pyplot as plt # TODO: how did we get matplotlib working again?
-import matplotlib.cm as cm
+# import matplotlib.pyplot as plt # TODO: how did we get matplotlib working again?
+# import matplotlib.cm as cm
 
 parser = argparse.ArgumentParser(description='training runner')
 parser.add_argument('--latent_dim','-ld',type=int,default=2,help='Latent dimension')
@@ -136,15 +136,15 @@ for epoch in range(NUM_EPOCHS):
         recon_loss = mse_loss(out, img) # reconstruction term
         # TODO: why mse_loss?
         loss = (recon_loss + alpha * kl) / BATCH_SIZE
-        total_recon_loss += recon_loss.data[0] / BATCH_SIZE
-        total_kl += kl.data[0] / BATCH_SIZE
+        total_recon_loss += recon_loss.item() / BATCH_SIZE
+        total_kl += kl.item() / BATCH_SIZE
         total += 1
         loss.backward()
         optim.step()
         if total % 100 == 0:
             timenow = timeSince(start)
             print ('Time %s, Epoch [%d/%d], Iter [%d/%d], Recon Loss: %.4f, KL Loss: %.4f, ELBO Loss: %.4f' 
-                    %(timenow, epoch+1, NUM_EPOCHS, total, len(train_loader),  ctr, len(train_iter),
+                    %(timenow, epoch+1, NUM_EPOCHS, total, len(train_loader),
                         total_recon_loss/total , total_kl/total, (total_recon_loss+total_kl)/total))
     # TODO: add a val loop for early stopping (and for GAN too!)
 
@@ -169,7 +169,7 @@ all = []
 for k in np.arange(0,1.1,0.2):
     z = k * z1 + (1 - k) * z2
     x = decoder(z)
-    all.append(x[0].data.numpy())
+    all.append(x[0].data.numpy()) # TODO: might not work
     plt.imshow(x[0].data.numpy())
 
 # viz 3: scatter plot of variational means

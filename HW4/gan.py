@@ -117,7 +117,7 @@ d = D(x_fake.detach())
 loss_b = 0.5 * -(1 - d + 1e-10).log().mean()
 loss_b.backward()
 optim_disc.step()
-total_disc_loss += loss_a.data[0] + loss_b.data[0]
+total_disc_loss += loss_a.item() + loss_b.item()
 # Grad generator: E[log(1 - D(G(z)))]
 optim_disc.zero_grad()
 d = D(x_fake) # no detach here
@@ -125,7 +125,7 @@ loss_c = (1 - d + 1e-10).log().mean()
 # loss_c = -(d + 1e-10).log().mean()
 loss_c.backward()
 optim_gen.step()
-total_gen_loss += loss_c.data[0]
+total_gen_loss += loss_c.item()
 total += 1
 if total % 100 == 0:
     timenow = timeSince(start)
