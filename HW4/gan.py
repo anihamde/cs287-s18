@@ -1,15 +1,19 @@
 import torch
 from torch.autograd import Variable as V
+import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 from torch.distributions import Normal
 import numpy as np
 import argparse
+import time
+from helpers import timeSince
 
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
+parser = argparse.ArgumentParser(description='training runner')
 parser.add_argument('--latent_dim','-ld',type=int,default=32,help='Latent dimension')
 parser.add_argument('--batch_size','-bs',type=int,default=100,help='Batch size')
 parser.add_argument('--num_epochs','-ne',type=int,default=50,help='Number of epochs')
@@ -86,48 +90,55 @@ G.cuda()
 D.cuda()
 optim_gen = torch.optim.SGD(G.parameters(), lr=learning_rate)
 optim_disc = torch.optim.SGD(D.parameters(), lr=learning_rate)
-seed_distribution = Normal(V(torch.zeros(BATCH_SIZE, LATENT_DIM)), 
-                           V(torch.ones(BATCH_SIZE, LATENT_DIM)))
+seed_distribution = Normal(V(torch.zeros(BATCH_SIZE, LATENT_DIM).cuda()), 
+                           V(torch.ones(BATCH_SIZE, LATENT_DIM)).cuda())
 
+start = time.time()
 for epoch in range(NUM_EPOCHS):
     total_gen_loss = 0
     total_disc_loss = 0
     total = 0
+    G.train()
+    D.train()
     for img, label in train_loader:
-        if img.size(0) < BATCH_SIZE: continue
-        img = img.squeeze(1) # there's an extra dimension for some reason
-        img = img.cuda()
-        # Grad discriminator real: -E[log(D(x))]
-        optim_disc.zero_grad()
-        optim_gen.zero_grad()
-        d = D(img)
-        loss_a = 0.5 * -d.log().mean()
-        loss_a.backward()
-        # Grad discriminator fake: -E[log(1 - D(G(z)) )]
-        seed = seed_distribution.sample()
-        x_fake = G(seed)
-        d = D(x_fake.detach())
-        loss_b = 0.5 * -(1 - d + 1e-10).log().mean()
-        loss_b.backward()
-        optim_disc.step()
-        total_disc_loss += loss_a.data[0] + loss_b.data[0]
-        # Grad generator: E[log(1 - D(G(z)))]
-        optim_disc.zero_grad()
-        d = D(x_fake) # no detach here
-        loss_c = (1 - d + 1e-10).log().mean()
-        # loss_c = -(d + 1e-10).log().mean()
-        loss_c.backward()
-        optim_gen.step()
-        total_gen_loss += loss_c.data[0]
-        total += 1
-    print(i, total_disc_loss /  total, total_gen_loss / total)
+if img.size(0) < BATCH_SIZE: continue
+img = img.squeeze(1) # there's an extra dimension for some reason
+img = V(img).cuda()
+# Grad discriminator real: -E[log(D(x))]
+optim_disc.zero_grad()
+optim_gen.zero_grad()
+d = D(img)
+loss_a = 0.5 * -d.log().mean()
+loss_a.backward()
+# Grad discriminator fake: -E[log(1 - D(G(z)) )]
+seed = seed_distribution.sample()
+x_fake = G(seed)
+d = D(x_fake.detach())
+loss_b = 0.5 * -(1 - d + 1e-10).log().mean()
+loss_b.backward()
+optim_disc.step()
+total_disc_loss += loss_a.data[0] + loss_b.data[0]
+# Grad generator: E[log(1 - D(G(z)))]
+optim_disc.zero_grad()
+d = D(x_fake) # no detach here
+loss_c = (1 - d + 1e-10).log().mean()
+# loss_c = -(d + 1e-10).log().mean()
+loss_c.backward()
+optim_gen.step()
+total_gen_loss += loss_c.data[0]
+total += 1
+if total % 100 == 0:
+    timenow = timeSince(start)
+    print ('Time %s, Epoch [%d/%d], Iter [%d/%d], D Loss: %.4f, G Loss: %.4f, Total Loss: %.4f' 
+            %(timenow, epoch+1, NUM_EPOCHS, total, len(train_loader),  ctr, len(train_iter),
+                total_disc_loss/total, total_gen_loss/total, (total_disc_loss+total_gen_loss)/total))
 
 ################### VISUALIZATION ########################
 # section has code to generate a bunch and plot discriminator's results
 
 # viz 1: generate a digit
-seed_distribution = Normal(V(torch.zeros(1,LATENT_DIM)), 
-                        V(torch.ones(1,LATENT_DIM)))
+seed_distribution = Normal(V(torch.zeros(1,LATENT_DIM)).cuda(), 
+                        V(torch.ones(1,LATENT_DIM)).cuda())
 def graph():
     seed = seed_distribution.sample()
     x = G(seed) # 1,28,28

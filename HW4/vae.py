@@ -1,18 +1,20 @@
 import torch
 from torch.autograd import Variable as V
+import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 from torch.distributions import Normal
-# i couldn't get pytorch 0.4 to work, so just copying this fn for now
-# from torch.distributions.kl import kl_divergence
-from helpers import kl_divergence
+from torch.distributions.kl import kl_divergence
 import numpy as np
 import argparse
+import time
+from helpers import timeSince
 
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt # TODO: how did we get matplotlib working again?
 import matplotlib.cm as cm
 
+parser = argparse.ArgumentParser(description='training runner')
 parser.add_argument('--latent_dim','-ld',type=int,default=2,help='Latent dimension')
 parser.add_argument('--batch_size','-bs',type=int,default=100,help='Batch size')
 parser.add_argument('--num_epochs','-ne',type=int,default=50,help='Number of epochs')
@@ -62,7 +64,7 @@ test_loader = torch.utils.data.DataLoader(test, batch_size=BATCH_SIZE, shuffle=T
 img, label = next(iter(train_loader))
 print(img.size(),label.size())
 
-
+# TODO: what's the relevance of Variable in torch 0.4?
 
 # generate latent-dim mean and variance for z given 784-dim x
 # Compute the variational parameters for q
@@ -110,27 +112,28 @@ mse_loss = nn.L1Loss(size_average=False)
 encoder = Encoder()
 decoder = Decoder()
 vae = NormalVAE(encoder, decoder)
-vae.cuda() # TODO: need to set encoder.cuda() and decoder.cuda()?
+vae.cuda()
 optim = torch.optim.SGD(vae.parameters(), lr = learning_rate)
 
 # p(z)
-p = Normal(V(torch.zeros(BATCH_SIZE, LATENT_DIM)), 
-           V(torch.ones(BATCH_SIZE, LATENT_DIM)))
+p = Normal(V(torch.zeros(BATCH_SIZE, LATENT_DIM).cuda()), 
+           V(torch.ones(BATCH_SIZE, LATENT_DIM)).cuda())
 
+start = time.time()
 for epoch in range(NUM_EPOCHS):
     # Keep track of reconstruction loss and total kl
     total_recon_loss = 0
     total_kl = 0
     total = 0
-    model.train()
+    vae.train()
     for img, label in train_loader:
         if img.size(0) < BATCH_SIZE: continue
         img = img.squeeze(1) # there's an extra dimension for some reason
-        img = img.cuda()
+        img = V(img).cuda()
         vae.zero_grad()
         out, q = vae(img) # out is decoded distro sample, q is distro
         kl = kl_divergence(q, p).sum() # KL term
-        recon_loss = mse_loss(out, x) # reconstruction term
+        recon_loss = mse_loss(out, img) # reconstruction term
         # TODO: why mse_loss?
         loss = (recon_loss + alpha * kl) / BATCH_SIZE
         total_recon_loss += recon_loss.data[0] / BATCH_SIZE
@@ -138,14 +141,22 @@ for epoch in range(NUM_EPOCHS):
         total += 1
         loss.backward()
         optim.step()
-    print(i, total_recon_loss / total , total_kl / total)
-    # TODO: add a val loop for early stopping
+        if total % 100 == 0:
+            timenow = timeSince(start)
+            print ('Time %s, Epoch [%d/%d], Iter [%d/%d], Recon Loss: %.4f, KL Loss: %.4f, ELBO Loss: %.4f' 
+                    %(timenow, epoch+1, NUM_EPOCHS, total, len(train_loader),  ctr, len(train_iter),
+                        total_recon_loss/total , total_kl/total, (total_recon_loss+total_kl)/total))
+    # TODO: add a val loop for early stopping (and for GAN too!)
+
+# temporary code because matplotlib doesn't work
+model.cpu()
+torch.save(model.state_dict(), 'stupidvae.pkl')
 
 ################### VISUALIZATION ########################
 
 # viz 1: generate a digit
-seed_distribution = Normal(V(torch.zeros(1,LATENT_DIM)), 
-                        V(torch.ones(1,LATENT_DIM)))
+seed_distribution = Normal(V(torch.zeros(1,LATENT_DIM)).cuda(), 
+                        V(torch.ones(1,LATENT_DIM)).cuda())
 def graph_vae():
     seed = seed_distribution.sample()
     x = decoder(seed) # 1,28,28
@@ -166,9 +177,10 @@ mus = []
 cols = []
 for img, label in test_loader:
     img = img.squeeze(1)
+    img = V(img).cuda()
     mu, logvar = encoder(img) # bs,2
-    mus.append(mu.data.numpy())
-    cols.append(label.data.numpy())
+    mus.append(mu.cpu().data.numpy())
+    cols.append(label.cpu().data.numpy())
 
 mus = np.vstack(mus)
 cols = np.concatenate(cols)
@@ -181,23 +193,22 @@ plt.legend([str(i) for i in range(10)])
 plt.show()
 
 # viz 4
-np.meshgrid(np.linspace(-2, 2, 10), np.linspace(-2, 2, 10)) # sasha's suggestion
 # for each point in the grid, generate x and show digit in 2d plot
+# taken from altosaar demo on github
 nx = ny = 20
-x_values = np.linspace(-3, 3, nx)
-y_values = np.linspace(-3, 3, ny)
+x_values = np.linspace(-2, 2, nx) # sasha suggests -2,2 and altosaar uses -3,3
+y_values = np.linspace(-2, 2, ny)
 canvas = np.empty((28 * ny, 28 * nx))
 for ii, yi in enumerate(x_values):
     for j, xi in enumerate(y_values):
         np_z = np.array([[xi, yi]])
-        x_mean = decoder(torch.FloatTensor(np_z))
+        x_mean = decoder(torch.cuda.FloatTensor(np_z))
         canvas[(nx - ii - 1) * 28:(nx - ii) * 28, j *
                28:(j + 1) * 28] = x_mean[0].data.reshape(28, 28)
-imsave(os.path.join(FLAGS.logdir,
-                    'prior_predictive_map_frame_%d.png' % i), canvas)
+# imsave(os.path.join(FLAGS.logdir,
+#                     'prior_predictive_map_frame_%d.png' % i), canvas)
 # plt.figure(figsize=(8, 10))
 # Xi, Yi = np.meshgrid(x_values, y_values)
 # plt.imshow(canvas, origin="upper")
 # plt.tight_layout()
 # plt.savefig()
-# literally just lifted this out of altosaar demo, so no idea if it works

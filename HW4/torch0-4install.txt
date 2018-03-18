@@ -1,0 +1,15 @@
+https://discuss.pytorch.org/t/updating-pytorch-versions/443 update pytorch versions. gotta build from source. see instructions on github
+https://github.com/pytorch/pytorch they want to install an anaconda environment
+https://www.anaconda.com/download/#linux this is the default link. but not what i want for azure
+
+https://aboustati.github.io/How-to-Setup-a-VM-in-Azure-for-Deep-Learning/ basically followed this guy's conda instructions (same version and everything), but downloaded into a different directory
+https://www.digitalocean.com/community/tutorials/how-to-install-the-anaconda-python-distribution-on-ubuntu-16-04 similar instructions for ubuntu, with info about updating/uninstalling
+
+managing python
+https://conda.io/docs/user-guide/tasks/manage-python.html
+
+alrite i uninstalled anaconda (unfortunately, my error below actually had nothing to do with anaconda)
+resolved my 'cudnn library and lib_dir must agree' error by undoing aboustati's symbolic link with 'sudo rm /usr/local/cuda/lib64/libcudnn*'
+sudo apt-get install cmake
+error: /usr/local/lib/python3.5 something something permission denied. welp. sudo chown -R elbertgong /usr/local/lib/python3.5 (i know this isn't safe, but, hey this is torch. we're playing with fire)
+also, i haven't installed the optional dependencies (because they're conda instructions)
