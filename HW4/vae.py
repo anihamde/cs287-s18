@@ -11,8 +11,7 @@ import argparse
 import time
 from helpers import timeSince
 
-# import matplotlib.pyplot as plt # TODO: how did we get matplotlib working again?
-# import matplotlib.cm as cm
+# TODO: how did we get matplotlib working last time ani?
 
 parser = argparse.ArgumentParser(description='training runner')
 parser.add_argument('--latent_dim','-ld',type=int,default=2,help='Latent dimension')
@@ -112,6 +111,7 @@ mse_loss = nn.L1Loss(size_average=False)
 encoder = Encoder()
 decoder = Decoder()
 vae = NormalVAE(encoder, decoder)
+# vae.load_state_dict(torch.load('../models/stupidvae.pkl'))
 vae.cuda()
 optim = torch.optim.SGD(vae.parameters(), lr = learning_rate)
 
@@ -148,66 +148,4 @@ for epoch in range(NUM_EPOCHS):
     # TODO: add a val loop for early stopping (and for GAN too!)
 
 # temporary code because matplotlib doesn't work
-vae.cpu()
 torch.save(vae.state_dict(), 'stupidvae.pkl')
-
-################### VISUALIZATION ########################
-
-# viz 1: generate a digit
-seed_distribution = Normal(V(torch.zeros(1,LATENT_DIM)).cuda(), 
-                        V(torch.ones(1,LATENT_DIM)).cuda())
-def graph_vae():
-    seed = seed_distribution.sample()
-    x = decoder(seed) # 1,28,28
-    plt.imshow(x[0].data.numpy())
-
-# viz 2: interpolate
-z1 = seed_distribution.sample()
-z2 = seed_distribution.sample()
-all = []
-for k in np.arange(0,1.1,0.2):
-    z = k * z1 + (1 - k) * z2
-    x = decoder(z)
-    all.append(x[0].data.numpy()) # TODO: might not work
-    plt.imshow(x[0].data.numpy())
-
-# viz 3: scatter plot of variational means
-mus = []
-cols = []
-for img, label in test_loader:
-    img = img.squeeze(1)
-    img = V(img).cuda()
-    mu, logvar = encoder(img) # bs,2
-    mus.append(mu.cpu().data.numpy())
-    cols.append(label.cpu().data.numpy())
-
-mus = np.vstack(mus)
-cols = np.concatenate(cols)
-wheel = cm.rainbow(np.linspace(0,1,10))
-for i in range(10):
-    mu_i = mus[cols==i]
-    plt.scatter(mu_i[:,0],mu_i[:,1],c=wheel[i])
-
-plt.legend([str(i) for i in range(10)])
-plt.show()
-
-# viz 4
-# for each point in the grid, generate x and show digit in 2d plot
-# taken from altosaar demo on github
-nx = ny = 20
-x_values = np.linspace(-2, 2, nx) # sasha suggests -2,2 and altosaar uses -3,3
-y_values = np.linspace(-2, 2, ny)
-canvas = np.empty((28 * ny, 28 * nx))
-for ii, yi in enumerate(x_values):
-    for j, xi in enumerate(y_values):
-        np_z = np.array([[xi, yi]])
-        x_mean = decoder(torch.cuda.FloatTensor(np_z))
-        canvas[(nx - ii - 1) * 28:(nx - ii) * 28, j *
-               28:(j + 1) * 28] = x_mean[0].data.reshape(28, 28)
-# imsave(os.path.join(FLAGS.logdir,
-#                     'prior_predictive_map_frame_%d.png' % i), canvas)
-# plt.figure(figsize=(8, 10))
-# Xi, Yi = np.meshgrid(x_values, y_values)
-# plt.imshow(canvas, origin="upper")
-# plt.tight_layout()
-# plt.savefig()
