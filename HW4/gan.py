@@ -63,8 +63,7 @@ print(img.size(),label.size())
 
 
 
-# TODO: wait is the discriminator trying to tell which number it is, or 
-# just tell whether it's real or fake? if the former, how do I do my loss?
+# Discriminator just needs to distinguish real and fake digits
 
 class Generator(nn.Module):
     def __init__(self):

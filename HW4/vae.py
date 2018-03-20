@@ -79,7 +79,7 @@ class Encoder(nn.Module):
         return self.linear2(h), self.linear3(h)
 
 # generate 784-dim x given latent-dim z
-# Implement the generative model p(x | z)
+# Implement the generative model p(x|z)
 class Decoder(nn.Module):
     def __init__(self):
         super(Decoder, self).__init__()
@@ -95,19 +95,20 @@ class NormalVAE(nn.Module):
         super(NormalVAE, self).__init__()
         # Parameters phi and computes variational parameters lambda
         self.encoder = encoder
-        # Parameters theta, p(x | z)
+        # Parameters theta, p(x|z)
         self.decoder = decoder
     def forward(self, x_src):
         # Example variational parameters lambda
         mu, logvar = self.encoder(x_src)
-        q_normal = Normal(loc=mu, scale=logvar.mul(0.5).exp()) # TODO: shouldn't it be .exp().mul(0.5)?
+        q_normal = Normal(loc=mu, scale=logvar.mul(0.5).exp()) # TODO: why are we multiplying by half?
         # Reparameterized sample.
         z_sample = q_normal.rsample()
         # z_sample = mu (no sampling)
         return self.decoder(z_sample), q_normal
 
 # Problem setup.
-mse_loss = nn.L1Loss(size_average=False)
+mse_loss = nn.L1Loss(size_average=False) 
+# L1 loss corresponds to Laplace p(x|z), L2 loss corresponds to Gaussian
 encoder = Encoder()
 decoder = Decoder()
 vae = NormalVAE(encoder, decoder)
@@ -134,7 +135,6 @@ for epoch in range(NUM_EPOCHS):
         out, q = vae(img) # out is decoded distro sample, q is distro
         kl = kl_divergence(q, p).sum() # KL term
         recon_loss = mse_loss(out, img) # reconstruction term
-        # TODO: why mse_loss?
         loss = (recon_loss + alpha * kl) / BATCH_SIZE
         total_recon_loss += recon_loss.item() / BATCH_SIZE
         total_kl += kl.item() / BATCH_SIZE
