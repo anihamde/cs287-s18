@@ -9,7 +9,7 @@ from torch.distributions.kl import kl_divergence
 import numpy as np
 import argparse
 import time
-from helpers import timeSince
+from helpers import timeSince, conv, deconv
 
 parser = argparse.ArgumentParser(description='training runner')
 parser.add_argument('--latent_dim','-ld',type=int,default=2,help='Latent dimension')
@@ -64,19 +64,6 @@ print(img.size(),label.size())
 
 # TODO: what's the relevance of Variable in torch 0.4?
 
-# generate latent-dim mean and variance for z given 784-dim x
-# Compute the variational parameters for q
-class Encoder(nn.Module):
-    def __init__(self):
-        super(Encoder, self).__init__()
-        self.linear1 = nn.Linear(784, 200)
-        self.linear2 = nn.Linear(200, LATENT_DIM)
-        self.linear3 = nn.Linear(200, LATENT_DIM)
-    def forward(self, x):
-        x = x.view(-1,784)
-        h = F.relu(self.linear1(x))
-        return self.linear2(h), self.linear3(h)
-
 # generate 784-dim x given latent-dim z
 # Implement the generative model p(x|z)
 class Decoder(nn.Module):
@@ -87,6 +74,56 @@ class Decoder(nn.Module):
     def forward(self, z):
         out = self.linear2(F.relu(self.linear1(z)))
         return out.view(-1,28,28)
+
+
+# generate latent-dim mean and variance for z given 784-dim x
+# Compute the variational parameters for q
+class Encoder(nn.Module):
+    def __init__(self):
+        super(Encoder, self).__init__()
+        self.conv1 = conv(3, conv_dim, 4, bn=False)
+        self.conv2 = conv(conv_dim, conv_dim*2, 4)
+        self.conv3 = conv(conv_dim*2, conv_dim*4, 4)
+        self.conv4 = conv(conv_dim*4, conv_dim*8, 4)
+        self.fc = conv(conv_dim*8, 1, int(image_size/16), 1, 0, False)
+        self.linear1 = nn.Linear()
+        self.linear2 = nn.Linear()
+
+        # old encoder
+        # self.linear1 = nn.Linear(784, 200)
+        # self.linear2 = nn.Linear(200, LATENT_DIM)
+        # self.linear3 = nn.Linear(200, LATENT_DIM)
+    def forward(self, x):
+        out = F.leaky_relu(self.conv1(x), 0.05)    # (?, 64, 32, 32)
+        out = F.leaky_relu(self.conv2(out), 0.05)  # (?, 128, 16, 16)
+        out = F.leaky_relu(self.conv3(out), 0.05)  # (?, 256, 8, 8)
+        out = F.leaky_relu(self.conv4(out), 0.05)  # (?, 512, 4, 4)
+        out = self.fc(out).squeeze()
+        return out
+
+        # old encoder
+        # x = x.view(-1,784)
+        # h = F.relu(self.linear1(x))
+        # return self.linear2(h), self.linear3(h)
+
+
+class Discriminator(nn.Module):
+    """Discriminator containing 4 convolutional layers."""
+    def __init__(self, image_size=128, conv_dim=64):
+        super(Discriminator, self).__init__()
+        self.conv1 = conv(3, conv_dim, 4, bn=False)
+        self.conv2 = conv(conv_dim, conv_dim*2, 4)
+        self.conv3 = conv(conv_dim*2, conv_dim*4, 4)
+        self.conv4 = conv(conv_dim*4, conv_dim*8, 4)
+        self.fc = conv(conv_dim*8, 1, int(image_size/16), 1, 0, False)
+        
+    def forward(self, x):                         # If image_size is 64, output shape is as below.
+        out = F.leaky_relu(self.conv1(x), 0.05)    # (?, 64, 32, 32)
+        out = F.leaky_relu(self.conv2(out), 0.05)  # (?, 128, 16, 16)
+        out = F.leaky_relu(self.conv3(out), 0.05)  # (?, 256, 8, 8)
+        out = F.leaky_relu(self.conv4(out), 0.05)  # (?, 512, 4, 4)
+        out = self.fc(out).squeeze()
+        return out
 
 # VAE using reparameterization "rsample"
 class NormalVAE(nn.Module):
