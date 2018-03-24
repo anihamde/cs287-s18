@@ -132,26 +132,5 @@ for epoch in range(NUM_EPOCHS):
     print ('Time %s, Epoch [%d/%d], D Loss: %.4f, G Loss: %.4f, Total Loss: %.4f' 
             %(timenow, epoch+1, NUM_EPOCHS, total_disc_loss/total, total_gen_loss/total, (total_disc_loss+total_gen_loss)/total))
 
-################### VISUALIZATION ########################
-# section has code to generate a bunch and plot discriminator's results
-
-# viz 1: generate a digit
-seed_distribution = Normal(V(torch.zeros(1,LATENT_DIM)).cuda(), 
-                        V(torch.ones(1,LATENT_DIM)).cuda())
-def graph():
-    seed = seed_distribution.sample()
-    x = G(seed) # 1,28,28
-    plt.imshow(x[0].data.numpy())
-
-# viz 2: interpolate
-z1 = seed_distribution.sample()
-z2 = seed_distribution.sample()
-all = []
-for k in np.arange(0,1.1,0.2):
-    z = k * z1 + (1 - k) * z2
-    x = G(z)
-    all.append(x[0].data.numpy())
-    plt.imshow(x[0].data.numpy())
-
 torch.save(G.state_dict(), args.gen_file)
 torch.save(D.state_dict(), args.disc_file)

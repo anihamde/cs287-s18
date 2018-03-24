@@ -11,8 +11,6 @@ import argparse
 import time
 from helpers import timeSince
 
-# TODO: how did we get matplotlib working last time ani?
-
 parser = argparse.ArgumentParser(description='training runner')
 parser.add_argument('--latent_dim','-ld',type=int,default=2,help='Latent dimension')
 parser.add_argument('--batch_size','-bs',type=int,default=100,help='Batch size')
