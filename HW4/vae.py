@@ -109,4 +109,4 @@ for epoch in range(NUM_EPOCHS):
     # TODO: maybe print every 100 batches?
     # TODO: add a val loop for early stopping (and for GAN too!)
 
-torch.save(vae.state_dict(), args.model_file)
+    torch.save(vae.state_dict(), args.model_file)

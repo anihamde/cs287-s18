@@ -112,5 +112,5 @@ for epoch in range(NUM_EPOCHS):
     print ('Time %s, Epoch [%d/%d], D Loss: %.4f, G Loss: %.4f, Total Loss: %.4f' 
             %(timenow, epoch+1, NUM_EPOCHS, total_disc_loss/total, total_gen_loss/total, (total_disc_loss+total_gen_loss)/total))
 
-torch.save(G.state_dict(), args.gen_file)
-torch.save(D.state_dict(), args.disc_file)
+    torch.save(G.state_dict(), args.gen_file)
+    torch.save(D.state_dict(), args.disc_file)
