@@ -17,6 +17,7 @@ parser.add_argument('--batch_size','-bs',type=int,default=100,help='Batch size')
 parser.add_argument('--num_epochs','-ne',type=int,default=50,help='Number of epochs')
 parser.add_argument('--learning_rate','-lr',type=float,default=0.02,help='Learning rate')
 parser.add_argument('--alpha','-a',type=float,default=1.0,help='Alpha (weight of KL term in Elbo)')
+parser.add_argument('--model_file','-mf',type=str,default='stupidvae.pkl',help='Save model filename')
 args = parser.parse_args()
 
 LATENT_DIM = args.latent_dim
@@ -145,5 +146,4 @@ for epoch in range(NUM_EPOCHS):
     # TODO: maybe print every 100 batches?
     # TODO: add a val loop for early stopping (and for GAN too!)
 
-# temporary code because matplotlib doesn't work
-torch.save(vae.state_dict(), 'stupidvae.pkl')
+torch.save(vae.state_dict(), args.model_file)
