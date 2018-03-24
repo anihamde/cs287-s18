@@ -70,7 +70,7 @@ G = Generator()
 D = Discriminator()
 G.cuda()
 D.cuda()
-optim_gen = torch.optim.SGD(G.parameters(), lr=learning_rate)
+optim_gen = torch.optim.Adam(G.parameters(), lr=learning_rate)
 optim_disc = torch.optim.SGD(D.parameters(), lr=learning_rate)
 seed_distribution = Normal(V(torch.zeros(BATCH_SIZE, LATENT_DIM).cuda()), 
                            V(torch.ones(BATCH_SIZE, LATENT_DIM)).cuda())
