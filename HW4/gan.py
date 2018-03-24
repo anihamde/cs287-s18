@@ -133,25 +133,6 @@ for epoch in range(NUM_EPOCHS):
 ################### VISUALIZATION ########################
 # section has code to generate a bunch and plot discriminator's results
 
-<<<<<<< HEAD
-# viz 1: generate a digit
-seed_distribution = Normal(V(torch.zeros(1,LATENT_DIM)).cuda(), 
-                        V(torch.ones(1,LATENT_DIM)).cuda())
-def graph():
-    seed = seed_distribution.sample()
-    x = G(seed) # 1,28,28
-    plt.imshow(x[0].data.numpy())
-
-# viz 2: interpolate
-z1 = seed_distribution.sample()
-z2 = seed_distribution.sample()
-all = []
-for k in np.arange(0,1.1,0.2):
-    z = k * z1 + (1 - k) * z2
-    x = G(z)
-    all.append(x[0].data.numpy())
-    plt.imshow(x[0].data.numpy())
-=======
 # Outdated bullshit
 # # viz 1: generate a digit
 # seed_distribution = Normal(V(torch.zeros(1,LATENT_DIM)).cuda(), 
@@ -170,4 +151,3 @@ for k in np.arange(0,1.1,0.2):
 #     x = G(z)
 #     all.append(x[0].data.numpy())
 #     plt.imshow(x[0].data.numpy())
->>>>>>> de0d94c31d97a4a65db02af39d81c300de0dc2ab
