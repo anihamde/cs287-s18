@@ -91,7 +91,7 @@ class NormalVAE(nn.Module):
     def forward(self, x_src):
         # Example variational parameters lambda
         mu, logvar = self.encoder(x_src)
-        q_normal = Normal(loc=mu, scale=logvar.mul(0.5).exp()) # TODO: why are we multiplying by half?
+        q_normal = Normal(loc=mu, scale=logvar.mul(0.5).exp())
         # Reparameterized sample.
         z_sample = q_normal.rsample()
         # z_sample = mu (no sampling)
