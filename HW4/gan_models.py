@@ -76,4 +76,4 @@ class Discriminator(nn.Module):
         out = F.leaky_relu(self.conv3(out), 0.05) # (?, 128, 3, 3)
         out = F.leaky_relu(self.conv4(out), 0.05) # (?, 256, 1, 1)
         out = out.squeeze()
-        return self.linear(out)
+        return F.sigmoid(self.linear(out))
