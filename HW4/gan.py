@@ -10,8 +10,8 @@ import argparse
 import time
 from helpers import timeSince
 
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
+# import matplotlib.pyplot as plt
+# import matplotlib.cm as cm
 
 parser = argparse.ArgumentParser(description='training runner')
 parser.add_argument('--latent_dim','-ld',type=int,default=32,help='Latent dimension')
