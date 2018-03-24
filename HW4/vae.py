@@ -68,10 +68,10 @@ print(img.size(),label.size())
 # Problem setup.
 mse_loss = nn.L1Loss(size_average=False) 
 # L1 loss corresponds to Laplacian p(x|z), L2 loss corresponds to Gaussian
-encoder = Encoder()
+encoder = Encoder(latent_dim = LATENT_DIM)
 # Encoder generates latent-dim mean and variance for z given 784-dim x
 # Computes the variational parameters for q
-decoder = Decoder()
+decoder = Decoder(latent_dim = LATENT_DIM)
 # Decoder generates 784-dim x given latent-dim z
 # Implements the generative model p(x|z)
 vae = NormalVAE(encoder, decoder)

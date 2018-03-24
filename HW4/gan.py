@@ -66,7 +66,7 @@ print(img.size(),label.size())
 
 
 
-G = Generator()
+G = Generator(latent_dim = LATENT_DIM)
 D = Discriminator()
 G.cuda()
 D.cuda()
