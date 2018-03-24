@@ -9,7 +9,8 @@ from torch.distributions.kl import kl_divergence
 import numpy as np
 import argparse
 import time
-from helpers import timeSince, conv, deconv
+from helpers import timeSince
+from vae_models import Encoder, Decoder, NormalVAE
 
 parser = argparse.ArgumentParser(description='training runner')
 parser.add_argument('--latent_dim','-ld',type=int,default=2,help='Latent dimension')
@@ -64,92 +65,18 @@ print(img.size(),label.size())
 
 # TODO: what's the relevance of Variable in torch 0.4?
 
-# generate 784-dim x given latent-dim z
-# Implement the generative model p(x|z)
-class Decoder(nn.Module):
-    def __init__(self):
-        super(Decoder, self).__init__()
-        self.linear1 = nn.Linear(LATENT_DIM, 200)
-        self.linear2 = nn.Linear(200, 784)
-    def forward(self, z):
-        out = self.linear2(F.relu(self.linear1(z)))
-        return out.view(-1,28,28)
-
-
-# generate latent-dim mean and variance for z given 784-dim x
-# Compute the variational parameters for q
-class Encoder(nn.Module):
-    def __init__(self):
-        super(Encoder, self).__init__()
-        self.conv1 = conv(3, conv_dim, 4, bn=False)
-        self.conv2 = conv(conv_dim, conv_dim*2, 4)
-        self.conv3 = conv(conv_dim*2, conv_dim*4, 4)
-        self.conv4 = conv(conv_dim*4, conv_dim*8, 4)
-        self.fc = conv(conv_dim*8, 1, int(image_size/16), 1, 0, False)
-        self.linear1 = nn.Linear()
-        self.linear2 = nn.Linear()
-
-        # old encoder
-        # self.linear1 = nn.Linear(784, 200)
-        # self.linear2 = nn.Linear(200, LATENT_DIM)
-        # self.linear3 = nn.Linear(200, LATENT_DIM)
-    def forward(self, x):
-        out = F.leaky_relu(self.conv1(x), 0.05)    # (?, 64, 32, 32)
-        out = F.leaky_relu(self.conv2(out), 0.05)  # (?, 128, 16, 16)
-        out = F.leaky_relu(self.conv3(out), 0.05)  # (?, 256, 8, 8)
-        out = F.leaky_relu(self.conv4(out), 0.05)  # (?, 512, 4, 4)
-        out = self.fc(out).squeeze()
-        return out
-
-        # old encoder
-        # x = x.view(-1,784)
-        # h = F.relu(self.linear1(x))
-        # return self.linear2(h), self.linear3(h)
-
-
-class Discriminator(nn.Module):
-    """Discriminator containing 4 convolutional layers."""
-    def __init__(self, image_size=128, conv_dim=64):
-        super(Discriminator, self).__init__()
-        self.conv1 = conv(3, conv_dim, 4, bn=False)
-        self.conv2 = conv(conv_dim, conv_dim*2, 4)
-        self.conv3 = conv(conv_dim*2, conv_dim*4, 4)
-        self.conv4 = conv(conv_dim*4, conv_dim*8, 4)
-        self.fc = conv(conv_dim*8, 1, int(image_size/16), 1, 0, False)
-        
-    def forward(self, x):                         # If image_size is 64, output shape is as below.
-        out = F.leaky_relu(self.conv1(x), 0.05)    # (?, 64, 32, 32)
-        out = F.leaky_relu(self.conv2(out), 0.05)  # (?, 128, 16, 16)
-        out = F.leaky_relu(self.conv3(out), 0.05)  # (?, 256, 8, 8)
-        out = F.leaky_relu(self.conv4(out), 0.05)  # (?, 512, 4, 4)
-        out = self.fc(out).squeeze()
-        return out
-
-# VAE using reparameterization "rsample"
-class NormalVAE(nn.Module):
-    def __init__(self, encoder, decoder):
-        super(NormalVAE, self).__init__()
-        # Parameters phi and computes variational parameters lambda
-        self.encoder = encoder
-        # Parameters theta, p(x|z)
-        self.decoder = decoder
-    def forward(self, x_src):
-        # Example variational parameters lambda
-        mu, logvar = self.encoder(x_src)
-        q_normal = Normal(loc=mu, scale=logvar.mul(0.5).exp()) # TODO: why are we multiplying by half?
-        # Reparameterized sample.
-        z_sample = q_normal.rsample()
-        # z_sample = mu (no sampling)
-        return self.decoder(z_sample), q_normal
-
 # Problem setup.
 mse_loss = nn.L1Loss(size_average=False) 
-# L1 loss corresponds to Laplace p(x|z), L2 loss corresponds to Gaussian
+# L1 loss corresponds to Laplacian p(x|z), L2 loss corresponds to Gaussian
 encoder = Encoder()
+# Encoder generates latent-dim mean and variance for z given 784-dim x
+# Computes the variational parameters for q
 decoder = Decoder()
+# Decoder generates 784-dim x given latent-dim z
+# Implements the generative model p(x|z)
 vae = NormalVAE(encoder, decoder)
-# vae.load_state_dict(torch.load('../models/stupidvae.pkl'))
 vae.cuda()
+# vae.load_state_dict(torch.load(args.model_file))
 optim = torch.optim.SGD(vae.parameters(), lr = learning_rate)
 
 # p(z)
@@ -165,7 +92,6 @@ for epoch in range(NUM_EPOCHS):
     vae.train()
     for img, label in train_loader:
         if img.size(0) < BATCH_SIZE: continue
-        img = img.squeeze(1) # there's an extra dimension for some reason
         img = V(img).cuda()
         vae.zero_grad()
         out, q = vae(img) # out is decoded distro sample, q is distro

@@ -9,6 +9,7 @@ import numpy as np
 import argparse
 import time
 from helpers import timeSince
+from gan_models import Generator, Discriminator
 
 # import matplotlib.pyplot as plt
 # import matplotlib.cm as cm
@@ -65,26 +66,6 @@ print(img.size(),label.size())
 
 
 
-# Discriminator just needs to distinguish real and fake digits
-
-class Generator(nn.Module):
-    def __init__(self):
-        super(Generator, self).__init__()
-        self.linear1 = nn.Linear(LATENT_DIM, 100)
-        self.linear2 = nn.Linear(100, 784)
-    def forward(self, z):
-        out = self.linear2(F.relu(self.linear1(z)))
-        return out.view(-1,28,28)
-
-class Discriminator(nn.Module):
-    def __init__(self):
-        super(Discriminator, self).__init__()
-        self.linear1 = nn.Linear(784, 100)
-        self.linear2 = nn.Linear(100, 1)
-    def forward(self, x):
-        x = x.view(-1,784)
-        return F.sigmoid(self.linear2(F.relu(self.linear1(x))))
-
 G = Generator()
 D = Discriminator()
 G.cuda()
@@ -103,7 +84,6 @@ for epoch in range(NUM_EPOCHS):
     D.train()
     for img, label in train_loader:
         if img.size(0) < BATCH_SIZE: continue
-        img = img.squeeze(1) # there's an extra dimension for some reason
         img = V(img).cuda()
         # Grad discriminator real: -E[log(D(x))]
         optim_disc.zero_grad()
