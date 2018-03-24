@@ -8,7 +8,7 @@ from torch.distributions import Normal
 import numpy as np
 import argparse
 import time
-from helpers import timeSince
+from helpers import timeSince, conv, deconv
 
 # import matplotlib.pyplot as plt
 # import matplotlib.cm as cm
@@ -65,25 +65,69 @@ print(img.size(),label.size())
 
 
 
-# Discriminator just needs to distinguish real and fake digits
+
 
 class Generator(nn.Module):
-    def __init__(self):
+    """Generator containing 7 deconvolutional layers."""
+    def __init__(self, z_dim=LATENT_DIM, image_size=128, conv_dim=64):
         super(Generator, self).__init__()
-        self.linear1 = nn.Linear(LATENT_DIM, 100)
-        self.linear2 = nn.Linear(100, 784)
+        self.fc = deconv(z_dim, conv_dim*8, int(image_size/16), 1, 0, bn=False)
+        self.deconv1 = deconv(conv_dim*8, conv_dim*4, 4)
+        self.deconv2 = deconv(conv_dim*4, conv_dim*2, 4)
+        self.deconv3 = deconv(conv_dim*2, conv_dim, 4)
+        self.deconv4 = deconv(conv_dim, 3, 4, bn=False)
+        
     def forward(self, z):
-        out = self.linear2(F.relu(self.linear1(z)))
-        return out.view(-1,28,28)
+        z = z.view(z.size(0), z.size(1), 1, 1)      # If image_size is 64, output shape is as below.
+        out = self.fc(z)                            # (?, 512, 4, 4)
+        out = F.leaky_relu(self.deconv1(out), 0.05)  # (?, 256, 8, 8)
+        out = F.leaky_relu(self.deconv2(out), 0.05)  # (?, 128, 16, 16)
+        out = F.leaky_relu(self.deconv3(out), 0.05)  # (?, 64, 32, 32)
+        out = F.tanh(self.deconv4(out))             # (?, 3, 64, 64)
+        return out
 
 class Discriminator(nn.Module):
-    def __init__(self):
+    """Discriminator containing 4 convolutional layers."""
+    def __init__(self, image_size=128, conv_dim=64):
         super(Discriminator, self).__init__()
-        self.linear1 = nn.Linear(784, 100)
-        self.linear2 = nn.Linear(100, 1)
-    def forward(self, x):
-        x = x.view(-1,784)
-        return F.sigmoid(self.linear2(F.relu(self.linear1(x))))
+        self.conv1 = conv(3, conv_dim, 4, bn=False)
+        self.conv2 = conv(conv_dim, conv_dim*2, 4)
+        self.conv3 = conv(conv_dim*2, conv_dim*4, 4)
+        self.conv4 = conv(conv_dim*4, conv_dim*8, 4)
+        self.fc = conv(conv_dim*8, 1, int(image_size/16), 1, 0, False)
+        
+    def forward(self, x):                         # If image_size is 64, output shape is as below.
+        out = F.leaky_relu(self.conv1(x), 0.05)    # (?, 64, 32, 32)
+        out = F.leaky_relu(self.conv2(out), 0.05)  # (?, 128, 16, 16)
+        out = F.leaky_relu(self.conv3(out), 0.05)  # (?, 256, 8, 8)
+        out = F.leaky_relu(self.conv4(out), 0.05)  # (?, 512, 4, 4)
+        out = self.fc(out).squeeze()
+        return out
+
+
+
+
+
+# OLD GEN AND DISCRIM
+# Discriminator just needs to distinguish real and fake digits
+
+# class Generator(nn.Module):
+#     def __init__(self):
+#         super(Generator, self).__init__()
+#         self.linear1 = nn.Linear(LATENT_DIM, 100)
+#         self.linear2 = nn.Linear(100, 784)
+#     def forward(self, z):
+#         out = self.linear2(F.relu(self.linear1(z)))
+#         return out.view(-1,28,28)
+
+# class Discriminator(nn.Module):
+#     def __init__(self):
+#         super(Discriminator, self).__init__()
+#         self.linear1 = nn.Linear(784, 100)
+#         self.linear2 = nn.Linear(100, 1)
+#     def forward(self, x):
+#         x = x.view(-1,784)
+#         return F.sigmoid(self.linear2(F.relu(self.linear1(x))))
 
 G = Generator()
 D = Discriminator()
