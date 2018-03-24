@@ -18,6 +18,8 @@ parser.add_argument('--latent_dim','-ld',type=int,default=32,help='Latent dimens
 parser.add_argument('--batch_size','-bs',type=int,default=100,help='Batch size')
 parser.add_argument('--num_epochs','-ne',type=int,default=50,help='Number of epochs')
 parser.add_argument('--learning_rate','-lr',type=float,default=0.01,help='Learning rate')
+parser.add_argument('--gen_file','-gf',type=str,default='stupidg.pkl',help='Save gen filename')
+parser.add_argument('--disc_file','-df',type=str,default='stupidd.pkl',help='Save disc filename')
 args = parser.parse_args()
 
 LATENT_DIM = args.latent_dim
@@ -150,3 +152,6 @@ for k in np.arange(0,1.1,0.2):
     x = G(z)
     all.append(x[0].data.numpy())
     plt.imshow(x[0].data.numpy())
+
+torch.save(G.state_dict(), args.gen_file)
+torch.save(D.state_dict(), args.disc_file)
