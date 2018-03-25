@@ -84,7 +84,7 @@ class Encoder1(nn.Module):
 ############## CNN pytorch tutorial #################
 # but the tutorial doesn't have an inverse-CNN, so this is totally BS!!
 class Decoder2(nn.Module):
-    def __init__(self, latent_dim=LATENT_DIM):
+    def __init__(self, latent_dim=2):
         super(Decoder, self).__init__()
         self.fc = nn.Sequential(
             nn.ConvTranspose2d(latent_dim, 32, 7, stride=1, padding=0),
@@ -108,7 +108,7 @@ class Decoder2(nn.Module):
 
 # CNN pytorch tutorial
 class Encoder(nn.Module):
-    def __init__(self, latent_dim=LATENT_DIM):
+    def __init__(self, latent_dim=2):
         super(Encoder, self).__init__()
         self.layer1 = nn.Sequential(
             nn.Conv2d(1, 16, kernel_size=5, padding=2),
