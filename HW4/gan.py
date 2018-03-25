@@ -9,16 +9,17 @@ import numpy as np
 import argparse
 import time
 from helpers import timeSince
-from gan_models import Generator, Discriminator
+from gan_models import *
 
 # import matplotlib.pyplot as plt
 # import matplotlib.cm as cm
 
 parser = argparse.ArgumentParser(description='training runner')
+parser.add_argument('--model_type','-m',type=int,default=0,help='Model type')
 parser.add_argument('--latent_dim','-ld',type=int,default=32,help='Latent dimension')
 parser.add_argument('--batch_size','-bs',type=int,default=100,help='Batch size')
 parser.add_argument('--num_epochs','-ne',type=int,default=50,help='Number of epochs')
-parser.add_argument('--learning_rate','-lr',type=float,default=0.01,help='Learning rate')
+parser.add_argument('--learning_rate','-lr',type=float,default=0.0001,help='Learning rate')
 parser.add_argument('--gen_file','-gf',type=str,default='stupidg.pkl',help='Save gen filename')
 parser.add_argument('--disc_file','-df',type=str,default='stupidd.pkl',help='Save disc filename')
 args = parser.parse_args()
@@ -65,9 +66,13 @@ img, label = next(iter(train_loader))
 print(img.size(),label.size())
 
 
+if args.model_type == 0:
+    G = Generator(latent_dim = LATENT_DIM)
+    D = Discriminator()
+elif args.model_type == 1:
+    G = Generator1(latent_dim = LATENT_DIM)
+    D = Discriminator1()
 
-G = Generator(latent_dim = LATENT_DIM)
-D = Discriminator()
 G.cuda()
 D.cuda()
 optim_gen = torch.optim.Adam(G.parameters(), lr=learning_rate)
