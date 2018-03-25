@@ -97,13 +97,9 @@ class Decoder2(nn.Module):
             nn.ReLU())
     def forward(self, x):
         x = x.view(x.size(0), x.size(1), 1, 1)
-        print(x.size())
         out = self.fc(x)
-        print(out.size())
         out = self.layer1(out)
-        print(out.size())
         out = self.layer2(out)
-        print(out.size())
         return out
 
 # CNN pytorch tutorial
