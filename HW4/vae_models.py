@@ -38,7 +38,7 @@ def deconv(c_in, c_out, k_size, stride=2, pad=1, bn=True):
 
 class Decoder1(nn.Module):
     def __init__(self, latent_dim=2, image_size=28, conv_dim=32):
-        super(Decoder, self).__init__()
+        super(Decoder1, self).__init__()
         self.fc = deconv(latent_dim, conv_dim*8, 2, stride=1, pad=0, bn=False)
         self.deconv1 = deconv(conv_dim*8, conv_dim*4, 4)
         self.deconv2 = deconv(conv_dim*4, conv_dim*2, 3) # hacky to change kernel size
@@ -63,7 +63,7 @@ def conv(c_in, c_out, k_size, stride=2, pad=1, bn=True):
 
 class Encoder1(nn.Module):
     def __init__(self, latent_dim=2, image_size=28, conv_dim=32):
-        super(Encoder, self).__init__()
+        super(Encoder1, self).__init__()
         self.conv1 = conv(1, conv_dim, 4, bn=False)
         self.conv2 = conv(conv_dim, conv_dim*2, 4)
         self.conv3 = conv(conv_dim*2, conv_dim*4, 4)
@@ -85,7 +85,7 @@ class Encoder1(nn.Module):
 # but the tutorial doesn't have an inverse-CNN, so this is totally BS!!
 class Decoder2(nn.Module):
     def __init__(self, latent_dim=2):
-        super(Decoder, self).__init__()
+        super(Decoder2, self).__init__()
         self.fc = nn.Sequential(
             nn.ConvTranspose2d(latent_dim, 32, 7, stride=1, padding=0),
             nn.BatchNorm2d(32))
@@ -109,7 +109,7 @@ class Decoder2(nn.Module):
 # CNN pytorch tutorial
 class Encoder2(nn.Module):
     def __init__(self, latent_dim=2):
-        super(Encoder, self).__init__()
+        super(Encoder2, self).__init__()
         self.layer1 = nn.Sequential(
             nn.Conv2d(1, 16, kernel_size=5, padding=2),
             nn.BatchNorm2d(16),

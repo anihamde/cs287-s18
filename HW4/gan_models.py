@@ -37,7 +37,7 @@ def deconv(c_in, c_out, k_size, stride=2, pad=1, bn=True):
 
 class Generator1(nn.Module):
     def __init__(self, latent_dim=32, image_size=28, conv_dim=32):
-        super(Generator, self).__init__()
+        super(Generator1, self).__init__()
         self.fc = deconv(latent_dim, conv_dim*8, 2, stride=1, pad=0, bn=False)
         self.deconv1 = deconv(conv_dim*8, conv_dim*4, 4)
         self.deconv2 = deconv(conv_dim*4, conv_dim*2, 3) # hacky to change kernel size
@@ -61,7 +61,7 @@ def conv(c_in, c_out, k_size, stride=2, pad=1, bn=True):
 
 class Discriminator1(nn.Module):
     def __init__(self, image_size=28, conv_dim=32):
-        super(Discriminator, self).__init__()
+        super(Discriminator1, self).__init__()
         self.conv1 = conv(1, conv_dim, 4, bn=False)
         self.conv2 = conv(conv_dim, conv_dim*2, 4)
         self.conv3 = conv(conv_dim*2, conv_dim*4, 4)
