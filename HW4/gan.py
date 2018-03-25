@@ -81,12 +81,12 @@ seed_distribution = Normal(V(torch.zeros(BATCH_SIZE, LATENT_DIM).cuda()),
                            V(torch.ones(BATCH_SIZE, LATENT_DIM)).cuda())
 
 start = time.time()
+G.train()
+D.train()
 for epoch in range(NUM_EPOCHS):
     total_gen_loss = 0
     total_disc_loss = 0
     total = 0
-    G.train()
-    D.train()
     for img, label in train_loader:
         if img.size(0) < BATCH_SIZE: continue
         img = V(img).cuda()

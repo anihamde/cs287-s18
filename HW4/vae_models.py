@@ -107,7 +107,7 @@ class Decoder2(nn.Module):
         return out
 
 # CNN pytorch tutorial
-class Encoder(nn.Module):
+class Encoder2(nn.Module):
     def __init__(self, latent_dim=2):
         super(Encoder, self).__init__()
         self.layer1 = nn.Sequential(

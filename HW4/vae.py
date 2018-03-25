@@ -93,12 +93,12 @@ p = Normal(V(torch.zeros(BATCH_SIZE, LATENT_DIM).cuda()),
            V(torch.ones(BATCH_SIZE, LATENT_DIM)).cuda())
 
 start = time.time()
+vae.train()
 for epoch in range(NUM_EPOCHS):
     # Keep track of reconstruction loss and total kl
     total_recon_loss = 0
     total_kl = 0
     total = 0
-    vae.train()
     for img, label in train_loader:
         if img.size(0) < BATCH_SIZE: continue
         img = V(img).cuda()
