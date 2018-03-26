@@ -1,6 +1,7 @@
-[01;32melbertgong@nlpfinal[00m:[01;34m/mnt/trunk/cs287-s18/HW4[00m$ bash vae_runner.sh
 60000
 10000
+torch.Size([60000, 1, 28, 28]) torch.Size([60000]) torch.Size([10000, 1, 28, 28]) torch.Size([10000])
+torch.Size([100, 1, 28, 28]) torch.Size([100])
 Time 0m 1s, Epoch [1/50], Recon Loss: 135.5613, KL Loss: 2.3271, ELBO Loss: 137.8884
 Time 0m 3s, Epoch [2/50], Recon Loss: 107.0856, KL Loss: 4.6516, ELBO Loss: 111.7372
 Time 0m 4s, Epoch [3/50], Recon Loss: 105.5024, KL Loss: 4.8698, ELBO Loss: 110.3722
@@ -53,6 +54,8 @@ Time 1m 13s, Epoch [49/50], Recon Loss: 101.2850, KL Loss: 2.2497, ELBO Loss: 10
 Time 1m 14s, Epoch [50/50], Recon Loss: 101.1507, KL Loss: 2.2716, ELBO Loss: 103.4223
 60000
 10000
+torch.Size([60000, 1, 28, 28]) torch.Size([60000]) torch.Size([10000, 1, 28, 28]) torch.Size([10000])
+torch.Size([100, 1, 28, 28]) torch.Size([100])
 Time 0m 1s, Epoch [1/50], Recon Loss: 158.6266, KL Loss: 4.3846, ELBO Loss: 163.0113
 Time 0m 3s, Epoch [2/50], Recon Loss: 120.2935, KL Loss: 12.0266, ELBO Loss: 132.3201
 Time 0m 4s, Epoch [3/50], Recon Loss: 115.9244, KL Loss: 13.5504, ELBO Loss: 129.4748
@@ -103,125 +106,6 @@ Time 1m 10s, Epoch [47/50], Recon Loss: 102.8559, KL Loss: 2.8876, ELBO Loss: 10
 Time 1m 12s, Epoch [48/50], Recon Loss: 102.7995, KL Loss: 2.8354, ELBO Loss: 105.6349
 Time 1m 13s, Epoch [49/50], Recon Loss: 102.7471, KL Loss: 2.7767, ELBO Loss: 105.5238
 Time 1m 15s, Epoch [50/50], Recon Loss: 102.6618, KL Loss: 2.7239, ELBO Loss: 105.3858
-60000
-10000
-Traceback (most recent call last):
-  File "vae.py", line 79, in <module>
-    encoder = Encoder1(latent_dim = LATENT_DIM)
-  File "/mnt/trunk/cs287-s18/HW4/vae_models.py", line 66, in __init__
-    super(Encoder, self).__init__()
-TypeError: super(type, obj): obj must be an instance or subtype of type
-60000
-10000
-Traceback (most recent call last):
-  File "vae.py", line 82, in <module>
-    encoder = Encoder2(latent_dim = LATENT_DIM)
-  File "/mnt/trunk/cs287-s18/HW4/vae_models.py", line 112, in __init__
-    super(Encoder, self).__init__()
-TypeError: super(type, obj): obj must be an instance or subtype of type
-60000
-10000
-Traceback (most recent call last):
-  File "vae.py", line 82, in <module>
-    encoder = Encoder2(latent_dim = LATENT_DIM)
-  File "/mnt/trunk/cs287-s18/HW4/vae_models.py", line 112, in __init__
-    super(Encoder, self).__init__()
-TypeError: super(type, obj): obj must be an instance or subtype of type
-[01;32melbertgong@nlpfinal[00m:[01;34m/mnt/trunk/cs287-s18/HW4[00m$ bash vae_runner.sh
-bash: vae_runner.sh: No such file or directory
-[01;32melbertgong@nlpfinal[00m:[01;34m/mnt/trunk/cs287-s18/HW4[00m$ bash vae_runner.sh[C[1Prunner.sh[1Prunner.sh[1Prunner.sh[1Prunner.sh
-60000
-10000
-Time 1m 21s, Epoch [1/50], Recon Loss: 122.8663, KL Loss: 0.3831, ELBO Loss: 123.2494
-Time 2m 43s, Epoch [2/50], Recon Loss: 115.8197, KL Loss: 0.9762, ELBO Loss: 116.7959
-Time 4m 5s, Epoch [3/50], Recon Loss: 114.2904, KL Loss: 1.0627, ELBO Loss: 115.3531
-Time 5m 27s, Epoch [4/50], Recon Loss: 113.8132, KL Loss: 1.0984, ELBO Loss: 114.9115
-Time 6m 49s, Epoch [5/50], Recon Loss: 112.7632, KL Loss: 1.2552, ELBO Loss: 114.0184
-Time 8m 11s, Epoch [6/50], Recon Loss: 110.7586, KL Loss: 1.6952, ELBO Loss: 112.4539
-Time 9m 32s, Epoch [7/50], Recon Loss: 108.5974, KL Loss: 2.0524, ELBO Loss: 110.6497
-Time 10m 54s, Epoch [8/50], Recon Loss: 106.5112, KL Loss: 2.3297, ELBO Loss: 108.8409
-Time 12m 16s, Epoch [9/50], Recon Loss: 105.0552, KL Loss: 2.5060, ELBO Loss: 107.5612
-Time 13m 38s, Epoch [10/50], Recon Loss: 103.9357, KL Loss: 2.6533, ELBO Loss: 106.5890
-Time 15m 0s, Epoch [11/50], Recon Loss: 102.7387, KL Loss: 2.8184, ELBO Loss: 105.5570
-Time 16m 22s, Epoch [12/50], Recon Loss: 101.8716, KL Loss: 2.9439, ELBO Loss: 104.8155
-Time 17m 44s, Epoch [13/50], Recon Loss: 101.0906, KL Loss: 3.0577, ELBO Loss: 104.1483
-Time 19m 6s, Epoch [14/50], Recon Loss: 100.5410, KL Loss: 3.1601, ELBO Loss: 103.7012
-Time 20m 27s, Epoch [15/50], Recon Loss: 99.9209, KL Loss: 3.2658, ELBO Loss: 103.1867
-Time 21m 49s, Epoch [16/50], Recon Loss: 99.3668, KL Loss: 3.3457, ELBO Loss: 102.7125
-Time 23m 11s, Epoch [17/50], Recon Loss: 98.9014, KL Loss: 3.4260, ELBO Loss: 102.3274
-Time 24m 33s, Epoch [18/50], Recon Loss: 98.3870, KL Loss: 3.4918, ELBO Loss: 101.8788
-Time 25m 55s, Epoch [19/50], Recon Loss: 97.9414, KL Loss: 3.5749, ELBO Loss: 101.5162
-Time 27m 17s, Epoch [20/50], Recon Loss: 97.5291, KL Loss: 3.6471, ELBO Loss: 101.1763
-Time 28m 39s, Epoch [21/50], Recon Loss: 97.1578, KL Loss: 3.7003, ELBO Loss: 100.8581
-Time 30m 1s, Epoch [22/50], Recon Loss: 96.8435, KL Loss: 3.7499, ELBO Loss: 100.5934
-Time 31m 23s, Epoch [23/50], Recon Loss: 96.4641, KL Loss: 3.7906, ELBO Loss: 100.2548
-Time 32m 45s, Epoch [24/50], Recon Loss: 96.2021, KL Loss: 3.8349, ELBO Loss: 100.0370
-Time 34m 6s, Epoch [25/50], Recon Loss: 95.9294, KL Loss: 3.8817, ELBO Loss: 99.8111
-Time 35m 28s, Epoch [26/50], Recon Loss: 95.6756, KL Loss: 3.9087, ELBO Loss: 99.5843
-Time 36m 50s, Epoch [27/50], Recon Loss: 95.3793, KL Loss: 3.9532, ELBO Loss: 99.3325
-Time 38m 12s, Epoch [28/50], Recon Loss: 95.2280, KL Loss: 3.9866, ELBO Loss: 99.2145
-Time 39m 34s, Epoch [29/50], Recon Loss: 94.9803, KL Loss: 4.0057, ELBO Loss: 98.9860
-Time 40m 56s, Epoch [30/50], Recon Loss: 94.8058, KL Loss: 4.0402, ELBO Loss: 98.8460
-Time 42m 18s, Epoch [31/50], Recon Loss: 94.6493, KL Loss: 4.0649, ELBO Loss: 98.7142
-Time 43m 40s, Epoch [32/50], Recon Loss: 94.4642, KL Loss: 4.0950, ELBO Loss: 98.5592
-Time 45m 2s, Epoch [33/50], Recon Loss: 94.2869, KL Loss: 4.1147, ELBO Loss: 98.4016
-Time 46m 24s, Epoch [34/50], Recon Loss: 94.1613, KL Loss: 4.1358, ELBO Loss: 98.2970
-Time 47m 46s, Epoch [35/50], Recon Loss: 94.0617, KL Loss: 4.1468, ELBO Loss: 98.2085
-Time 49m 8s, Epoch [36/50], Recon Loss: 93.9235, KL Loss: 4.1697, ELBO Loss: 98.0932
-Time 50m 29s, Epoch [37/50], Recon Loss: 93.7803, KL Loss: 4.1892, ELBO Loss: 97.9694
-Time 51m 51s, Epoch [38/50], Recon Loss: 93.6500, KL Loss: 4.1998, ELBO Loss: 97.8498
-Time 53m 13s, Epoch [39/50], Recon Loss: 93.5241, KL Loss: 4.2223, ELBO Loss: 97.7464
-Time 54m 35s, Epoch [40/50], Recon Loss: 93.4709, KL Loss: 4.2391, ELBO Loss: 97.7100
-Time 55m 57s, Epoch [41/50], Recon Loss: 93.3361, KL Loss: 4.2428, ELBO Loss: 97.5789
-Time 57m 19s, Epoch [42/50], Recon Loss: 93.1912, KL Loss: 4.2606, ELBO Loss: 97.4518
-Time 58m 41s, Epoch [43/50], Recon Loss: 93.0861, KL Loss: 4.2783, ELBO Loss: 97.3643
-Time 60m 3s, Epoch [44/50], Recon Loss: 93.0197, KL Loss: 4.2891, ELBO Loss: 97.3088
-Time 61m 25s, Epoch [45/50], Recon Loss: 92.9607, KL Loss: 4.3122, ELBO Loss: 97.2728
-Time 62m 47s, Epoch [46/50], Recon Loss: 92.8422, KL Loss: 4.3177, ELBO Loss: 97.1599
-Time 64m 8s, Epoch [47/50], Recon Loss: 92.7343, KL Loss: 4.3317, ELBO Loss: 97.0660
-Time 65m 30s, Epoch [48/50], Recon Loss: 92.6645, KL Loss: 4.3449, ELBO Loss: 97.0094
-Time 66m 52s, Epoch [49/50], Recon Loss: 92.5432, KL Loss: 4.3560, ELBO Loss: 96.8992
-Time 68m 14s, Epoch [50/50], Recon Loss: 92.4910, KL Loss: 4.3581, ELBO Loss: 96.8491
-60000
-10000
-Time 0m 44s, Epoch [1/50], Recon Loss: 102.6804, KL Loss: 0.0457, ELBO Loss: 102.7261
-Time 1m 27s, Epoch [2/50], Recon Loss: 102.6641, KL Loss: 0.0317, ELBO Loss: 102.6958
-Time 2m 11s, Epoch [3/50], Recon Loss: 102.6629, KL Loss: 0.0258, ELBO Loss: 102.6887
-Time 2m 55s, Epoch [4/50], Recon Loss: 102.6624, KL Loss: 0.0223, ELBO Loss: 102.6847
-Time 3m 39s, Epoch [5/50], Recon Loss: 102.6623, KL Loss: 0.0199, ELBO Loss: 102.6822
-Time 4m 22s, Epoch [6/50], Recon Loss: 102.6622, KL Loss: 0.0181, ELBO Loss: 102.6803
-Time 5m 6s, Epoch [7/50], Recon Loss: 102.6620, KL Loss: 0.0167, ELBO Loss: 102.6788
-^CTraceback (most recent call last):
-  File "vae.py", line 113, in <module>
-    loss.backward()
-  File "/usr/local/lib/python3.5/dist-packages/torch/autograd/variable.py", line 120, in backward
-    torch.autograd.backward(self, gradient, retain_graph, create_graph)
-  File "/usr/local/lib/python3.5/dist-packages/torch/autograd/__init__.py", line 81, in backward
-    variables, grad_variables, retain_graph, create_graph)
-KeyboardInterrupt
-60000
-10000
-^CTraceback (most recent call last):
-  File "vae.py", line 87, in <module>
-    vae.cuda()
-  File "/usr/local/lib/python3.5/dist-packages/torch/nn/modules/module.py", line 230, in cuda
-    return self._apply(lambda t: t.cuda(device))
-  File "/usr/local/lib/python3.5/dist-packages/torch/nn/modules/module.py", line 152, in _apply
-    module._apply(fn)
-  File "/usr/local/lib/python3.5/dist-packages/torch/nn/modules/module.py", line 152, in _apply
-    module._apply(fn)
-  File "/usr/local/lib/python3.5/dist-packages/torch/nn/modules/module.py", line 152, in _apply
-    module._apply(fn)
-  File "/usr/local/lib/python3.5/dist-packages/torch/nn/modules/module.py", line 158, in _apply
-    param.data = fn(param.data)
-  File "/usr/local/lib/python3.5/dist-packages/torch/nn/modules/module.py", line 230, in <lambda>
-    return self._apply(lambda t: t.cuda(device))
-  File "/usr/local/lib/python3.5/dist-packages/torch/cuda/__init__.py", line 146, in _lazy_init
-    def _lazy_init():
-KeyboardInterrupt
-[01;32melbertgong@nlpfinal[00m:[01;34m/mnt/trunk/cs287-s18/HW4[00m$ exit
-exit
-[01;32melbertgong@nlpfinal[00m:[01;34m/mnt/trunk/cs287-s18/HW4[00m$ bash runner.sh
 60000
 10000
 torch.Size([60000, 1, 28, 28]) torch.Size([60000]) torch.Size([10000, 1, 28, 28]) torch.Size([10000])
@@ -384,4 +268,3 @@ Time 35m 42s, Epoch [47/50], Recon Loss: 102.6618, KL Loss: 0.0144, ELBO Loss: 1
 Time 36m 28s, Epoch [48/50], Recon Loss: 102.6618, KL Loss: 0.0142, ELBO Loss: 102.6760
 Time 37m 14s, Epoch [49/50], Recon Loss: 102.6618, KL Loss: 0.0140, ELBO Loss: 102.6758
 Time 37m 59s, Epoch [50/50], Recon Loss: 102.6618, KL Loss: 0.0138, ELBO Loss: 102.6756
-[01;32melbertgong@nlpfinal[00m:[01;34m/mnt/trunk/cs287-s18/HW4[00m$ 
