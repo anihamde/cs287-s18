@@ -93,7 +93,7 @@ p = Normal(V(torch.zeros(BATCH_SIZE, LATENT_DIM).cuda()),
            V(torch.ones(BATCH_SIZE, LATENT_DIM)).cuda())
 
 start = time.time()
-vae.train()
+vae.train() # TODO: switch btwn train and eval for appropriate parts
 for epoch in range(NUM_EPOCHS):
     # Keep track of reconstruction loss and total kl
     total_recon_loss = 0
@@ -116,6 +116,23 @@ for epoch in range(NUM_EPOCHS):
     print ('Time %s, Epoch [%d/%d], Recon Loss: %.4f, KL Loss: %.4f, ELBO Loss: %.4f' 
             %(timenow, epoch+1, NUM_EPOCHS, total_recon_loss/total , total_kl/total, (total_recon_loss+total_kl)/total))
     # TODO: maybe print every 100 batches?
-    # TODO: add a val loop for early stopping (and for GAN too!)
+    
+    # val loop
+    total_recon_loss = 0
+    total_kl = 0
+    total = 0
+    for img, label in val_loader:
+        if img.size(0) < BATCH_SIZE: continue
+        img = V(img).cuda()
+        out, q = vae(img) # out is decoded distro sample, q is distro
+        kl = kl_divergence(q, p).sum() # KL term
+        recon_loss = mse_loss(out, img) # reconstruction term
+        loss = (recon_loss + alpha * kl) / BATCH_SIZE
+        total_recon_loss += recon_loss.item() / BATCH_SIZE
+        total_kl += kl.item() / BATCH_SIZE
+        total += 1
+    timenow = timeSince(start)
+    print ('Val loop. Time %s, Epoch [%d/%d], Recon Loss: %.4f, KL Loss: %.4f, ELBO Loss: %.4f' 
+            %(timenow, epoch+1, NUM_EPOCHS, total_recon_loss/total , total_kl/total, (total_recon_loss+total_kl)/total))
 
     torch.save(vae.state_dict(), args.model_file)

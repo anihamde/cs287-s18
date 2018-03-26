@@ -81,7 +81,7 @@ seed_distribution = Normal(V(torch.zeros(BATCH_SIZE, LATENT_DIM).cuda()),
                            V(torch.ones(BATCH_SIZE, LATENT_DIM)).cuda())
 
 start = time.time()
-G.train()
+G.train() # TODO: switch between train and eval for appropriate parts
 D.train()
 for epoch in range(NUM_EPOCHS):
     total_gen_loss = 0
@@ -115,6 +115,28 @@ for epoch in range(NUM_EPOCHS):
         total += 1
     timenow = timeSince(start)
     print ('Time %s, Epoch [%d/%d], D Loss: %.4f, G Loss: %.4f, Total Loss: %.4f' 
+            %(timenow, epoch+1, NUM_EPOCHS, total_disc_loss/total, total_gen_loss/total, (total_disc_loss+total_gen_loss)/total))
+
+    total_gen_loss = 0
+    total_disc_loss = 0
+    total = 0
+    for img, label in val_loader:
+        if img.size(0) < BATCH_SIZE: continue
+        img = V(img).cuda()
+        d = D(img)
+        loss_a = 0.5 * -d.log().mean()
+        seed = seed_distribution.sample()
+        x_fake = G(seed)
+        d = D(x_fake.detach())
+        loss_b = 0.5 * -(1 - d + 1e-10).log().mean()
+        total_disc_loss += loss_a.item() + loss_b.item()
+        d = D(x_fake) # no detach here
+        loss_c = (1 - d + 1e-10).log().mean()
+        # loss_c = -(d + 1e-10).log().mean()
+        total_gen_loss += loss_c.item()
+        total += 1
+    timenow = timeSince(start)
+    print ('Val loop. Time %s, Epoch [%d/%d], D Loss: %.4f, G Loss: %.4f, Total Loss: %.4f' 
             %(timenow, epoch+1, NUM_EPOCHS, total_disc_loss/total, total_gen_loss/total, (total_disc_loss+total_gen_loss)/total))
 
     torch.save(G.state_dict(), args.gen_file)
