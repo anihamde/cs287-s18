@@ -82,7 +82,7 @@ class Encoder1(nn.Module):
 
 
 ############## CNN pytorch tutorial #################
-# but the tutorial doesn't have an inverse-CNN, so this is totally BS!!
+# but the tutorial doesn't have an inverse-CNN, so this is a bit confusing!!
 class Decoder2(nn.Module):
     def __init__(self, latent_dim=2):
         super(Decoder2, self).__init__()
