@@ -9,16 +9,17 @@ import numpy as np
 import argparse
 import time
 from helpers import timeSince
-from gan_models import Generator, Discriminator
+from gan_models import *
 
 # import matplotlib.pyplot as plt
 # import matplotlib.cm as cm
 
 parser = argparse.ArgumentParser(description='training runner')
+parser.add_argument('--model_type','-m',type=int,default=0,help='Model type')
 parser.add_argument('--latent_dim','-ld',type=int,default=32,help='Latent dimension')
 parser.add_argument('--batch_size','-bs',type=int,default=100,help='Batch size')
 parser.add_argument('--num_epochs','-ne',type=int,default=50,help='Number of epochs')
-parser.add_argument('--learning_rate','-lr',type=float,default=0.01,help='Learning rate')
+parser.add_argument('--learning_rate','-lr',type=float,default=0.0001,help='Learning rate')
 parser.add_argument('--gen_file','-gf',type=str,default='stupidg.pkl',help='Save gen filename')
 parser.add_argument('--disc_file','-df',type=str,default='stupidd.pkl',help='Save disc filename')
 args = parser.parse_args()
@@ -65,9 +66,13 @@ img, label = next(iter(train_loader))
 print(img.size(),label.size())
 
 
+if args.model_type == 0:
+    G = Generator(latent_dim = LATENT_DIM)
+    D = Discriminator()
+elif args.model_type == 1:
+    G = Generator1(latent_dim = LATENT_DIM)
+    D = Discriminator1()
 
-G = Generator(latent_dim = LATENT_DIM)
-D = Discriminator()
 G.cuda()
 D.cuda()
 optim_gen = torch.optim.Adam(G.parameters(), lr=learning_rate)
@@ -76,12 +81,12 @@ seed_distribution = Normal(V(torch.zeros(BATCH_SIZE, LATENT_DIM).cuda()),
                            V(torch.ones(BATCH_SIZE, LATENT_DIM)).cuda())
 
 start = time.time()
+G.train() # TODO: switch between train and eval for appropriate parts
+D.train()
 for epoch in range(NUM_EPOCHS):
     total_gen_loss = 0
     total_disc_loss = 0
     total = 0
-    G.train()
-    D.train()
     for img, label in train_loader:
         if img.size(0) < BATCH_SIZE: continue
         img = V(img).cuda()
@@ -110,6 +115,28 @@ for epoch in range(NUM_EPOCHS):
         total += 1
     timenow = timeSince(start)
     print ('Time %s, Epoch [%d/%d], D Loss: %.4f, G Loss: %.4f, Total Loss: %.4f' 
+            %(timenow, epoch+1, NUM_EPOCHS, total_disc_loss/total, total_gen_loss/total, (total_disc_loss+total_gen_loss)/total))
+
+    total_gen_loss = 0
+    total_disc_loss = 0
+    total = 0
+    for img, label in val_loader:
+        if img.size(0) < BATCH_SIZE: continue
+        img = V(img).cuda()
+        d = D(img)
+        loss_a = 0.5 * -d.log().mean()
+        seed = seed_distribution.sample()
+        x_fake = G(seed)
+        d = D(x_fake.detach())
+        loss_b = 0.5 * -(1 - d + 1e-10).log().mean()
+        total_disc_loss += loss_a.item() + loss_b.item()
+        d = D(x_fake) # no detach here
+        loss_c = (1 - d + 1e-10).log().mean()
+        # loss_c = -(d + 1e-10).log().mean()
+        total_gen_loss += loss_c.item()
+        total += 1
+    timenow = timeSince(start)
+    print ('Val loop. Time %s, Epoch [%d/%d], D Loss: %.4f, G Loss: %.4f, Total Loss: %.4f' 
             %(timenow, epoch+1, NUM_EPOCHS, total_disc_loss/total, total_gen_loss/total, (total_disc_loss+total_gen_loss)/total))
 
     torch.save(G.state_dict(), args.gen_file)

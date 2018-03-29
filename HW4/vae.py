@@ -10,13 +10,14 @@ import numpy as np
 import argparse
 import time
 from helpers import timeSince
-from vae_models import Encoder, Decoder, NormalVAE
+from vae_models import *
 
 parser = argparse.ArgumentParser(description='training runner')
+parser.add_argument('--model_type','-m',type=int,default=0,help='Model type')
 parser.add_argument('--latent_dim','-ld',type=int,default=2,help='Latent dimension')
 parser.add_argument('--batch_size','-bs',type=int,default=100,help='Batch size')
 parser.add_argument('--num_epochs','-ne',type=int,default=50,help='Number of epochs')
-parser.add_argument('--learning_rate','-lr',type=float,default=0.02,help='Learning rate')
+parser.add_argument('--learning_rate','-lr',type=float,default=0.0001,help='Learning rate')
 parser.add_argument('--alpha','-a',type=float,default=1.0,help='Alpha (weight of KL term in Elbo)')
 parser.add_argument('--model_file','-mf',type=str,default='stupidvae.pkl',help='Save model filename')
 args = parser.parse_args()
@@ -66,14 +67,22 @@ print(img.size(),label.size())
 # TODO: what's the relevance of Variable in torch 0.4?
 
 # Problem setup.
-mse_loss = nn.L1Loss(size_average=False) 
 # L1 loss corresponds to Laplacian p(x|z), L2 loss corresponds to Gaussian
-encoder = Encoder(latent_dim = LATENT_DIM)
 # Encoder generates latent-dim mean and variance for z given 784-dim x
 # Computes the variational parameters for q
-decoder = Decoder(latent_dim = LATENT_DIM)
 # Decoder generates 784-dim x given latent-dim z
 # Implements the generative model p(x|z)
+if args.model_type == 0:
+    encoder = Encoder(latent_dim = LATENT_DIM)
+    decoder = Decoder(latent_dim = LATENT_DIM)
+elif args.model_type == 1:
+    encoder = Encoder1(latent_dim = LATENT_DIM)
+    decoder = Decoder1(latent_dim = LATENT_DIM)
+elif args.model_type == 2:
+    encoder = Encoder2(latent_dim = LATENT_DIM)
+    decoder = Decoder2(latent_dim = LATENT_DIM)
+
+mse_loss = nn.L1Loss(size_average=False) 
 vae = NormalVAE(encoder, decoder)
 vae.cuda()
 # vae.load_state_dict(torch.load(args.model_file))
@@ -84,12 +93,12 @@ p = Normal(V(torch.zeros(BATCH_SIZE, LATENT_DIM).cuda()),
            V(torch.ones(BATCH_SIZE, LATENT_DIM)).cuda())
 
 start = time.time()
+vae.train() # TODO: switch btwn train and eval for appropriate parts
 for epoch in range(NUM_EPOCHS):
     # Keep track of reconstruction loss and total kl
     total_recon_loss = 0
     total_kl = 0
     total = 0
-    vae.train()
     for img, label in train_loader:
         if img.size(0) < BATCH_SIZE: continue
         img = V(img).cuda()
@@ -107,6 +116,23 @@ for epoch in range(NUM_EPOCHS):
     print ('Time %s, Epoch [%d/%d], Recon Loss: %.4f, KL Loss: %.4f, ELBO Loss: %.4f' 
             %(timenow, epoch+1, NUM_EPOCHS, total_recon_loss/total , total_kl/total, (total_recon_loss+total_kl)/total))
     # TODO: maybe print every 100 batches?
-    # TODO: add a val loop for early stopping (and for GAN too!)
+    
+    # val loop
+    total_recon_loss = 0
+    total_kl = 0
+    total = 0
+    for img, label in val_loader:
+        if img.size(0) < BATCH_SIZE: continue
+        img = V(img).cuda()
+        out, q = vae(img) # out is decoded distro sample, q is distro
+        kl = kl_divergence(q, p).sum() # KL term
+        recon_loss = mse_loss(out, img) # reconstruction term
+        loss = (recon_loss + alpha * kl) / BATCH_SIZE
+        total_recon_loss += recon_loss.item() / BATCH_SIZE
+        total_kl += kl.item() / BATCH_SIZE
+        total += 1
+    timenow = timeSince(start)
+    print ('Val loop. Time %s, Epoch [%d/%d], Recon Loss: %.4f, KL Loss: %.4f, ELBO Loss: %.4f' 
+            %(timenow, epoch+1, NUM_EPOCHS, total_recon_loss/total , total_kl/total, (total_recon_loss+total_kl)/total))
 
     torch.save(vae.state_dict(), args.model_file)
