@@ -72,6 +72,9 @@ if args.model_type == 0:
 elif args.model_type == 1:
     G = Generator1(latent_dim = LATENT_DIM)
     D = Discriminator1()
+elif args.model_type == 2:
+    G = Generator2(latent_dim = LATENT_DIM)
+    D = Discriminator2()
 
 G.cuda()
 D.cuda()
@@ -94,13 +97,13 @@ for epoch in range(NUM_EPOCHS):
         optim_disc.zero_grad()
         optim_gen.zero_grad()
         d = D(img)
-        loss_a = 0.5 * -d.log().mean()
+        loss_a = -d.log().mean()
         loss_a.backward()
         # Grad discriminator fake: -E[log(1 - D(G(z)) )]
         seed = seed_distribution.sample()
         x_fake = G(seed)
         d = D(x_fake.detach())
-        loss_b = 0.5 * -(1 - d + 1e-10).log().mean()
+        loss_b = -(1 - d + 1e-10).log().mean()
         loss_b.backward()
         optim_disc.step()
         total_disc_loss += loss_a.item() + loss_b.item()
