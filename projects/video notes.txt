@@ -12,3 +12,23 @@ Upstream of the core promoter: regulatory promoter. It binds a protein called a 
 There's also an upstream sequence called a silencer, that binds a repressor.
 How does the enhancer (that's far away) know what gene to enhance? There are special sequences called insulator, which bind "insulator binding proteins", which do their job: they insulate.
 Summary: chromosome territories. Chromatin remodeling (remove and add histones to turn a gene on and off). Transcription factors.... next: after RNA is made, how does it control the making of a protein?
+
+David Kelley's Lecture
+Gene expression/regulation. Non-encoding regions in the genome and we don't know what they do.
+Is a certain transcription factor binding this sequence? Motif searches, we can estimate this.
+State of the art: svm, decision-weight matrices, string kernels. Describes CNN
+Layers capture simple motifs -> combos of motifs, motifs in GC content environment that's more conducive to binding.
+We're not just interested in global features.
+Multi-task learning problem. There's lots of shared information across cell types.
+Bayesian optimization- choose hyperparameters
+Can we better predict transcription?
+Where do we stop? Frey's group at deep genomics
+Normalize for local GC%, distribute multi-mappers with EM, bowtie2 align with multi-mappers
+How distant regulatory elements affect gene expression. RNNs did not work better.
+Dilated convolution layers. Make prediction
+We can predict promoters, distant affectors
+They still can't interpolate across different cell types.
+Training is multi-task: predicts all cell types at once. In the last layer, each experiment has its own parameters.
+Predictions rival replicate experiment correlation.
+Broad histone modification is better helped out by dilated layers
+The model does capture cell type-specific expression
