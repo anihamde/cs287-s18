@@ -74,4 +74,3 @@ class DeepSEA(nn.Module):
         out = self.dropout_5(out) # dropout
         out = F.relu(self.linear(out)) # (?, 800)
         return self.output(out) # (?, 164)
-

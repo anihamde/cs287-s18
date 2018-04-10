@@ -1,0 +1,34 @@
+https://www.youtube.com/watch?v=gbSIBhFwQ4s
+How DNA is packaged. 8 histone proteins attach to the DNA molecule to make the nucleosome. Multiple nucleosomes stack together to form chromatin. And later, chromosomes (which only form when cells are dividing).
+https://www.youtube.com/watch?v=SMtWvDbfHLo&feature=youtu.be
+DNA makes RNA makes protein. Transcription factors assemble at a specific promoter region along the DNA. The DNA following the promoter is a gene, recipe for protein. Mediator, RNA polymerase, etc. When the transcription initiator complex touches the activator protein (also technically a TF), the polymerase goes running. One of the strands is copied.
+https://www.youtube.com/watch?v=MkUgkDLp2iE&feature=youtu.be
+All cells have the same DNA, but use different genes. How do transcription factors find the correct sequences to turn on genes? The transcription factor scans the DNA, efficiently searching for its binding site. It can be knocked off its site by movement of the DNA, or other proteins. It can make short hops (lol). There are 1500 different types of TFs in human cells. They create a complex language of gene expression.
+
+https://www.youtube.com/watch?v=MdzUB0WWons&feature=youtu.be&t=14m27s
+Gene: it lies on a large string of DNA. A gene can be lightly or fully turned on. There are more players involved in eukaryotes than in bacteria. But in the end, our game is to get RNA polymerase stably attached to DNA, to turn genes on.
+There's an insulin gene. 25 base pairs upstream: core promoter (TATA box). Several general transcription factors that bind all over this core promoter. These factors recruit RNA polymerase. However, these factors transcribe the gene weakly (baso, leaky). They don't turn on the gene full blast. So we need other proteins and regulatory sequences.
+Upstream of the core promoter: regulatory promoter. It binds a protein called a transcriptional activator. There's also a co-activator. There's also an enhancer (really far away, but near in physical space). Additional transcriptional activators bind to the enhancer. A protein mediator help stabilize the interactions btwn all these proteins. Once all these proteins are in, the gene is turned on much more. The gene is like a kitchen faucet, not an on-off switch.
+There's also an upstream sequence called a silencer, that binds a repressor.
+How does the enhancer (that's far away) know what gene to enhance? There are special sequences called insulator, which bind "insulator binding proteins", which do their job: they insulate.
+Summary: chromosome territories. Chromatin remodeling (remove and add histones to turn a gene on and off). Transcription factors.... next: after RNA is made, how does it control the making of a protein?
+
+David Kelley's Lecture
+Gene expression/regulation. Non-encoding regions in the genome and we don't know what they do.
+Is a certain transcription factor binding this sequence? Motif searches, we can estimate this.
+State of the art: svm, decision-weight matrices, string kernels. Describes CNN
+Layers capture simple motifs -> combos of motifs, motifs in GC content environment that's more conducive to binding.
+We're not just interested in global features.
+Multi-task learning problem. There's lots of shared information across cell types.
+Bayesian optimization- choose hyperparameters
+Can we better predict transcription?
+Where do we stop? Frey's group at deep genomics
+Normalize for local GC%, distribute multi-mappers with EM, bowtie2 align with multi-mappers
+How distant regulatory elements affect gene expression. RNNs did not work better.
+Dilated convolution layers. Make prediction
+We can predict promoters, distant affectors
+They still can't interpolate across different cell types.
+Training is multi-task: predicts all cell types at once. In the last layer, each experiment has its own parameters.
+Predictions rival replicate experiment correlation.
+Broad histone modification is better helped out by dilated layers
+The model does capture cell type-specific expression
