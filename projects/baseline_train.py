@@ -19,22 +19,23 @@ from baseline_model import *
 parser = argparse.ArgumentParser(description='training runner')
 parser.add_argument('--data','-d',type=str,default='/n/data_02/Basset/data/mini_roadmap.h5',help='path to training data')
 parser.add_argument('--model_type','-mt',type=int,default=0,help='Model type')
-parser.add_argument('--batch_size','-bs',type=int,default=100,help='Batch size')
+parser.add_argument('--optimizer_type','-optim',type=int,default=0,help='SGD optimizer')
+parser.add_argument('--batch_size','-bs',type=int,default=128,help='Batch size')
 parser.add_argument('--num_epochs','-ne',type=int,default=10,help='Number of epochs')
 parser.add_argument('--learning_rate','-lr',type=float,default=0.0001,help='Learning rate')
 parser.add_argument('--rho','-r',type=float,default=0.95,help='rho for Adadelta optimizer')
 parser.add_argument('--weight_decay','-wd',type=float,default=0.0,help='Weight decay constant for optimizer')
+parser.add_argument('--clip','-c',type=float,help='Max norm for weight clipping')
 parser.add_argument('--model_file','-mf',type=str,default='stupid.pkl',help='Save model filename')
 parser.add_argument('--stop_instance','-halt',action='store_true',help='Stop AWS instance after training run.')
+parser.add_argument('--log_file','-l',type=str,default='.log_file.txt',help='training log file')
 args = parser.parse_args()
 
 print("Begin run")
 
-if args.stop_instance:
-    log_file = open('.log_file.txt','w')
-    Logger = log_file
-else:
-    Logger = sys.stderr
+log_file = open(args.log_file,'w')
+Logger = log_file
+#Logger = sys.stderr
 
 start = time.time()
 print("Reading data from file {}".format(args.data),file=Logger)
@@ -48,27 +49,36 @@ val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffl
 test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=True)
 print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
 
-if model_type == 0:
+if args.model_type == 0:
     model = Basset()
-elif model_type == 1:
+elif args.model_type == 1:
     model = DeepSEA()
+elif args.model_type == 2:
+    model = Classic()
 
 model.cuda()
 print("Model successfully imported",file=Logger)
 
 
 params = list(filter(lambda x: x.requires_grad, model.parameters()))
-optimizer = torch.optim.Adadelta(params, lr=args.learning_rate, rho=args.rho, weight_decay=args.weight_decay)
+if args.optimizer_type == 0:
+    optimizer = torch.optim.Adadelta(params, lr=args.learning_rate, rho=args.rho, weight_decay=args.weight_decay)
+elif args.optimizer_type == 1:
+    optimizer = torch.optim.Adam(params, lr=args.learning_rate, weight_decay=args.weight_decay)
+elif args.optimizer_type == 2:
+    optimizer = torch.optim.RMSprop(params, lr=args.learning_rate, weight_decay=args.weight_decay)
+
 #criterion = torch.nn.MultiLabelSoftMarginLoss() # Loss function
 criterion = torch.nn.BCEWithLogitsLoss()
 
 start = time.time()
-last_loss = 100000
+best_loss = 100000
 print("Begin training",file=Logger)
 for epoch in range(args.num_epochs):
     model.train()
     #train_loader.init_epoch()
     ctr = 0
+    tot_loss = 0
     for inputs, targets in train_loader:
         inputs = to_one_hot(inputs, n_dims=4).permute(0,3,1,2).squeeze().float()
         targets = targets.float()
@@ -78,14 +88,18 @@ for epoch in range(args.num_epochs):
         outputs = model(inp_batch)
         loss = criterion(outputs.view(-1), trg_batch.view(-1))
         loss.backward()
+        tot_loss += loss.item()
+        if args.clip:
+            torch.nn.utils.clip_grad_norm(model.parameters(), args.clip)
         optimizer.step()
         ctr += 1
         if ctr % 100 == 0:
             timenow = timeSince(start)
             print('Epoch [{}/{}], Iter [{}/{}], Time: {}, Loss: {}'.format(epoch+1, args.num_epochs, ctr,
                                                                            len(train)//args.batch_size, 
-                                                                           timenow, loss.item()),
+                                                                           timenow, tot_loss/100),
                   file=Logger)
+            tot_loss = 0
     #
     model.eval()
     losses = []
@@ -102,10 +116,10 @@ for epoch in range(args.num_epochs):
     timenow = timeSince(start)
     print( "Epoch [{}/{}], Time: {}, Validation loss: {}".format( epoch+1, args.num_epochs, timenow, epoch_loss),
            file=Logger)
-    if epoch_loss <= last_loss:
+    if epoch_loss <= best_loss:
         torch.save(model.state_dict(), args.model_file)
-        print( "Delta loss: {}, Model saved at {}".format((epoch_loss-last_loss),args.model_file) , file=Logger)
-    last_loss = epoch_loss
+        print( "Delta loss: {}, Model saved at {}".format((epoch_loss-best_loss),args.model_file) , file=Logger)
+        best_loss = epoch_loss
 
 if args.stop_instance:
     Logger.close()
