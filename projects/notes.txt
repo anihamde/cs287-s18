@@ -18,3 +18,15 @@ SNP (single-nucleotide polymorphisms) are variants
 
 One-shot Matching Networks
 It's like, if you see an image once and then want to perform a matching task on it.
+
+4/12
+So LSTMviz cites DeepSEA (CNNs) and Quang and Dang DanQ (A hybrid CNN/RNN for quantifying the function of DNA sequences).
+You have cell type, sequence location, which feature, which variant. Basset has 164 cell types of one feature. DeepSEA has 919 combo-of-cell-type-and-features. Our current model is essentially 600,4 to 164.
+ChIP-seq/JUN/JUND/PhyloP (PhyloP is conservation scoring, which is associated with genomic activity)
+MANN
+VAE/AAE: is a substitute for embeddings, a projection from gene expression data to O(cell-type) data. The variational part helps with regularization and with generating "fake" RNAseq data.
+
+Ching et al Opportunities and obstacles for DL in biomed
+DanQ cites a mix of nlp and bio papers. Frey (predicting sequence specificities), DANN (DanQ predecessor), Quang EXTREME (a predecessor to that for motif discovery (a bunch of stuff on motifs)), Chen gene expression inference with deep learning, Lee/Ghandi gkm-SVM, Medina-Rivera regulatory sequence analysis tools
+LeCun gradient-based learning for document recognition, Graves/Schmidhuber phoneme LSTM and speech recognition, Sundermeyer translation bi-LSTM, Zhu co-occurrence feature learning for action recognition (serena?)
+Any techniques for improving predictions when they're mostly negatives? AUC is inflated due to class imbalance. A better metric is Precision-Recall AUC.
