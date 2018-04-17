@@ -11,7 +11,7 @@ from torch.distributions import Normal
 import numpy as np
 import argparse
 import time
-from helpers import timeSince, asMinutes
+from helpers import timeSince, asMinutes, calc_auc
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from baseline_model import *
@@ -28,13 +28,16 @@ parser.add_argument('--weight_decay','-wd',type=float,default=0.0,help='Weight d
 parser.add_argument('--clip','-c',type=float,help='Max norm for weight clipping')
 parser.add_argument('--model_file','-mf',type=str,default='stupid.pkl',help='Save model filename')
 parser.add_argument('--stop_instance','-halt',action='store_true',help='Stop AWS instance after training run.')
-parser.add_argument('--log_file','-l',type=str,default='.log_file.txt',help='training log file')
+parser.add_argument('--log_file','-l',type=str,default='stderr',help='training log file')
 args = parser.parse_args()
 
 print("Begin run")
 
-log_file = open(args.log_file,'w')
-Logger = log_file
+if args.log_file == 'stderr':
+    Logger = sys.stderr
+else:
+    log_file = open(args.log_file,'w')
+    Logger = log_file
 #Logger = sys.stderr
 
 start = time.time()
@@ -45,8 +48,8 @@ train = torch.utils.data.TensorDataset(torch.CharTensor(data['train_in']), torch
 val = torch.utils.data.TensorDataset(torch.CharTensor(data['valid_in']), torch.CharTensor(data['valid_out']))
 test = torch.utils.data.TensorDataset(torch.CharTensor(data['test_in']), torch.CharTensor(data['test_out']))
 train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True)
-val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffle=True)
-test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=True)
+val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffle=False)
+test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=False)
 print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
 
 if args.model_type == 0:
@@ -102,7 +105,9 @@ for epoch in range(args.num_epochs):
             tot_loss = 0
     #
     model.eval()
-    losses = []
+    losses  = []
+    y_score = []
+    y_test  = []
     #val_loader.init_epoch()
     for inputs, targets in val_loader:
         inputs = to_one_hot(inputs, n_dims=4).permute(0,3,1,2).squeeze().float()
@@ -112,9 +117,13 @@ for epoch in range(args.num_epochs):
         outputs = model(inp_batch)
         loss = criterion(outputs.view(-1), trg_batch.view(-1))
         losses.append(loss.item())
+        y_score.append( outputs.cpu().data.numpy() )
+        y_test.append(  targets.cpu().data.numpy() )
     epoch_loss = sum(losses)/float(len(losses))
+    avg_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score))
     timenow = timeSince(start)
-    print( "Epoch [{}/{}], Time: {}, Validation loss: {}".format( epoch+1, args.num_epochs, timenow, epoch_loss),
+    print( "Epoch [{}/{}], Time: {}, Validation loss: {}, Mean AUC: {}".format( epoch+1, args.num_epochs, 
+                                                                                timenow, epoch_loss, avg_auc),
            file=Logger)
     if epoch_loss <= best_loss:
         torch.save(model.state_dict(), args.model_file)
@@ -124,3 +133,4 @@ for epoch in range(args.num_epochs):
 if args.stop_instance:
     Logger.close()
     subprocess.call(['sudo','halt'])
+    

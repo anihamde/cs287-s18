@@ -3,6 +3,7 @@ import time
 import math
 import torch
 from torch.autograd import Variable
+from sklearn.metrics import roc_curve, auc
 
 def asMinutes(s):
     m = math.floor(s / 60)
@@ -50,3 +51,16 @@ def freeze_model(model):
     for param in model.parameters():
         param.requires_grad = False
     return model
+
+def calc_auc(model, y_test, y_score):
+    n_classes = 164
+    fpr = dict()
+    tpr = dict()
+    roc_auc = dict()
+    for i in range(n_classes):
+        fpr[i], tpr[i], _ = roc_curve(y_test[:, i], y_score[:, i])
+        roc_auc[i] = auc(fpr[i], tpr[i])
+    # Compute micro-average ROC curve and ROC area
+    fpr["micro"], tpr["micro"], _ = roc_curve(y_test.ravel(), y_score.ravel())
+    roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
+    return roc_auc["micro"]
