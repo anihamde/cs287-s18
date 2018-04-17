@@ -9,6 +9,8 @@ import numpy as np
 import argparse
 import time
 from helpers import timeSince
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 from gan_models import *
 
 # import matplotlib.pyplot as plt
@@ -22,6 +24,7 @@ parser.add_argument('--num_epochs','-ne',type=int,default=50,help='Number of epo
 parser.add_argument('--learning_rate','-lr',type=float,default=0.0001,help='Learning rate')
 parser.add_argument('--gen_file','-gf',type=str,default='stupidg.pkl',help='Save gen filename')
 parser.add_argument('--disc_file','-df',type=str,default='stupidd.pkl',help='Save disc filename')
+parser.add_argument('--track_space','-ts',action='store_true',help='Save 2D latant space viz, if ld=2')
 args = parser.parse_args()
 
 LATENT_DIM = args.latent_dim
@@ -75,6 +78,12 @@ elif args.model_type == 1:
 elif args.model_type == 2:
     G = Generator2(latent_dim = LATENT_DIM)
     D = Discriminator2()
+elif args.model_type == 3:
+    G = Generator3(latent_dim = LATENT_DIM)
+    D = Discriminator3()
+elif args.model_type == 4:
+    G = Generator4(latent_dim = LATENT_DIM)
+    D = Discriminator4()
 
 G.cuda()
 D.cuda()
@@ -108,10 +117,10 @@ for epoch in range(NUM_EPOCHS):
         optim_disc.step()
         total_disc_loss += loss_a.item() + loss_b.item()
         # Grad generator: E[log(1 - D(G(z)))]
-        optim_disc.zero_grad()
+        # optim_disc.zero_grad()
         d = D(x_fake) # no detach here
-        loss_c = (1 - d + 1e-10).log().mean()
-        # loss_c = -(d + 1e-10).log().mean()
+        # loss_c = (1 - d + 1e-10).log().mean()
+        loss_c = -(d + 1e-10).log().mean()
         loss_c.backward()
         optim_gen.step()
         total_gen_loss += loss_c.item()
@@ -144,3 +153,21 @@ for epoch in range(NUM_EPOCHS):
 
     torch.save(G.state_dict(), args.gen_file)
     torch.save(D.state_dict(), args.disc_file)
+    
+    if args.track_space and (args.latent_dim == 2) and ((epoch%10 == 0) or (epoch == NUM_EPOCHS-1)):
+        nx = ny = 20
+        x_values = np.linspace(-2, 2, nx) # sasha suggests -2,2 and altosaar uses -3,3
+        y_values = np.linspace(-2, 2, ny)
+        canvas = np.empty((28 * ny, 28 * nx))
+        for ii, yi in enumerate(x_values):
+            for j, xi in enumerate(y_values):
+                np_z = np.array([[xi, yi]])
+                x_mean = G(torch.cuda.FloatTensor(np_z))
+                canvas[(nx - ii - 1) * 28:(nx - ii) * 28, j *
+                       28:(j + 1) * 28] = x_mean[0].data.reshape(28, 28)
+        # imsave('prior_predictive_map_frame_%d.png', canvas)
+        plt.figure(figsize=(8, 10))
+        Xi, Yi = np.meshgrid(x_values, y_values)
+        plt.imshow(canvas, origin="upper")
+        plt.tight_layout()
+        plt.savefig('latant_space_viz_gan_epoch_{}_of_{}.png'.format(epoch,NUM_EPOCHS))

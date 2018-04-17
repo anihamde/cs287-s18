@@ -1,0 +1,20 @@
+AWS machine: /n/data_01 and /n/daa_02 (contains clones of basenji and basset)
+files: encode_roadmap.h5
+The train input data has nucleotides one-hot encoded. Chromosome regions are 600 long.
+The train output data has chromosome region on y axis (checkout UCSC genome browser) and cell type on the x axis. The binary data tells you whether the feature (chromatin something.. forgot feature name) is on or off (reality is a little more gradated).
+Basset has just the one feature, but deepsea has more features.
+print train dataset commands in basenji/tutorials/preprocess.py (and preprocess_features.py)
+We want to make a CNN like basset/src/basset_train.lua.
+I didn't understand this: RNA from a cell. Put on a sequencer. Our data is how many times a sequence matches a particular gene. This is distributed... negative binomial? (Poisson process(lambda) where lambda is Gamma distributed) Read off a sequencer?
+Stem cell differentiates into endoderm, mesoderm, ectoderm
+encodeproject.org -> help -> rest api (UUID, biosample term name)
+
+Basset Vocab
+Assay (a feature, like tf binding or histone modification or DNA accessibility or DNA methylation)
+Chromatin/DNA accessibility, or DNA-ase 1 hypersensitivity (DHS), or DNAase-seq (these are all part of the same feature)
+Annotations
+Gain-of-function
+SNP (single-nucleotide polymorphisms) are variants
+
+One-shot Matching Networks
+It's like, if you see an image once and then want to perform a matching task on it.
