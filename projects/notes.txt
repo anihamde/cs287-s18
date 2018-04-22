@@ -30,3 +30,8 @@ Ching et al Opportunities and obstacles for DL in biomed
 DanQ cites a mix of nlp and bio papers. Frey (predicting sequence specificities), DANN (DanQ predecessor), Quang EXTREME (a predecessor to that for motif discovery (a bunch of stuff on motifs)), Chen gene expression inference with deep learning, Lee/Ghandi gkm-SVM, Medina-Rivera regulatory sequence analysis tools
 LeCun gradient-based learning for document recognition, Graves/Schmidhuber phoneme LSTM and speech recognition, Sundermeyer translation bi-LSTM, Zhu co-occurrence feature learning for action recognition (serena?)
 Any techniques for improving predictions when they're mostly negatives? AUC is inflated due to class imbalance. A better metric is Precision-Recall AUC.
+
+Encode:
+Assay polyA RNA-seq
+Genome assembly (visualization) hg19
+Organism homo sapiens, available data tsv

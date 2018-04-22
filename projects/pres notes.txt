@@ -1,0 +1,41 @@
+
+
+Central dogma
+DNA language of life, proteins molecules of life
+DNA polymerase, transcription. Translation turns mRNA->tRNA->amino acids->proteins
+Gene expression. Genes are regions of DNA with explicit instructions
+Notice promoter regions
+Replication is imperfect: mutations/variants
+Most work: how mutations affect proteins
+Us: how mutations affect genome (gene expression process)
+Why? Most variation does not directly affect protein structure.
+Only 2%
+Noncoding region- dark matter. Less sure about its function, but it is important
+88%, phenotype
+What do non-coding variants do? They alter transcription
+Regulate the process turning genes "on" and "off" (gradated in reality)
+This is the core of our problem: core model from DNA sequences to features.
+Features describing different facets of transcription process.
+More detail on transcription & non-coding regions.
+Here's the polymerase on the gene.
+Transcription factor proteins on non-coding regions. Complex dynamics of regulation. Activators, inhibitors.
+Sequence->feature: 3 main feature categories to understand transcription process
+Accessibility (DNAase 1 hypersensitivity) how receptive
+TF binding
+Histone modification: DNA wrapped around histones. By interacting with histones. DNA tightly wound.
+Big picture: predict these things from DNA sequences
+Foreshadow a challenge: DNA is not 1D. far up/downstream
+TF binding isn't a single feature: many different TF proteins. 
+They are sequence specific.
+They scan the DNA, looking for nucleotide patterns, or motifs
+Low-level conv kernel scanning a sentence
+Other important concept is cell type.
+All cells contain the same DNA. Uniform blob. 
+Different cell types-> different genes. Kidney vs skin cell.
+DNAase 1 hypersensitivity (protein that cuts genes). Measuring accessibility (key feature)
+Oct-4 inhibits early-stage cell differentiation
+Different colors for different cell types.
+Pink: stem cell. High pink scores near the promoter.
+Why does this make sense? Stem cells need to express this gene to avoid differentiating.
+By contrast, bone cells (yellow) need to differentiate early to become uniquely bone.
+In summary: motivation behind sequence-to-chromatin feature prediction task. Suggested how cell type contributes additional information to this task.
