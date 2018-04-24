@@ -24,6 +24,7 @@ parser.add_argument('--batch_size','-bs',type=int,default=128,help='Batch size')
 parser.add_argument('--num_epochs','-ne',type=int,default=10,help='Number of epochs')
 parser.add_argument('--learning_rate','-lr',type=float,default=0.0001,help='Learning rate')
 parser.add_argument('--rho','-r',type=float,default=0.95,help='rho for Adadelta optimizer')
+parser.add_argument('--alpha','-al',type=float,default=0.98,help='alpha value for RMSprop optimizer')
 parser.add_argument('--weight_decay','-wd',type=float,default=0.0,help='Weight decay constant for optimizer')
 parser.add_argument('--max_weight_norm','-wn',type=float,help='Max L2 norm for weight clippping')
 parser.add_argument('--clip','-c',type=float,help='Max norm for weight clipping')
@@ -50,37 +51,10 @@ elif args.model_type == 2:
 elif args.model_type == 3:
     model = BassetNorm()
 
-'''
-key_set = [ x for x in model.state_dict().keys()]
-print(key_set)
-
-for key in key_set:
-    key_parts = key.split('.')
-    current_level = model
-    for level in range(len(key_parts)-1):
-        current_level = current_level._modules[key_parts[level]]
-    current_level.weight_g.data.clamp_(0.0,args.max_weight_norm)
-
-#print(list(model.parameters()))
-#print( list(filter(lambda x: 'weight_g' in x.name, model.parameters())) )
-#print(model.conv1.conv.weight_g)
-print(model._parameters)
-
-for (name, mod) in model._modules.items():
-    #iteration over outer layers
-    print('level 1')
-    print((name, mod))
-    for (name, mod) in mod._modules.items():
-        print('level 2')
-        print((name,mod))
-
-print(getattr(getattr(getattr(model,'conv1'),'conv'),'weight_g'))
-#print(model._modules['conv1']._modules['conv'].weight_g)
-#print(model._modules['linear1'].weight_g.data)
-'''
-
+num_params = sum([p.numel() for p in model.parameters()])
+    
 model.cuda()
-print("Model successfully imported",file=Logger)
+print("Model successfully imported\nTotal number of parameters {}".format(num_params),file=Logger)
 
 start = time.time()
 print("Reading data from file {}".format(args.data),file=Logger)
@@ -100,7 +74,7 @@ if args.optimizer_type == 0:
 elif args.optimizer_type == 1:
     optimizer = torch.optim.Adam(params, lr=args.learning_rate, weight_decay=args.weight_decay)
 elif args.optimizer_type == 2:
-    optimizer = torch.optim.RMSprop(params, lr=args.learning_rate, weight_decay=args.weight_decay)
+    optimizer = torch.optim.RMSprop(params, lr=args.learning_rate, alpha=args.alpha, weight_decay=args.weight_decay)
 
 #criterion = torch.nn.MultiLabelSoftMarginLoss() # Loss function
 criterion = torch.nn.BCEWithLogitsLoss(size_average=False)
