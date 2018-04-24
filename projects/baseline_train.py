@@ -25,6 +25,7 @@ parser.add_argument('--num_epochs','-ne',type=int,default=10,help='Number of epo
 parser.add_argument('--learning_rate','-lr',type=float,default=0.0001,help='Learning rate')
 parser.add_argument('--rho','-r',type=float,default=0.95,help='rho for Adadelta optimizer')
 parser.add_argument('--weight_decay','-wd',type=float,default=0.0,help='Weight decay constant for optimizer')
+parser.add_argument('--max_weight_norm','-wn',type=float,help='Max L2 norm for weight clippping')
 parser.add_argument('--clip','-c',type=float,help='Max norm for weight clipping')
 parser.add_argument('--model_file','-mf',type=str,default='stupid.pkl',help='Save model filename')
 parser.add_argument('--stop_instance','-halt',action='store_true',help='Stop AWS instance after training run.')
@@ -40,6 +41,47 @@ else:
     Logger = log_file
 #Logger = sys.stderr
 
+if args.model_type == 0:
+    model = Basset()
+elif args.model_type == 1:
+    model = DeepSEA()
+elif args.model_type == 2:
+    model = Classic()
+elif args.model_type == 3:
+    model = BassetNorm()
+
+'''
+key_set = [ x for x in model.state_dict().keys()]
+print(key_set)
+
+for key in key_set:
+    key_parts = key.split('.')
+    current_level = model
+    for level in range(len(key_parts)-1):
+        current_level = current_level._modules[key_parts[level]]
+    current_level.weight_g.data.clamp_(0.0,args.max_weight_norm)
+
+#print(list(model.parameters()))
+#print( list(filter(lambda x: 'weight_g' in x.name, model.parameters())) )
+#print(model.conv1.conv.weight_g)
+print(model._parameters)
+
+for (name, mod) in model._modules.items():
+    #iteration over outer layers
+    print('level 1')
+    print((name, mod))
+    for (name, mod) in mod._modules.items():
+        print('level 2')
+        print((name,mod))
+
+print(getattr(getattr(getattr(model,'conv1'),'conv'),'weight_g'))
+#print(model._modules['conv1']._modules['conv'].weight_g)
+#print(model._modules['linear1'].weight_g.data)
+'''
+
+model.cuda()
+print("Model successfully imported",file=Logger)
+
 start = time.time()
 print("Reading data from file {}".format(args.data),file=Logger)
 data = h5py.File(args.data)
@@ -51,17 +93,6 @@ train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, sh
 val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffle=False)
 test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=False)
 print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
-
-if args.model_type == 0:
-    model = Basset()
-elif args.model_type == 1:
-    model = DeepSEA()
-elif args.model_type == 2:
-    model = Classic()
-
-model.cuda()
-print("Model successfully imported",file=Logger)
-
 
 params = list(filter(lambda x: x.requires_grad, model.parameters()))
 if args.optimizer_type == 0:
@@ -95,6 +126,8 @@ for epoch in range(args.num_epochs):
         if args.clip:
             torch.nn.utils.clip_grad_norm(model.parameters(), args.clip)
         optimizer.step()
+        if args.max_weight_norm:
+            model.clip_norms( args.max_weight_norm )
         ctr += 1
         if ctr % 100 == 0:
             timenow = timeSince(start)
