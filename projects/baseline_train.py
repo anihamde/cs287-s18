@@ -51,37 +51,10 @@ elif args.model_type == 2:
 elif args.model_type == 3:
     model = BassetNorm()
 
-'''
-key_set = [ x for x in model.state_dict().keys()]
-print(key_set)
-
-for key in key_set:
-    key_parts = key.split('.')
-    current_level = model
-    for level in range(len(key_parts)-1):
-        current_level = current_level._modules[key_parts[level]]
-    current_level.weight_g.data.clamp_(0.0,args.max_weight_norm)
-
-#print(list(model.parameters()))
-#print( list(filter(lambda x: 'weight_g' in x.name, model.parameters())) )
-#print(model.conv1.conv.weight_g)
-print(model._parameters)
-
-for (name, mod) in model._modules.items():
-    #iteration over outer layers
-    print('level 1')
-    print((name, mod))
-    for (name, mod) in mod._modules.items():
-        print('level 2')
-        print((name,mod))
-
-print(getattr(getattr(getattr(model,'conv1'),'conv'),'weight_g'))
-#print(model._modules['conv1']._modules['conv'].weight_g)
-#print(model._modules['linear1'].weight_g.data)
-'''
-
+num_params = sum([p.numel() for p in model.parameters()])
+    
 model.cuda()
-print("Model successfully imported",file=Logger)
+print("Model successfully imported\nTotal number of parameters {}".format(num_params),file=Logger)
 
 start = time.time()
 print("Reading data from file {}".format(args.data),file=Logger)
