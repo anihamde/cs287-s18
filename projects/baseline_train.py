@@ -103,7 +103,7 @@ elif args.optimizer_type == 2:
     optimizer = torch.optim.RMSprop(params, lr=args.learning_rate, weight_decay=args.weight_decay)
 
 #criterion = torch.nn.MultiLabelSoftMarginLoss() # Loss function
-criterion = torch.nn.BCEWithLogitsLoss()
+criterion = torch.nn.BCEWithLogitsLoss(size_average=False)
 
 start = time.time()
 best_loss = 100000
