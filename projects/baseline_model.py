@@ -85,13 +85,13 @@ class Classic(nn.Module):
 class BassetNorm(nn.Module):
     def __init__(self, dropout_prob=0.3):
         super(BassetNorm, self).__init__()
-        self.conv1 = Conv1dNorm(4, 300, 19, stride=1, padding=0)
-        self.conv2 = Conv1dNorm(300, 200, 11, stride=1, padding=0)
-        self.conv3 = Conv1dNorm(200, 200, 7, stride=1, padding=0)
+        self.conv1 = Conv1dNorm(4, 300, 19, stride=1, padding=0, weight_norm=False)
+        self.conv2 = Conv1dNorm(300, 200, 11, stride=1, padding=0, weight_norm=False)
+        self.conv3 = Conv1dNorm(200, 200, 7, stride=1, padding=0, weight_norm=False)
         self.maxpool_4 = nn.MaxPool1d(4,padding=0)
         self.maxpool_3 = nn.MaxPool1d(3,padding=0)
-        self.linear1 = LinearNorm(200*13, 1000)
-        self.linear2 = LinearNorm(1000, 1000)
+        self.linear1 = LinearNorm(200*13, 1000, weight_norm=False)
+        self.linear2 = LinearNorm(1000, 1000, weight_norm=False)
         self.dropout = nn.Dropout(p=dropout_prob)
         self.output = nn.Linear(1000, 164)
     def forward(self, x):
@@ -116,12 +116,17 @@ class BassetNorm(nn.Module):
         out = self.dropout(out)
         return self.output(out) # (?, 164)
     def clip_norms(self, value):
-        key_chain = [ key for key in self.state_dict().keys() if 'weight_g' in key ]
+        key_chain = [ key for key in self.state_dict().keys() if 'weight' in key ]
         for key in key_chain:
             module_list = [self]
-            for key_level in key.split('.'):
+            for key_level in key.split('.')[:-1]:
                 module_list.append( getattr(module_list[-1], key_level) )
-            module_list[-1].data.clamp_(min=0.0,max=value)
+            if key.split('.')[-1] == 'weight_g':
+                module_list[-1].weight_g.data.clamp_(min=0.0,max=value)
+            elif key.split('.')[-1] == 'weight':
+                module_list[-1] = nn.utils.weight_norm(module_list[-1])
+                module_list[-1].weight_g.data.clamp_(min=0.0,max=value)
+                torch.nn.utils.remove_weight_norm(module_list[-1])
     
 class Basset(nn.Module):
     def __init__(self, dropout_prob=0.3):
