@@ -127,7 +127,7 @@ class BassetNorm(nn.Module):
                 #module_list[-1] = nn.utils.weight_norm(module_list[-1])
                 #module_list[-1].weight_g.data.clamp_(min=0.0,max=value)
                 #torch.nn.utils.remove_weight_norm(module_list[-1])
-                module_list[-1].weight.data.renorm_(p=2,dim=0,max=value)
+                module_list[-1].weight.data.renorm_(p=2,dim=0,maxnorm=value)
     
 class Basset(nn.Module):
     def __init__(self, dropout_prob=0.3):
