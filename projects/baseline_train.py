@@ -126,12 +126,9 @@ for epoch in range(args.num_epochs):
         losses.append(loss.item())
         y_score.append( outputs.cpu().data.numpy() )
         y_test.append(  targets.cpu().data.numpy() )
-    epoch_loss = sum(losses)/float(len(losses))
+    epoch_loss = sum(losses)
     avg_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score))
     timenow = timeSince(start)
-    print( epoch_loss )
-    print( len(val) )
-    print( val.size() )
     print( "Epoch [{}/{}], Time: {}, Validation loss: {}, Mean AUC: {}".format( epoch+1, args.num_epochs, 
                                                                                 timenow, epoch_loss/len(val), avg_auc),
            file=Logger)
