@@ -129,7 +129,7 @@ class BassetNorm(nn.Module):
                 #torch.nn.utils.remove_weight_norm(module_list[-1])
                 print(module_list[-1])
                 print(module_list[-1].weight.data.size())
-                print(key)
+                print(len(module_list[-1].weight.data.size()))
                 module_list[-1].weight.data.renorm_(p=2,dim=0,maxnorm=value)
     
 class Basset(nn.Module):
