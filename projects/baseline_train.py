@@ -81,7 +81,7 @@ elif args.optimizer_type == 2:
 criterion = torch.nn.BCEWithLogitsLoss(size_average=False)
 
 start = time.time()
-best_loss = 100000
+best_loss = math.inf
 print("Begin training",file=Logger)
 for epoch in range(args.num_epochs):
     model.train()
@@ -108,7 +108,7 @@ for epoch in range(args.num_epochs):
             timenow = timeSince(start)
             print('Epoch [{}/{}], Iter [{}/{}], Time: {}, Loss: {}'.format(epoch+1, args.num_epochs, ctr,
                                                                            len(train)//args.batch_size, 
-                                                                           timenow, tot_loss/100),
+                                                                           timenow, tot_loss/(100*args.batch_size)),
                   file=Logger)
             tot_loss = 0
     #
@@ -131,7 +131,7 @@ for epoch in range(args.num_epochs):
     avg_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score))
     timenow = timeSince(start)
     print( "Epoch [{}/{}], Time: {}, Validation loss: {}, Mean AUC: {}".format( epoch+1, args.num_epochs, 
-                                                                                timenow, epoch_loss, avg_auc),
+                                                                                timenow, epoch_loss/len(val), avg_auc),
            file=Logger)
     if epoch_loss <= best_loss:
         torch.save(model.state_dict(), args.model_file)
