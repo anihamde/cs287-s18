@@ -80,7 +80,7 @@ elif args.optimizer_type == 2:
 criterion = torch.nn.BCEWithLogitsLoss(size_average=False)
 
 start = time.time()
-best_loss = math.inf
+best_loss = np.inf
 print("Begin training",file=Logger)
 for epoch in range(args.num_epochs):
     model.train()
