@@ -124,12 +124,6 @@ class BassetNorm(nn.Module):
             if key.split('.')[-1] == 'weight_g':
                 module_list[-1].weight_g.data.clamp_(min=0.0,max=value)
             elif key.split('.')[-1] == 'weight' and len(module_list[-1].weight.data.size()) > 1:
-                #module_list[-1] = nn.utils.weight_norm(module_list[-1])
-                #module_list[-1].weight_g.data.clamp_(min=0.0,max=value)
-                #torch.nn.utils.remove_weight_norm(module_list[-1])
-                print(module_list[-1])
-                print(module_list[-1].weight.data.size())
-                #print(len(module_list[-1].weight.data.size()))
                 module_list[-1].weight.data.renorm_(p=2,dim=0,maxnorm=value)
     
 class Basset(nn.Module):
