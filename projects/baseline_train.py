@@ -51,8 +51,7 @@ elif args.model_type == 2:
 elif args.model_type == 3:
     model = BassetNorm()
 
-trainable_params = filter(lambda x: return x.requires_grad, model.parameters())
-num_params = sum([p.numel() for p in trainable_params])
+num_params = sum([p.numel() for p in model.parameters()])
     
 model.cuda()
 print("Model successfully imported\nTotal number of parameters {}".format(num_params),file=Logger)
