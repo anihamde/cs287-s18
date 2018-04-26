@@ -51,6 +51,8 @@ elif args.model_type == 2:
     model = Classic()
 elif args.model_type == 3:
     model = BassetNorm()
+elif args.model_type == 4:
+	model = DanQ()
 
 num_params = sum([p.numel() for p in model.parameters()])
     

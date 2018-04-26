@@ -186,22 +186,37 @@ class DeepSEA(nn.Module):
         return self.output(out) # (?, 164)
 
 class DanQ(nn.Module):
-    def __init__(self, dropout_prob_02=0.2, dropout_prob_03=0.5):
+    def __init__(self, dropout_prob_02=0.2, dropout_prob_03=0.5, hidden_size=512, num_layers=1,
+    			bidirectional=True):
+    	# TODO: weight initialize unif[-.05,.05], bias 0
         super(DanQ, self).__init__()
         self.conv1 = nn.Conv1d(4, 1024, 30, stride=1, pad=0)
         self.maxpool = nn.MaxPool1d(15,padding=0)
-        self.lstm = nn.LSTM(1024, 512, num_layers=1, bidirectional=True)
-        self.dropout2 = nn.Dropout(p=dropout_prob_02)
+        self.lstm = nn.LSTM(input_size=1024,hidden_size=hidden_size,num_layers=num_layers,bidirectional=bidirectional)
+        # other relevant args: nonlinearity, dropout
+        # lstm input shape: seq_len,bs,input_size
+        # hidden shape: num_layers*num_directions,bs,hidden_size
+        # output shape: seq_len,bs,hidden_size*num_directions
+        self.dropout_2 = nn.Dropout(p=dropout_prob_02)
         self.dropout_3 = nn.Dropout(p=dropout_prob_03)
+        self.linear = nn.Linear(39*1024,925)
         self.output = nn.Linear(925, 164)
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.directions = self.bidirectional + 1
+    def initHidden(self,bs):
+    	return (Variable(torch.zeros(self.num_layers*self.directions,bs,self.hidden_size).cuda()), 
+                Variable(torch.zeros(self.num_layers*self.directions,bs,self.hidden_size).cuda()))
     def forward(self, x):
         out = F.relu(self.conv1(x)) # (?, 1024, 571)
         out = F.pad(out,(14,0)) # (?, 1024, 585)
         out = self.maxpool(out) # (?, 1024, 39)
         out = self.dropout_2(out) # (?, 1024, 39)
-        # (39, ?, 1024)
-        # initiate hiddens to 0s
-        out = self.lstm(out, ()) 
-        out = self.dropout_3(out) # (?, )
+        out = out.permute(2,0,1) # (39, ?, 1024)
+        out = self.lstm(out, self.initHidden(out.size(1))) # (39, ?, 1024)
+        out = self.dropout_3(out) # (39, ?, 1024)
+        out = out.transpose(1,0).reshape(-1,39*1024) # (/, 39*1024)
         out = F.relu(self.linear(out)) # (?, 925)
         return self.output(out) # (?, 164)
+
+# todo: smaller danq, jaspar
