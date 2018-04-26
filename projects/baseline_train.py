@@ -31,6 +31,7 @@ parser.add_argument('--clip','-c',type=float,help='Max norm for weight clipping'
 parser.add_argument('--model_file','-mf',type=str,default='stupid.pkl',help='Save model filename')
 parser.add_argument('--stop_instance','-halt',action='store_true',help='Stop AWS instance after training run.')
 parser.add_argument('--log_file','-l',type=str,default='stderr',help='training log file')
+# parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
 args = parser.parse_args()
 
 print("Begin run")
@@ -64,8 +65,11 @@ train = torch.utils.data.TensorDataset(torch.CharTensor(data['train_in']), torch
 val = torch.utils.data.TensorDataset(torch.CharTensor(data['valid_in']), torch.CharTensor(data['valid_out']))
 test = torch.utils.data.TensorDataset(torch.CharTensor(data['test_in']), torch.CharTensor(data['test_out']))
 train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True)
+# train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True, num_workers=int(args.workers))
 val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffle=False)
+# val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffle=False, num_workers=int(args.workers))
 test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=False)
+# test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=False, num_workers=int(args.workers))
 print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
 
 params = list(filter(lambda x: x.requires_grad, model.parameters()))
