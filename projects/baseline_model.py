@@ -219,4 +219,4 @@ class DanQ(nn.Module):
         out = F.relu(self.linear(out)) # (?, 925)
         return self.output(out) # (?, 164)
 
-# todo: smaller danq, jaspar
+        
