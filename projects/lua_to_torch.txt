@@ -1,0 +1,54 @@
+from ubuntu pytorch machine
+
+import torch
+from torch.utils.serialization import load_lua
+j = load_lua('../../innermodel_cpu.th',unknown_classes=True)
+from baseline_model import *
+m = BassetNorm()
+
+# convolutions
+m.conv1.conv.weight.data = j.get(0).weight.squeeze() # j.get(0).torch_typename
+m.conv1.conv.bias.data = j.get(0).bias
+m.conv1.bn_layer.weight.data = j.get(1).weight
+m.conv1.bn_layer.bias.data = j.get(1).bias
+m.conv1.bn_layer.running_mean.data = j.get(1).running_mean
+m.conv1.bn_layer.running_var.data = j.get(1).running_var
+# j.get(2) is relu, j.get(3) is maxpool, same with 6,7 and 10,11
+m.conv2.conv.weight.data = j.get(4).weight.squeeze()
+m.conv2.conv.bias.data = j.get(4).bias
+m.conv2.bn_layer.weight.data = j.get(5).weight
+m.conv2.bn_layer.bias.data = j.get(5).bias
+m.conv2.bn_layer.running_mean.data = j.get(5).running_mean
+m.conv2.bn_layer.running_var.data = j.get(5).running_var
+m.conv3.conv.weight.data = j.get(8).weight.squeeze()
+m.conv3.conv.bias.data = j.get(8).bias
+m.conv3.bn_layer.weight.data = j.get(9).weight
+m.conv3.bn_layer.bias.data = j.get(9).bias
+m.conv3.bn_layer.running_mean.data = j.get(9).running_mean
+m.conv3.bn_layer.running_var.data = j.get(9).running_var
+# j.get(12) is nn.Reshape
+m.linear1.linear.weight.data = j.get(13).weight
+m.linear1.linear.bias.data = j.get(13).bias
+m.linear1.bn_layer.weight.data = j.get(14).weight
+m.linear1.bn_layer.bias.data = j.get(14).bias
+m.linear1.bn_layer.running_mean.data = j.get(14).running_mean
+m.linear1.bn_layer.running_var.data = j.get(14).running_var
+m.linear2.linear.weight.data = j.get(17).weight
+m.linear2.linear.bias.data = j.get(17).bias
+m.linear2.bn_layer.weight.data = j.get(18).weight
+m.linear2.bn_layer.bias.data = j.get(18).bias
+m.linear2.bn_layer.running_mean.data = j.get(18).running_mean
+m.linear2.bn_layer.running_var.data = j.get(18).running_var
+m.output.weight.data = j.get(21).weight
+m.output.bias.data = j.get(21).bias
+
+======= NOTES ==========
+findModules, get, modules, parameters
+accGradParameters', 'accUpdateGradParameters', 'add', 'apply', 'applyToModules', 'backward', 'backwardUpdate', 'clearState', 'clone', 'cuda', 'double', 'evaluate', 'findModules', 'flattenParameters', 'float', 'forward', 'get', 'gradInput', 'insert', 'listModules', 'modules', 'output', 'parameters', 'read', 'remove', 'replace', 'reset', 'share', 'sharedAccUpdateGradParameters', 'size', 'train', 'training', 'type', 'updateGradInput', 'updateOutput', 'updateParameters', 'write', 'zeroGradParameters
+http://nn.readthedocs.io/en/rtd/convolution/#nn.SpatialConvolution
+
+'conv1.conv.weight', 'conv1.conv.bias', 'conv1.bn_layer.weight', 'conv1.bn_layer.bias', 'conv1.bn_layer.running_mean', 'conv1.bn_layer.running_var', 'conv2.conv.weight', 'conv2.conv.bias', 'conv2.bn_layer.weight', 'conv2.bn_layer.bias', 'conv2.bn_layer.running_mean', 'conv2.bn_layer.running_var', 'conv3.conv.weight', 'conv3.conv.bias', 'conv3.bn_layer.weight', 'conv3.bn_layer.bias', 'conv3.bn_layer.running_mean', 'conv3.bn_layer.running_var', 'linear1.linear.weight', 'linear1.linear.bias', 'linear1.bn_layer.weight', 'linear1.bn_layer.bias', 'linear1.bn_layer.running_mean', 'linear1.bn_layer.running_var', 'linear2.linear.weight', 'linear2.linear.bias', 'linear2.bn_layer.weight', 'linear2.bn_layer.bias', 'linear2.bn_layer.running_mean', 'linear2.bn_layer.running_var', 'output.weight', 'output.bias'
+
+other things to check:
+new_test_model_best.th has a bunch of other hyperparams
+convolution grad_weight and grad_bias

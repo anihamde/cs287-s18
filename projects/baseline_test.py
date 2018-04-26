@@ -2,6 +2,7 @@ import torch
 import h5py
 import sys
 import subprocess
+import glob
 from torch.autograd import Variable
 import torch.nn as nn
 import torch.nn.functional as F
@@ -47,50 +48,54 @@ elif args.model_type == 3:
 
 num_params = sum([p.numel() for p in model.parameters()])
 
-model.load_state_dict(torch.load(args.model_file))    
-model.cuda()
-print("Model successfully imported\nTotal number of parameters {}".format(num_params),file=Logger)
+model_files = glob.glob('bassetnorm_*.pkl')
 
-start = time.time()
-print("Reading data from file {}".format(args.data),file=Logger)
-data = h5py.File(args.data)
+for mf in model_files:
+    model = BassetNorm()
+    model.load_state_dict(torch.load(mf))    
+    model.cuda()
+    print("Model {} successfully imported\nTotal number of parameters {}".format(mf, num_params),file=Logger)
 
-# train = torch.utils.data.TensorDataset(torch.CharTensor(data['train_in']), torch.CharTensor(data['train_out']))
-val = torch.utils.data.TensorDataset(torch.CharTensor(data['valid_in']), torch.CharTensor(data['valid_out']))
-test = torch.utils.data.TensorDataset(torch.CharTensor(data['test_in']), torch.CharTensor(data['test_out']))
-# train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True)
-val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffle=False)
-test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=False)
+    start = time.time()
+    print("Reading data from file {}".format(args.data),file=Logger)
+    data = h5py.File(args.data)
 
-#criterion = torch.nn.MultiLabelSoftMarginLoss() # Loss function
-criterion = torch.nn.BCEWithLogitsLoss(size_average=False)
+    # train = torch.utils.data.TensorDataset(torch.CharTensor(data['train_in']), torch.CharTensor(data['train_out']))
+    val = torch.utils.data.TensorDataset(torch.CharTensor(data['valid_in']), torch.CharTensor(data['valid_out']))
+    test = torch.utils.data.TensorDataset(torch.CharTensor(data['test_in']), torch.CharTensor(data['test_out']))
+    # train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True)
+    val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffle=False)
+    test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=False)
 
-start = time.time()
-print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
-best_loss = np.inf
-print("Begin training",file=Logger)
+    #criterion = torch.nn.MultiLabelSoftMarginLoss() # Loss function
+    criterion = torch.nn.BCEWithLogitsLoss(size_average=False)
 
-model.eval()
-losses  = []
-y_score = []
-y_test  = []
-#val_loader.init_epoch()
-for inputs, targets in test_loader:
-    inputs = to_one_hot(inputs, n_dims=4).permute(0,3,1,2).squeeze().float()
-    targets = targets.float()
-    inp_batch = Variable( inputs ).cuda()
-    trg_batch = Variable(targets).cuda()        
-    outputs = model(inp_batch)
-    loss = criterion(outputs.view(-1), trg_batch.view(-1))
-    losses.append(loss.item())
-    y_score.append( outputs.cpu().data.numpy() )
-    y_test.append(  targets.cpu().data.numpy() )
+    start = time.time()
+    print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
+    best_loss = np.inf
+    print("Begin training",file=Logger)
 
-epoch_loss = sum(losses)/len(val)
-avg_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score))
-timenow = timeSince(start)
-print( "Time: {}, Validation loss: {}, Mean AUC: {}".format( timenow, epoch_loss, avg_auc),
-       file=Logger)
+    model.eval()
+    losses  = []
+    y_score = []
+    y_test  = []
+    #val_loader.init_epoch()
+    for inputs, targets in test_loader:
+        inputs = to_one_hot(inputs, n_dims=4).permute(0,3,1,2).squeeze().float()
+        targets = targets.float()
+        inp_batch = Variable( inputs ).cuda()
+        trg_batch = Variable(targets).cuda()        
+        outputs = model(inp_batch)
+        loss = criterion(outputs.view(-1), trg_batch.view(-1))
+        losses.append(loss.item())
+        y_score.append( outputs.cpu().data.numpy() )
+        y_test.append(  targets.cpu().data.numpy() )
+
+    epoch_loss = sum(losses)/len(val)
+    avg_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score))
+    timenow = timeSince(start)
+    print( "Time: {}, Validation loss: {}, Mean AUC: {}".format( timenow, epoch_loss, avg_auc),
+           file=Logger)
 
 if args.stop_instance:
     Logger.close()
