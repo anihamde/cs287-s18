@@ -48,32 +48,29 @@ elif args.model_type == 3:
 
 num_params = sum([p.numel() for p in model.parameters()])
 
-model_files = glob.glob('bassetnorm_*.pkl')
+print("Reading data from file {}".format(args.data),file=Logger)
+data = h5py.File(args.data)
+
+# train = torch.utils.data.TensorDataset(torch.CharTensor(data['train_in']), torch.CharTensor(data['train_out']))
+val = torch.utils.data.TensorDataset(torch.CharTensor(data['valid_in']), torch.CharTensor(data['valid_out']))
+test = torch.utils.data.TensorDataset(torch.CharTensor(data['test_in']), torch.CharTensor(data['test_out']))
+# train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True)
+val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffle=False)
+test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=False)
+
+#criterion = torch.nn.MultiLabelSoftMarginLoss() # Loss function
+criterion = torch.nn.BCEWithLogitsLoss(size_average=False)
+
+start = time.time()
+print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
+
+model_files = sorted(glob.glob('bassetnorm_*.pkl'))
 
 for mf in model_files:
     model = BassetNorm()
     model.load_state_dict(torch.load(mf))    
     model.cuda()
     print("Model {} successfully imported\nTotal number of parameters {}".format(mf, num_params),file=Logger)
-
-    start = time.time()
-    print("Reading data from file {}".format(args.data),file=Logger)
-    data = h5py.File(args.data)
-
-    # train = torch.utils.data.TensorDataset(torch.CharTensor(data['train_in']), torch.CharTensor(data['train_out']))
-    val = torch.utils.data.TensorDataset(torch.CharTensor(data['valid_in']), torch.CharTensor(data['valid_out']))
-    test = torch.utils.data.TensorDataset(torch.CharTensor(data['test_in']), torch.CharTensor(data['test_out']))
-    # train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True)
-    val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffle=False)
-    test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=False)
-
-    #criterion = torch.nn.MultiLabelSoftMarginLoss() # Loss function
-    criterion = torch.nn.BCEWithLogitsLoss(size_average=False)
-
-    start = time.time()
-    print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
-    best_loss = np.inf
-    print("Begin training",file=Logger)
 
     model.eval()
     losses  = []
