@@ -23,7 +23,7 @@ parser.add_argument('--batch_size','-bs',type=int,default=128,help='Batch size')
 parser.add_argument('--num_epochs','-ne',type=int,default=10,help='Number of epochs')
 parser.add_argument('--max_weight_norm','-wn',type=float,help='Max L2 norm for weight clippping')
 parser.add_argument('--clip','-c',type=float,help='Max norm for weight clipping')
-parser.add_argument('--model_file','-mf',type=str,default='stupid.pkl',help='Save model filename')
+parser.add_argument('--model_file','-mf',type=str,default='../../model_from_lua.pkl',help='Load model filename')
 parser.add_argument('--stop_instance','-halt',action='store_true',help='Stop AWS instance after training run.')
 parser.add_argument('--log_file','-l',type=str,default='stderr',help='training log file')
 args = parser.parse_args()
@@ -48,7 +48,8 @@ elif args.model_type == 3:
     model = BassetNorm()
 
 num_params = sum([p.numel() for p in model.parameters()])
-    
+
+model.load_state_dict(torch.load(args.model_file))    
 model.cuda()
 print("Model successfully imported\nTotal number of parameters {}".format(num_params),file=Logger)
 
