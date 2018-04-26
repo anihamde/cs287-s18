@@ -18,12 +18,10 @@ from baseline_model import *
 
 parser = argparse.ArgumentParser(description='training runner')
 parser.add_argument('--data','-d',type=str,default='/n/data_02/Basset/data/mini_roadmap.h5',help='path to training data')
-parser.add_argument('--model_type','-mt',type=int,default=0,help='Model type')
+parser.add_argument('--model_type','-mt',type=int,default=3,help='Model type')
 parser.add_argument('--batch_size','-bs',type=int,default=128,help='Batch size')
 parser.add_argument('--num_epochs','-ne',type=int,default=10,help='Number of epochs')
-parser.add_argument('--max_weight_norm','-wn',type=float,help='Max L2 norm for weight clippping')
-parser.add_argument('--clip','-c',type=float,help='Max norm for weight clipping')
-parser.add_argument('--model_file','-mf',type=str,default='stupid.pkl',help='Save model filename')
+parser.add_argument('--model_file','-mf',type=str,default='../../model_from_lua.pkl',help='Load model filename')
 parser.add_argument('--stop_instance','-halt',action='store_true',help='Stop AWS instance after training run.')
 parser.add_argument('--log_file','-l',type=str,default='stderr',help='training log file')
 args = parser.parse_args()
@@ -49,6 +47,7 @@ elif args.model_type == 3:
 
 num_params = sum([p.numel() for p in model.parameters()])
     
+model.load_state_dict(torch.load(args.model_file))
 model.cuda()
 print("Model successfully imported\nTotal number of parameters {}".format(num_params),file=Logger)
 
@@ -62,13 +61,12 @@ test = torch.utils.data.TensorDataset(torch.CharTensor(data['test_in']), torch.C
 # train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True)
 val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffle=False)
 test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=False)
-print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
-
 
 #criterion = torch.nn.MultiLabelSoftMarginLoss() # Loss function
 criterion = torch.nn.BCEWithLogitsLoss(size_average=False)
 
 start = time.time()
+print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
 best_loss = np.inf
 print("Begin training",file=Logger)
 
@@ -77,7 +75,7 @@ losses  = []
 y_score = []
 y_test  = []
 #val_loader.init_epoch()
-for inputs, targets in val_loader:
+for inputs, targets in test_loader:
     inputs = to_one_hot(inputs, n_dims=4).permute(0,3,1,2).squeeze().float()
     targets = targets.float()
     inp_batch = Variable( inputs ).cuda()
@@ -87,11 +85,11 @@ for inputs, targets in val_loader:
     losses.append(loss.item())
     y_score.append( outputs.cpu().data.numpy() )
     y_test.append(  targets.cpu().data.numpy() )
+
 epoch_loss = sum(losses)/len(val)
 avg_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score))
 timenow = timeSince(start)
-print( "Epoch [{}/{}], Time: {}, Validation loss: {}, Mean AUC: {}".format( epoch+1, args.num_epochs, 
-                                                                            timenow, epoch_loss, avg_auc),
+print( "Time: {}, Validation loss: {}, Mean AUC: {}".format( timenow, epoch_loss, avg_auc),
        file=Logger)
 
 if args.stop_instance:
