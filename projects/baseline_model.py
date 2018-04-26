@@ -213,10 +213,9 @@ class DanQ(nn.Module):
         out = self.maxpool(out) # (?, 1024, 39)
         out = self.dropout_2(out) # (?, 1024, 39)
         out = out.permute(2,0,1) # (39, ?, 1024)
-        out = self.lstm(out, self.initHidden(out.size(1))) # (39, ?, 1024)
+        out,_ = self.lstm(out, self.initHidden(out.size(1))) # (39, ?, 1024)
         out = self.dropout_3(out) # (39, ?, 1024)
         out = out.transpose(1,0).reshape(-1,39*1024) # (/, 39*1024)
         out = F.relu(self.linear(out)) # (?, 925)
         return self.output(out) # (?, 164)
 
-        
