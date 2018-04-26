@@ -184,3 +184,24 @@ class DeepSEA(nn.Module):
         out = self.dropout_5(out) # dropout
         out = F.relu(self.linear(out)) # (?, 800)
         return self.output(out) # (?, 164)
+
+class DanQ(nn.Module):
+    def __init__(self, dropout_prob_02=0.2, dropout_prob_03=0.5):
+        super(DanQ, self).__init__()
+        self.conv1 = nn.Conv1d(4, 1024, 30, stride=1, pad=0)
+        self.maxpool = nn.MaxPool1d(15,padding=0)
+        self.lstm = nn.LSTM(1024, 512, num_layers=1, bidirectional=True)
+        self.dropout2 = nn.Dropout(p=dropout_prob_02)
+        self.dropout_3 = nn.Dropout(p=dropout_prob_03)
+        self.output = nn.Linear(925, 164)
+    def forward(self, x):
+        out = F.relu(self.conv1(x)) # (?, 1024, 571)
+        out = F.pad(out,(14,0)) # (?, 1024, 585)
+        out = self.maxpool(out) # (?, 1024, 39)
+        out = self.dropout_2(out) # (?, 1024, 39)
+        # (39, ?, 1024)
+        # initiate hiddens to 0s
+        out = self.lstm(out, ()) 
+        out = self.dropout_3(out) # (?, )
+        out = F.relu(self.linear(out)) # (?, 925)
+        return self.output(out) # (?, 164)
