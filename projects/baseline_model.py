@@ -190,7 +190,7 @@ class DanQ(nn.Module):
     			bidirectional=True):
     	# TODO: weight initialize unif[-.05,.05], bias 0
         super(DanQ, self).__init__()
-        self.conv1 = nn.Conv1d(4, 1024, 30, stride=1, pad=0)
+        self.conv1 = nn.Conv1d(4, 1024, 30, stride=1, padding=0)
         self.maxpool = nn.MaxPool1d(15,padding=0)
         self.lstm = nn.LSTM(input_size=1024,hidden_size=hidden_size,num_layers=num_layers,bidirectional=bidirectional)
         # other relevant args: nonlinearity, dropout
@@ -203,7 +203,7 @@ class DanQ(nn.Module):
         self.output = nn.Linear(925, 164)
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.directions = self.bidirectional + 1
+        self.directions = bidirectional + 1
     def initHidden(self,bs):
     	return (Variable(torch.zeros(self.num_layers*self.directions,bs,self.hidden_size).cuda()), 
                 Variable(torch.zeros(self.num_layers*self.directions,bs,self.hidden_size).cuda()))
