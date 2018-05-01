@@ -33,7 +33,7 @@ parser.add_argument('--clip','-c',type=float,help='Max norm for weight clipping'
 parser.add_argument('--model_file','-mf',type=str,default='stupid.pkl',help='Save model filename')
 parser.add_argument('--stop_instance','-halt',action='store_true',help='Stop AWS instance after training run.')
 parser.add_argument('--log_file','-l',type=str,default='stderr',help='training log file')
-# parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
+parser.add_argument('--workers', '-wk', type=int, help='number of data loading workers', default=2)
 args = parser.parse_args()
 
 print("Begin run")
@@ -94,9 +94,9 @@ val   = RoadmapDataset(data['valid_in'], expn, data['valid_out'])
 test  = RoadmapDataset(data['test_in'], expn, data['test_out'])
 
 # Set Loader
-train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True)
-val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffle=False)
-test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=False)
+train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True, num_workers=args.workers)
+val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffle=False, num_workers=args.workers)
+test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=False, num_workers=args.workers)
 
 print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
 
