@@ -74,10 +74,10 @@ print("Done")
 
 start = time.time()
 print("Linking data from file {}".format(args.data),file=Logger)
-data = h5py.File(args.data)
-
 
 ## Old Dataset loading
+# data = h5py.File(args.data)
+#
 # train = torch.utils.data.TensorDataset(torch.CharTensor(data['train_in']), torch.CharTensor(data['train_out']))
 # val = torch.utils.data.TensorDataset(torch.CharTensor(data['valid_in']), torch.CharTensor(data['valid_out']))
 # test = torch.utils.data.TensorDataset(torch.CharTensor(data['test_in']), torch.CharTensor(data['test_out']))
@@ -89,9 +89,9 @@ data = h5py.File(args.data)
 # test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=False, num_workers=int(args.workers))
 
 # Set Datasets
-train = RoadmapDataset(data['train_in'], expn, data['train_out'])
-val   = RoadmapDataset(data['valid_in'], expn, data['valid_out'])
-test  = RoadmapDataset(data['test_in'], expn, data['test_out'])
+train = RoadmapDataset(args.data, expn, 'train')
+val   = RoadmapDataset(args.data, expn, 'valid')
+test  = RoadmapDataset(args.data, expn, 'test')
 
 # Set Loader
 train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True, num_workers=args.workers)
