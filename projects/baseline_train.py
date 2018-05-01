@@ -53,6 +53,8 @@ elif args.model_type == 3:
     model = BassetNorm()
 elif args.model_type == 4:
 	model = DanQ()
+elif args.model_type == 5:
+	model = BassetNormCat()
 
 num_params = sum([p.numel() for p in model.parameters()])
     
@@ -74,6 +76,12 @@ test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuf
 # test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=False, num_workers=int(args.workers))
 print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
 
+# Gene expression dataset
+expn = pd.read_table('/n/data_02/Basset/data/expn/roadmap/57epigenomes.RPKM.pc',header=0)    
+col_names = expn.columns.values[1:]
+expn = expn.drop(col_names[-1],axis=1)
+expn.columns = col_names
+
 params = list(filter(lambda x: x.requires_grad, model.parameters()))
 if args.optimizer_type == 0:
     optimizer = torch.optim.Adadelta(params, lr=args.learning_rate, rho=args.rho, weight_decay=args.weight_decay)
@@ -94,12 +102,16 @@ for epoch in range(args.num_epochs):
     ctr = 0
     tot_loss = 0
     for inputs, targets in train_loader:
+    	celltypes = inputs[:,:,-1].data.numpy() + 1 # off by one error 
+    	inputs = inputs[:,:,:-1]
+    	geneexpr = expn.iloc[:,celltypes].values.T
         inputs = to_one_hot(inputs, n_dims=4).permute(0,3,1,2).squeeze().float()
         targets = targets.float()
         inp_batch = Variable(inputs).cuda()
-        trg_batch = Variable(targets).cuda()        
+        geneexpr_batch = Variable(torch.Tensor(geneexpr)).cuda()
+        trg_batch = Variable(targets).cuda()
         optimizer.zero_grad()
-        outputs = model(inp_batch)
+        outputs = model(inp_batch, geneexpr_batch)
         loss = criterion(outputs.view(-1), trg_batch.view(-1))
         loss.backward()
         tot_loss += loss.item()
