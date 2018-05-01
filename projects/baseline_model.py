@@ -129,13 +129,13 @@ class BassetNorm(nn.Module):
 
 class BassetNormCat(nn.Module):
     def __init__(self, dropout_prob=0.3):
-        super(BassetNorm, self).__init__()
+        super(BassetNormCat, self).__init__()
         self.conv1 = Conv1dNorm(4, 300, 19, stride=1, padding=0, weight_norm=False)
         self.conv2 = Conv1dNorm(300, 200, 11, stride=1, padding=0, weight_norm=False)
         self.conv3 = Conv1dNorm(200, 200, 7, stride=1, padding=0, weight_norm=False)
         self.maxpool_4 = nn.MaxPool1d(4,padding=0)
         self.maxpool_3 = nn.MaxPool1d(3,padding=0)
-        self.genelinear = LinearNorm(20000, 500, weight_norm=False)
+        self.genelinear = LinearNorm(19795, 500, weight_norm=False)
         self.linear1 = LinearNorm(200*13+500, 1000, weight_norm=False)
         self.linear2 = LinearNorm(1000, 1000, weight_norm=False)
         self.dropout = nn.Dropout(p=dropout_prob)

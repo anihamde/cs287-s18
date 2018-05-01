@@ -11,10 +11,12 @@ from torch.distributions import Normal
 import numpy as np
 import argparse
 import time
+import pandas as pd
 from helpers import timeSince, asMinutes, calc_auc
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from baseline_model import *
+# todo; really need to import all this?
 
 parser = argparse.ArgumentParser(description='training runner')
 parser.add_argument('--data','-d',type=str,default='/n/data_02/Basset/data/mini_roadmap.h5',help='path to training data')
@@ -52,9 +54,9 @@ elif args.model_type == 2:
 elif args.model_type == 3:
     model = BassetNorm()
 elif args.model_type == 4:
-	model = DanQ()
+    model = DanQ()
 elif args.model_type == 5:
-	model = BassetNormCat()
+    model = BassetNormCat()
 
 num_params = sum([p.numel() for p in model.parameters()])
     
@@ -102,13 +104,13 @@ for epoch in range(args.num_epochs):
     ctr = 0
     tot_loss = 0
     for inputs, targets in train_loader:
-    	celltypes = inputs[:,:,-1].data.numpy() + 1 # off by one error 
-    	inputs = inputs[:,:,:-1]
-    	geneexpr = expn.iloc[:,celltypes].values.T
+        celltypes = inputs[:,:,-1].squeeze().type(torch.FloatTensor).data.numpy() + 1 # off by one error 
+        inputs = inputs[:,:,:-1]
+        geneexpr = expn.iloc[:,celltypes].values.T
+        geneexpr_batch = Variable(torch.Tensor(geneexpr)).cuda() # warning! these 4 lines only for geneexpr models
         inputs = to_one_hot(inputs, n_dims=4).permute(0,3,1,2).squeeze().float()
         targets = targets.float()
         inp_batch = Variable(inputs).cuda()
-        geneexpr_batch = Variable(torch.Tensor(geneexpr)).cuda()
         trg_batch = Variable(targets).cuda()
         optimizer.zero_grad()
         outputs = model(inp_batch, geneexpr_batch)
@@ -135,6 +137,10 @@ for epoch in range(args.num_epochs):
     y_test  = []
     #val_loader.init_epoch()
     for inputs, targets in val_loader:
+        celltypes = inputs[:,:,-1].squeeze().type(torch.FloatTensor).data.numpy() + 1 # off by one error 
+        inputs = inputs[:,:,:-1]
+        geneexpr = expn.iloc[:,celltypes].values.T
+        geneexpr_batch = Variable(torch.Tensor(geneexpr)).cuda() # warning! these 4 lines only for geneexpr models
         inputs = to_one_hot(inputs, n_dims=4).permute(0,3,1,2).squeeze().float()
         targets = targets.float()
         inp_batch = Variable( inputs ).cuda()
