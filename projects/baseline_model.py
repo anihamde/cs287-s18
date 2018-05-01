@@ -25,7 +25,7 @@ def to_one_hot(y, n_dims=None):
 class RoadmapDataset(Dataset):
     """Roadmap project dataset"""
     def __init__(self, hdf5_fn, pd_expn, segment='train'):
-        hdf5_fh = h5py.File(hdf5_fn,'r')
+        hdf5_fh = h5py.File(hdf5_fn,'r',swmr=True)
         self.seq  = hdf5_fh["{}_in".format(segment)]
         self.expn = pd_expn
         self.targ = hdf5_fh["{}_out".format(segment)]
