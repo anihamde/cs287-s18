@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn 
 import torch.nn.functional as F
 from torch.autograd import Variable
+from torch.utils.data import Dataset
 import numpy as np
 
 def conv(c_in, c_out, k_size, stride=1, pad=1, bn=True):
@@ -19,6 +20,23 @@ def to_one_hot(y, n_dims=None):
     y_one_hot = torch.zeros(y_tensor.size()[0], n_dims).scatter_(1, y_tensor, 1)
     y_one_hot = y_one_hot.view(*y.shape, -1)
     return Variable(y_one_hot) if isinstance(y, Variable) else y_one_hot
+
+class RoadmapDataset(Dataset):
+    """Roadmap project dataset"""
+    def __init__(self, hdf5_seq, pd_expn, hdf5_targ):
+        self.seq  = hdf5_seq
+        self.expn = pd_expn
+        self.targ = hdf5_targ
+    def __len__(self):
+        assert self.seq.shape[0] == self.targ.shape[0], "Dataset size missmatch. Inputs: {}. Targets: {}.".format(self.seq.shape[0], self.targ.shape[0])
+        return self.seq.shape[0]
+    def __getitem__(self, idx):
+        in_seq = self.seq[idx,:,:-1]
+        out_targ = self.targ[idx,:].astype('uint8')
+        gene_col = self.expn.columns.values
+        extractor= gene_col[ self.seq[idx,:,-1] ].flatten()
+        gene_set = np.squeeze( self.expn[extractor].values.T ).astype('float32')
+        return in_seq, gene_set, out_targ
 
 class Conv1dNorm(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, 
