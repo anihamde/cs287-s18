@@ -23,10 +23,11 @@ def to_one_hot(y, n_dims=None):
 
 class RoadmapDataset(Dataset):
     """Roadmap project dataset"""
-    def __init__(self, hdf5_seq, pd_expn, hdf5_targ):
-        self.seq  = hdf5_seq
+    def __init__(self, hdf5_fn, pd_expn, segment='train'):
+        hdf5_fh = h5py.File(hdf5_fn,'r')
+        self.seq  = hdf5_fh["{}_in".format(segment)]
         self.expn = pd_expn
-        self.targ = hdf5_targ
+        self.targ = hdf5_fh["{}_out".format(segment)]
     def __len__(self):
         assert self.seq.shape[0] == self.targ.shape[0], "Dataset size missmatch. Inputs: {}. Targets: {}.".format(self.seq.shape[0], self.targ.shape[0])
         return self.seq.shape[0]
