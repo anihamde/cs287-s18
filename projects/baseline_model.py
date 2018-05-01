@@ -139,7 +139,7 @@ class BassetNormCat(nn.Module):
         self.linear1 = LinearNorm(200*13+500, 1000, weight_norm=False)
         self.linear2 = LinearNorm(1000, 1000, weight_norm=False)
         self.dropout = nn.Dropout(p=dropout_prob)
-        self.output = nn.Linear(1000, 164)
+        self.output = nn.Linear(1000, 1)
     def forward(self, x, geneexpr):
         #if sparse_in: # (?, 600, 4)
         #    in_seq = to_one_hot(x, n_dims=4).permute(0,3,1,2).squeeze()
@@ -162,7 +162,7 @@ class BassetNormCat(nn.Module):
         out = self.dropout(out)
         out = F.relu(self.linear2(out)) # (?, 800)
         out = self.dropout(out)
-        return self.output(out) # (?, 164)
+        return self.output(out) # (?, 1)
     def clip_norms(self, value):
         key_chain = [ key for key in self.state_dict().keys() if 'weight' in key ]
         for key in key_chain:

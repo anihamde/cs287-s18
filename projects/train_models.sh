@@ -10,3 +10,8 @@ python baseline_train.py -d /n/data_02/Basset/data/encode_roadmap.h5 -mt 0 -opti
 python baseline_train.py -d /n/data_02/Basset/data/encode_roadmap.h5 -mt 0 -optim 1 -lr 0.002 -ne 12 -mf basset_03.pkl -l basset_03.log &&
 python baseline_train.py -d /n/data_02/Basset/data/encode_roadmap.h5 -mt 0 -optim 2 -lr 0.01 -ne 12 -mf basset_04.pkl -l basset_04.log &&
 python baseline_train.py -d /n/data_02/Basset/data/encode_roadmap.h5 -mt 0 -optim 2 -lr 0.002 -ne 12 -mf basset_05.pkl -l basset_05.log
+
+
+
+
+python baseline_train.py -d /n/data_02/Basset/data/roadmap/histone/mini_expn.h5 -ne -mf bassetcat.pkl -l bassetcat.log

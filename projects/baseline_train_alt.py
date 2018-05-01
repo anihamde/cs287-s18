@@ -107,13 +107,13 @@ for epoch in range(args.num_epochs):
         celltypes = inputs[:,:,-1].squeeze().type(torch.FloatTensor).data.numpy() + 1 # off by one error 
         inputs = inputs[:,:,:-1]
         geneexpr = expn.iloc[:,celltypes].values.T
-        geneexpr_batch = Variable(torch.Tensor(geneexpr)).cuda() # change these 4 lines!
+        geneexpr_batch = Variable(torch.Tensor(geneexpr)).cuda() # warning! these 4 lines only for geneexpr models
         inputs = to_one_hot(inputs, n_dims=4).permute(0,3,1,2).squeeze().float()
         targets = targets.float()
         inp_batch = Variable(inputs).cuda()
         trg_batch = Variable(targets).cuda()
         optimizer.zero_grad()
-        outputs = model(inp_batch, geneexpr_batch) # change this too!
+        outputs = model(inp_batch, geneexpr_batch)
         loss = criterion(outputs.view(-1), trg_batch.view(-1))
         loss.backward()
         tot_loss += loss.item()
@@ -140,12 +140,12 @@ for epoch in range(args.num_epochs):
         celltypes = inputs[:,:,-1].squeeze().type(torch.FloatTensor).data.numpy() + 1 # off by one error 
         inputs = inputs[:,:,:-1]
         geneexpr = expn.iloc[:,celltypes].values.T
-        geneexpr_batch = Variable(torch.Tensor(geneexpr)).cuda() # change these 4 lines!
+        geneexpr_batch = Variable(torch.Tensor(geneexpr)).cuda() # warning! these 4 lines only for geneexpr models
         inputs = to_one_hot(inputs, n_dims=4).permute(0,3,1,2).squeeze().float()
         targets = targets.float()
         inp_batch = Variable( inputs ).cuda()
         trg_batch = Variable(targets).cuda()        
-        outputs = model(inp_batch, geneexpr_batch) # change this too!
+        outputs = model(inp_batch, geneexpr_batch)
         loss = criterion(outputs.view(-1), trg_batch.view(-1))
         losses.append(loss.item())
         y_score.append( outputs.cpu().data.numpy() )
