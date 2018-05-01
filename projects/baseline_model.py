@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.utils.data import Dataset
 import numpy as np
+import h5py
 
 def conv(c_in, c_out, k_size, stride=1, pad=1, bn=True):
     layers = []
