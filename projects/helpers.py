@@ -3,7 +3,7 @@ import time
 import math
 import torch
 from torch.autograd import Variable
-from sklearn.metrics import roc_curve, auc
+from sklearn.metrics import roc_curve, auc, precision_recall_curve
 
 def asMinutes(s):
     m = math.floor(s / 60)
