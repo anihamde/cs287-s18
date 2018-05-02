@@ -11,12 +11,10 @@ from torch.distributions import Normal
 import numpy as np
 import argparse
 import time
-import pandas as pd
 from helpers import timeSince, asMinutes, calc_auc
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from baseline_model import *
-# todo; really need to import all this?
 
 parser = argparse.ArgumentParser(description='training runner')
 parser.add_argument('--data','-d',type=str,default='/n/data_02/Basset/data/mini_roadmap.h5',help='path to training data')
@@ -33,7 +31,7 @@ parser.add_argument('--clip','-c',type=float,help='Max norm for weight clipping'
 parser.add_argument('--model_file','-mf',type=str,default='stupid.pkl',help='Save model filename')
 parser.add_argument('--stop_instance','-halt',action='store_true',help='Stop AWS instance after training run.')
 parser.add_argument('--log_file','-l',type=str,default='stderr',help='training log file')
-parser.add_argument('--workers', '-wk', type=int, help='number of data loading workers', default=2)
+# parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
 args = parser.parse_args()
 
 print("Begin run")
@@ -54,50 +52,26 @@ elif args.model_type == 2:
 elif args.model_type == 3:
     model = BassetNorm()
 elif args.model_type == 4:
-    model = DanQ()
-elif args.model_type == 5:
-    model = BassetNormCat()
+	model = DanQ()
 
 num_params = sum([p.numel() for p in model.parameters()])
     
 model.cuda()
 print("Model successfully imported\nTotal number of parameters {}".format(num_params),file=Logger)
 
-expn_pth = '/n/data_02/Basset/data/expn/roadmap/57epigenomes.RPKM.pc'
-print("Reading gene expression data from:\n{}".format(expn_pth))
-# Gene expression dataset
-expn = pd.read_table(expn_pth,header=0)    
-col_names = expn.columns.values[1:]
-expn = expn.drop(col_names[-1],axis=1)
-expn.columns = col_names
-print("Done")
-
 start = time.time()
-print("Linking data from file {}".format(args.data),file=Logger)
+print("Reading data from file {}".format(args.data),file=Logger)
+data = h5py.File(args.data)
 
-## Old Dataset loading
-# data = h5py.File(args.data)
-#
-# train = torch.utils.data.TensorDataset(torch.CharTensor(data['train_in']), torch.CharTensor(data['train_out']))
-# val = torch.utils.data.TensorDataset(torch.CharTensor(data['valid_in']), torch.CharTensor(data['valid_out']))
-# test = torch.utils.data.TensorDataset(torch.CharTensor(data['test_in']), torch.CharTensor(data['test_out']))
-# train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True)
+train = torch.utils.data.TensorDataset(torch.CharTensor(data['train_in']), torch.CharTensor(data['train_out']))
+val = torch.utils.data.TensorDataset(torch.CharTensor(data['valid_in']), torch.CharTensor(data['valid_out']))
+test = torch.utils.data.TensorDataset(torch.CharTensor(data['test_in']), torch.CharTensor(data['test_out']))
+train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True)
 # train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True, num_workers=int(args.workers))
-# val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffle=False)
+val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffle=False)
 # val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffle=False, num_workers=int(args.workers))
-# test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=False)
+test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=False)
 # test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=False, num_workers=int(args.workers))
-
-# Set Datasets
-train = RoadmapDataset(args.data, expn, 'train')
-val   = RoadmapDataset(args.data, expn, 'valid')
-test  = RoadmapDataset(args.data, expn, 'test')
-
-# Set Loader
-train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True, num_workers=args.workers)
-val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffle=False, num_workers=args.workers)
-test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=False, num_workers=args.workers)
-
 print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
 
 params = list(filter(lambda x: x.requires_grad, model.parameters()))
@@ -119,14 +93,13 @@ for epoch in range(args.num_epochs):
     #train_loader.init_epoch()
     ctr = 0
     tot_loss = 0
-    for inputs, geneexpr, targets in train_loader:
-        geneexpr_batch = Variable(torch.Tensor(geneexpr)).cuda() # change these 4 lines!
+    for inputs, targets in train_loader:
         inputs = to_one_hot(inputs, n_dims=4).permute(0,3,1,2).squeeze().float()
         targets = targets.float()
         inp_batch = Variable(inputs).cuda()
-        trg_batch = Variable(targets).cuda()
+        trg_batch = Variable(targets).cuda()        
         optimizer.zero_grad()
-        outputs = model(inp_batch, geneexpr_batch) # change this too!
+        outputs = model(inp_batch)
         loss = criterion(outputs.view(-1), trg_batch.view(-1))
         loss.backward()
         tot_loss += loss.item()
@@ -149,13 +122,12 @@ for epoch in range(args.num_epochs):
     y_score = []
     y_test  = []
     #val_loader.init_epoch()
-    for inputs, geneexpr, targets in val_loader:
-        geneexpr_batch = Variable(torch.Tensor(geneexpr)).cuda() # change these 4 lines!
+    for inputs, targets in val_loader:
         inputs = to_one_hot(inputs, n_dims=4).permute(0,3,1,2).squeeze().float()
         targets = targets.float()
         inp_batch = Variable( inputs ).cuda()
         trg_batch = Variable(targets).cuda()        
-        outputs = model(inp_batch, geneexpr_batch) # change this too!
+        outputs = model(inp_batch)
         loss = criterion(outputs.view(-1), trg_batch.view(-1))
         losses.append(loss.item())
         y_score.append( outputs.cpu().data.numpy() )
@@ -174,4 +146,3 @@ for epoch in range(args.num_epochs):
 if args.stop_instance:
     Logger.close()
     subprocess.call(['sudo','halt'])
-    
