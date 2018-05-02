@@ -88,5 +88,5 @@ def calc_auc(model, y_test, y_score, auctype = "ROC"):
             pr_auc[i] = auc(prec[i], rec[i])
         # Compute micro-average prec-rec curve and prec-rec AUC
         prec["micro"], rec["micro"], _ = precision_recall_curve(y_test.ravel(), y_score.ravel())
-        pr_auc["micro"] = auc(prec["micro"], rec["micro"])
+        pr_auc["micro"] = auc(rec["micro"], prec["micro"])
         return pr_auc["micro"]
