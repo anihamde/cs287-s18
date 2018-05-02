@@ -24,21 +24,24 @@ def to_one_hot(y, n_dims=None):
 
 class RoadmapDataset(Dataset):
     """Roadmap project dataset"""
-    def __init__(self, hdf5_fn, pd_expn, segment='train'):
-        hdf5_fh = h5py.File(hdf5_fn,'r',swmr=True)
-        self.seq  = hdf5_fh["{}_in".format(segment)]
-        self.expn = pd_expn
-        self.targ = hdf5_fh["{}_out".format(segment)]
+    def __init__(self, h5_data, pd_expn, cell_types, segment='train'):
+        targ_cells = [ (i,str(x,'utf-8')) for i,x in enumerate( list(h5_data['target_labels'][:]) ) if str(x,'utf-8') in cell_types ]
+        expn_cells = list(pd_expn.columns.values)
+        self.expn_dex = np.array([ expn_cells.index(x[1]) for x in targ_cells ]).astype('uint8')
+        self.seq  = torch.ByteTensor( h5_data['{}_in'.format(segment)][:] )
+        self.targ = torch.ByteTensor( h5_data['{}_out'.format(segment)][:, [ i for i,x in targ_cells ] ] )
     def __len__(self):
-        assert self.seq.shape[0] == self.targ.shape[0], "Dataset size missmatch. Inputs: {}. Targets: {}.".format(self.seq.shape[0], self.targ.shape[0])
-        return self.seq.shape[0]
+        assert self.seq.size(0) == self.targ.size(0), "Dataset size missmatch. Inputs: {}. Targets: {}.".format(self.seq.shape[0], self.targ.shape[0])
+        self.n_seq = self.targ.size(0)
+        self.n_cell= self.targ.size(1)
+        return self.targ.size(0) * self.targ.size(1)
     def __getitem__(self, idx):
-        in_seq = self.seq[idx,:,:-1]
-        out_targ = self.targ[idx,:].astype('uint8')
-        gene_col = self.expn.columns.values
-        extractor= gene_col[ self.seq[idx,:,-1] ].flatten()
-        gene_set = np.squeeze( self.expn[extractor].values.T ).astype('float32')
-        return in_seq, gene_set, out_targ
+        seq_idx = idx %  self.n_seq
+        cell_idx= idx // self.n_seq
+        in_seq = self.seq[seq_idx,:,:]
+        out_targ = self.targ[seq_idx,cell_idx:cell_idx+1]
+        gene_idx = np.array(self.expn_dex[cell_idx]).flatten()
+        return in_seq, gene_idx, out_targ
 
 class Conv1dNorm(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, 
