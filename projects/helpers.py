@@ -52,15 +52,28 @@ def freeze_model(model):
         param.requires_grad = False
     return model
 
-def calc_auc(model, y_test, y_score):
-    n_classes = 164
-    fpr = dict()
-    tpr = dict()
-    roc_auc = dict()
-    for i in range(n_classes):
-        fpr[i], tpr[i], _ = roc_curve(y_test[:, i], y_score[:, i])
-        roc_auc[i] = auc(fpr[i], tpr[i])
-    # Compute micro-average ROC curve and ROC area
-    fpr["micro"], tpr["micro"], _ = roc_curve(y_test.ravel(), y_score.ravel())
-    roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
-    return roc_auc["micro"]
+def calc_auc(model, y_test, y_score, type = "ROC"):
+    if type == "ROC":
+        n_classes = 164
+        fpr = dict()
+        tpr = dict()
+        roc_auc = dict()
+        for i in range(n_classes):
+            fpr[i], tpr[i], _ = roc_curve(y_test[:, i], y_score[:, i])
+            roc_auc[i] = auc(fpr[i], tpr[i])
+        # Compute micro-average ROC curve and ROC area
+        fpr["micro"], tpr["micro"], _ = roc_curve(y_test.ravel(), y_score.ravel())
+        roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
+        return roc_auc["micro"]
+    elif type == "PR":
+        n_classes = 164
+        prec = dict()
+        rec = dict()
+        pr_auc = dict()
+        for i in range(n_classes):
+            prec[i], rec[i], _ = precision_recall_curve(y_test[:,i], y_score[:,i])
+            pr_auc[i] = auc(prec[i], rec[i])
+        # Compute micro-average prec-rec curve and prec-rec AUC
+        prec["micro"], rec["micro"], _ = precision_recall_curve(y_test.ravel(), y_score.ravel())
+        pr_auc["micro"] = auc(prec["micro"], rec["micro"])
+        return pr_auc["micro"]
