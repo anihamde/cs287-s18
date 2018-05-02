@@ -91,9 +91,11 @@ for mf in model_files:
         y_test.append(  targets.cpu().data.numpy() )
 
     epoch_loss = sum(losses)/len(val)
-    avg_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score))
+    avg_ROC_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score), "ROC")
+    avg_PR_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score), "PR")
     timenow = timeSince(start)
-    print( "Time: {}, Validation loss: {}, Mean AUC: {}".format( timenow, epoch_loss, avg_auc),
+    print( "Epoch [{}/{}], Time: {}, Validation loss: {}, Mean ROC AUC: {}, Mean PRAUC: {}".format( epoch+1, args.num_epochs, 
+                                                                                timenow, epoch_loss, avg_ROC_auc,avg_PR_auc),
            file=Logger)
 
 if args.stop_instance:
