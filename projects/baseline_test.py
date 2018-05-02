@@ -1,6 +1,4 @@
 import torch
-if __name__ == "__main__":
-    import torch.multiprocessing.set_start_method("spawn")
 import h5py
 import sys
 import subprocess
