@@ -44,15 +44,15 @@ else:
 #Logger = sys.stderr
 
 if args.model_type == 0:
-    model = Basset()
+    model = Basset(output_labels=49)
 elif args.model_type == 1:
-    model = DeepSEA()
+    model = DeepSEA(output_labels=49)
 elif args.model_type == 2:
-    model = Classic()
+    model = Classic(output_labels=49)
 elif args.model_type == 3:
-    model = BassetNorm()
+    model = BassetNorm(output_labels=49)
 elif args.model_type == 4:
-	model = DanQ()
+    model = DanQ(output_labels=49)
 
 num_params = sum([p.numel() for p in model.parameters()])
     
@@ -63,9 +63,23 @@ start = time.time()
 print("Reading data from file {}".format(args.data),file=Logger)
 data = h5py.File(args.data)
 
-train = torch.utils.data.TensorDataset(torch.CharTensor(data['train_in']), torch.CharTensor(data['train_out']))
-val = torch.utils.data.TensorDataset(torch.CharTensor(data['valid_in']), torch.CharTensor(data['valid_out']))
-test = torch.utils.data.TensorDataset(torch.CharTensor(data['test_in']), torch.CharTensor(data['test_out']))
+# Set celltype holdouts
+# ['E004','E038','E082','E095','E098','E123','E127'] ['H1 Derived Mesendo','CD4 Naive Primary','Fetal Brain','Left Ventricle','Pancreas','K562','NHEK-Epidermal']
+alltypes   = [ str(x, 'utf-8') for x in list(data['target_labels'][:]) ]
+holdouts   = ['E004','E038','E082','E095','E098','E123','E127']
+
+train_type = [ x for x in alltypes if x not in holdouts ]
+valid_type = ['E004','E095','E098','E127']
+test_type  = ['E038','E082','E123']
+
+c_idx = [ i for i,x in enumerate( list(data['target_labels'][:]) ) if str(x, 'utf-8') in train_type ]
+
+train = torch.utils.data.TensorDataset(torch.CharTensor(data['train_in'][:,c_idx]), 
+                                       torch.CharTensor(data['train_out'][:,c_idx]))
+val = torch.utils.data.TensorDataset(torch.CharTensor(data['valid_in'][:,c_idx]), 
+                                     torch.CharTensor(data['valid_out'][:,c_idx]))
+test = torch.utils.data.TensorDataset(torch.CharTensor(data['test_in'][:,c_idx]), 
+                                      torch.CharTensor(data['test_out'][:,c_idx]))
 train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True)
 # train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True, num_workers=int(args.workers))
 val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffle=False)
@@ -133,11 +147,10 @@ for epoch in range(args.num_epochs):
         y_score.append( outputs.cpu().data.numpy() )
         y_test.append(  targets.cpu().data.numpy() )
     epoch_loss = sum(losses)/len(val)
-    avg_ROC_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score), "ROC")
-    avg_PR_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score), "PR")
+    avg_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score))
     timenow = timeSince(start)
-    print( "Epoch [{}/{}], Time: {}, Validation loss: {}, Mean ROC AUC: {}, Mean PRAUC: {}".format( epoch+1, args.num_epochs, 
-                                                                                timenow, epoch_loss, avg_ROC_auc,avg_PR_auc),
+    print( "Epoch [{}/{}], Time: {}, Validation loss: {}, Mean AUC: {}".format( epoch+1, args.num_epochs, 
+                                                                                timenow, epoch_loss, avg_auc),
            file=Logger)
     if epoch_loss <= best_loss:
         torch.save(model.state_dict(), args.model_file)

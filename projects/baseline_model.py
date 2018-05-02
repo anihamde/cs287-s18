@@ -80,7 +80,7 @@ class LinearNorm(nn.Module):
         
         
 class Classic(nn.Module):
-    def __init__(self, dropout_prob=0.5):
+    def __init__(self, dropout_prob=0.5, output_labels=164):
         super(Classic, self).__init__()
         self.conv1 = conv(4, 300, 21, stride=1, pad=0, bn=True)
         self.conv2 = conv(300, 300, 6, stride=1, pad=0, bn=True)
@@ -88,7 +88,7 @@ class Classic(nn.Module):
         self.maxpool= nn.MaxPool1d(4,padding=0)
         self.linear = nn.Linear(500*8, 800)
         self.dropout= nn.Dropout(p=dropout_prob)
-        self.output = nn.Linear(800, 164)
+        self.output = nn.Linear(800, output_labels)
     def forward(self, x, sparse_in=True):
         #if sparse_in: # (?, 600, 4)
         #    in_seq = to_one_hot(x, n_dims=4).permute(0,3,1,2).squeeze()
@@ -106,7 +106,7 @@ class Classic(nn.Module):
         return self.output(out) # (?, 164)
 
 class BassetNorm(nn.Module):
-    def __init__(self, dropout_prob=0.3):
+    def __init__(self, dropout_prob=0.3, output_labels=164):
         super(BassetNorm, self).__init__()
         self.conv1 = Conv1dNorm(4, 300, 19, stride=1, padding=0, weight_norm=False)
         self.conv2 = Conv1dNorm(300, 200, 11, stride=1, padding=0, weight_norm=False)
@@ -116,7 +116,7 @@ class BassetNorm(nn.Module):
         self.linear1 = LinearNorm(200*13, 1000, weight_norm=False)
         self.linear2 = LinearNorm(1000, 1000, weight_norm=False)
         self.dropout = nn.Dropout(p=dropout_prob)
-        self.output = nn.Linear(1000, 164)
+        self.output = nn.Linear(1000, output_labels)
     def forward(self, x):
         #if sparse_in: # (?, 600, 4)
         #    in_seq = to_one_hot(x, n_dims=4).permute(0,3,1,2).squeeze()
@@ -199,7 +199,7 @@ class BassetNormCat(nn.Module):
 
 
 class Basset(nn.Module):
-    def __init__(self, dropout_prob=0.3):
+    def __init__(self, dropout_prob=0.3, output_labels=164):
         super(Basset, self).__init__()
         self.conv1 = conv(4, 300, 19, stride=1, pad=0, bn=True)
         self.conv2 = conv(300, 200, 11, stride=1, pad=0, bn=True)
@@ -209,7 +209,7 @@ class Basset(nn.Module):
         self.linear1 = nn.Linear(200*10, 1000)
         self.linear2 = nn.Linear(1000, 1000)
         self.dropout = nn.Dropout(p=dropout_prob)
-        self.output = nn.Linear(1000, 164)
+        self.output = nn.Linear(1000, output_labels)
     def forward(self, x, sparse_in=True):
         #if sparse_in: # (?, 600, 4)
         #    in_seq = to_one_hot(x, n_dims=4).permute(0,3,1,2).squeeze()
@@ -229,7 +229,7 @@ class Basset(nn.Module):
         return self.output(out) # (?, 164)
 
 class DeepSEA(nn.Module):
-    def __init__(self, dropout_prob=0.5):
+    def __init__(self, dropout_prob=0.5, output_labels=164):
         super(DeepSEA, self).__init__()
         self.conv1 = conv(4, 320, 8, stride=1, pad=2, bn=True)
         self.conv2 = conv(320, 480, 8, stride=1, pad=1, bn=True)
@@ -239,7 +239,7 @@ class DeepSEA(nn.Module):
         self.dropout_2 = nn.Dropout(p=0.2)
         self.dropout_4 = nn.Dropout(p=0.2)
         self.dropout_5 = nn.Dropout(p=0.5)
-        self.output = nn.Linear(925, 164)
+        self.output = nn.Linear(925, output_labels)
     def forward(self, x):
         #if sparse_in: # (?, 600, 4)
         #    in_seq = to_one_hot(x, n_dims=4).permute(0,3,1,2).squeeze()
@@ -259,8 +259,8 @@ class DeepSEA(nn.Module):
 
 class DanQ(nn.Module):
     def __init__(self, dropout_prob_02=0.2, dropout_prob_03=0.5, hidden_size=512, num_layers=1,
-    			bidirectional=True):
-    	# TODO: weight initialize unif[-.05,.05], bias 0
+                 bidirectional=True, output_labels=164):
+        # TODO: weight initialize unif[-.05,.05], bias 0
         super(DanQ, self).__init__()
         self.conv1 = nn.Conv1d(4, 1024, 30, stride=1, padding=0)
         self.maxpool = nn.MaxPool1d(15,padding=0)
@@ -272,12 +272,12 @@ class DanQ(nn.Module):
         self.dropout_2 = nn.Dropout(p=dropout_prob_02)
         self.dropout_3 = nn.Dropout(p=dropout_prob_03)
         self.linear = nn.Linear(39*1024,925)
-        self.output = nn.Linear(925, 164)
+        self.output = nn.Linear(925, output_labels)
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.directions = bidirectional + 1
     def initHidden(self,bs):
-    	return (Variable(torch.zeros(self.num_layers*self.directions,bs,self.hidden_size).cuda()), 
+        return (Variable(torch.zeros(self.num_layers*self.directions,bs,self.hidden_size).cuda()), 
                 Variable(torch.zeros(self.num_layers*self.directions,bs,self.hidden_size).cuda()))
     def forward(self, x):
         out = F.relu(self.conv1(x)) # (?, 1024, 571)
