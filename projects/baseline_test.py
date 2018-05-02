@@ -48,6 +48,8 @@ elif args.model_type == 3:
 
 num_params = sum([p.numel() for p in model.parameters()])
 
+print("Model successfully imported\nTotal number of parameters {}".format(num_params),file=Logger)
+
 print("Reading data from file {}".format(args.data),file=Logger)
 data = h5py.File(args.data)
 
