@@ -109,8 +109,8 @@ test  = RoadmapDataset(data,expn,test_type,segment='test')
 
 # Set Loader
 train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True)
-val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffle=False)
-test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=False)
+val_loader = torch.utils.data.DataLoader(val, batch_size=500, shuffle=False)
+test_loader = torch.utils.data.DataLoader(test, batch_size=500, shuffle=False)
 
 print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
 
@@ -157,14 +157,14 @@ for epoch in range(args.num_epochs):
                                                                            timenow, tot_loss/(100*args.batch_size)),
                   file=Logger)
             tot_loss = 0
-    #
+    #    
     model.eval()
     losses  = []
     y_score = []
     y_test  = []
     #val_loader.init_epoch()
     for inputs, geneexpr, targets in val_loader:
-        geneexpr_batch = Variable(torch.Tensor(geneexpr)).cuda() # change these 4 lines!
+        geneexpr_batch = pinned_lookup(geneexpr.long().cuda()).squeeze()
         inputs = to_one_hot(inputs, n_dims=4).permute(0,3,1,2).squeeze().float()
         targets = targets.float()
         inp_batch = Variable( inputs ).cuda()
@@ -175,7 +175,7 @@ for epoch in range(args.num_epochs):
         y_score.append( outputs.cpu().data.numpy() )
         y_test.append(  targets.cpu().data.numpy() )
     epoch_loss = sum(losses)/len(val)
-    avg_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score))
+    avg_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score), n_classes=1)
     timenow = timeSince(start)
     print( "Epoch [{}/{}], Time: {}, Validation loss: {}, Mean AUC: {}".format( epoch+1, args.num_epochs, 
                                                                                 timenow, epoch_loss, avg_auc),

@@ -53,7 +53,7 @@ def freeze_model(model):
     return model
 
 def calc_auc(model, y_test, y_score):
-    n_classes = 164
+    n_classes = Y_test.shape[1]
     fpr = dict()
     tpr = dict()
     roc_auc = dict()
