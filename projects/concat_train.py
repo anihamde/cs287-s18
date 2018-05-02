@@ -175,10 +175,11 @@ for epoch in range(args.num_epochs):
         y_score.append( outputs.cpu().data.numpy() )
         y_test.append(  targets.cpu().data.numpy() )
     epoch_loss = sum(losses)/len(val)
-    avg_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score))
+    avg_roc_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score), "ROC")
+    avg_PR_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score), "PR")
     timenow = timeSince(start)
-    print( "Epoch [{}/{}], Time: {}, Validation loss: {}, Mean AUC: {}".format( epoch+1, args.num_epochs, 
-                                                                                timenow, epoch_loss, avg_auc),
+    print( "Epoch [{}/{}], Time: {}, Validation loss: {}, Mean ROC AUC: {}, Mean PRAUC: {}".format( epoch+1, args.num_epochs, 
+                                                                                timenow, epoch_loss, avg_ROC_auc,avg_PR_auc),
            file=Logger)
     if epoch_loss <= best_loss:
         torch.save(model.state_dict(), args.model_file)
