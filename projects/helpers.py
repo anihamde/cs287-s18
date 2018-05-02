@@ -52,8 +52,8 @@ def freeze_model(model):
         param.requires_grad = False
     return model
 
-def calc_auc(model, y_test, y_score, type = "ROC"):
-    if type == "ROC":
+def calc_auc(model, y_test, y_score, auctype = "ROC"):
+    if auctype == "ROC":
         n_classes = 164
         fpr = dict()
         tpr = dict()
@@ -65,7 +65,7 @@ def calc_auc(model, y_test, y_score, type = "ROC"):
         fpr["micro"], tpr["micro"], _ = roc_curve(y_test.ravel(), y_score.ravel())
         roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
         return roc_auc["micro"]
-    elif type == "PR":
+    elif auctype == "PR":
         n_classes = 164
         prec = dict()
         rec = dict()
