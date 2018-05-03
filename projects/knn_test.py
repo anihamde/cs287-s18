@@ -86,6 +86,7 @@ test_loader = torch.utils.data.DataLoader(test, batch_size=500, shuffle=False)
 print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
 
 # nicer euclidean similarity matrix at https://discuss.pytorch.org/t/build-your-own-loss-function-in-pytorch/235/7
+# np.sqrt(sum((mat[valtestdex[i]]-mat[traindex[j]])**2)) # TODO: better euclidean knn implementation!
 valtestdex = np.concatenate([val.expn_dex,test.expn_dex])
 traindex = train.expn_dex
 simmat = torch.zeros(7,49)
@@ -94,9 +95,10 @@ for i in range(7):
     for j in range(49):
         simmat[i,j] = F.cosine_similarity(mat[valtestdex[i]],mat[traindex[j]],dim=0).item()
 
-k_weights, k_nearest = simmat.sort(descending=True)
+k_weights, k_nearest = simmat.sort(descending=False)
+# args.num_k=1
 k_weights, k_nearest = k_weights[:,:args.num_k], k_nearest[:,:args.num_k]
-k_weights = F.normalize(k_weights, dim=1)
+k_weights = F.normalize(k_weights, p=1, dim=1)
 tensor1 = torch.zeros(7,49)
 tensor1.scatter_(1, k_nearest, k_weights)
 tensor2 = torch.zeros(57,49)
