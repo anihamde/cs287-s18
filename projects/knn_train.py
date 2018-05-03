@@ -74,11 +74,11 @@ test_type  = ['E038','E082','E123']
 
 c_idx = [ i for i,x in enumerate( list(data['target_labels'][:]) ) if str(x, 'utf-8') in train_type ]
 
-train = torch.utils.data.TensorDataset(torch.CharTensor(data['train_in'][:,c_idx]), 
+train = torch.utils.data.TensorDataset(torch.CharTensor(data['train_in'][:]), 
                                        torch.CharTensor(data['train_out'][:,c_idx]))
-val = torch.utils.data.TensorDataset(torch.CharTensor(data['valid_in'][:,c_idx]), 
+val = torch.utils.data.TensorDataset(torch.CharTensor(data['valid_in'][:]), 
                                      torch.CharTensor(data['valid_out'][:,c_idx]))
-test = torch.utils.data.TensorDataset(torch.CharTensor(data['test_in'][:,c_idx]), 
+test = torch.utils.data.TensorDataset(torch.CharTensor(data['test_in'][:]), 
                                       torch.CharTensor(data['test_out'][:,c_idx]))
 train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True)
 # train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True, num_workers=int(args.workers))
