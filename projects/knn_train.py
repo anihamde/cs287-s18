@@ -17,7 +17,7 @@ import matplotlib.cm as cm
 from baseline_model import *
 
 parser = argparse.ArgumentParser(description='training runner')
-parser.add_argument('--data','-d',type=str,default='/n/data_02/Basset/data/mini_roadmap.h5',help='path to training data')
+parser.add_argument('--data','-d',type=str,default='/n/data_02/Basset/data/roadmap/histone/histone_token.h5',help='path to training data')
 parser.add_argument('--model_type','-mt',type=int,default=0,help='Model type')
 parser.add_argument('--optimizer_type','-optim',type=int,default=0,help='SGD optimizer')
 parser.add_argument('--batch_size','-bs',type=int,default=128,help='Batch size')
@@ -28,7 +28,7 @@ parser.add_argument('--alpha','-al',type=float,default=0.98,help='alpha value fo
 parser.add_argument('--weight_decay','-wd',type=float,default=0.0,help='Weight decay constant for optimizer')
 parser.add_argument('--max_weight_norm','-wn',type=float,help='Max L2 norm for weight clippping')
 parser.add_argument('--clip','-c',type=float,help='Max norm for weight clipping')
-parser.add_argument('--model_file','-mf',type=str,default='stupid.pkl',help='Save model filename')
+parser.add_argument('--model_file','-mf',type=str,default='/n/data_01/cs287-s18/projects/knn_00.pkl',help='Save model filename')
 parser.add_argument('--stop_instance','-halt',action='store_true',help='Stop AWS instance after training run.')
 parser.add_argument('--log_file','-l',type=str,default='stderr',help='training log file')
 # parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
@@ -54,9 +54,9 @@ elif args.model_type == 3:
 elif args.model_type == 4:
     model = DanQ(output_labels=49)
 
-num_params = sum([p.numel() for p in model.parameters()])
-    
+model.load_state_dict(torch.load(args.model_file))
 model.cuda()
+num_params = sum([p.numel() for p in model.parameters()])
 print("Model successfully imported\nTotal number of parameters {}".format(num_params),file=Logger)
 
 start = time.time()

@@ -10,6 +10,7 @@ import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 from torch.distributions import Normal
 import numpy as np
+import pandas as pd
 import argparse
 import time
 from helpers import timeSince, asMinutes, calc_auc
@@ -20,9 +21,9 @@ from baseline_model import *
 parser = argparse.ArgumentParser(description='training runner')
 parser.add_argument('--data','-d',type=str,default='/n/data_02/Basset/data/mini_roadmap.h5',help='path to training data')
 parser.add_argument('--model_type','-mt',type=int,default=3,help='Model type')
-parser.add_argument('--batch_size','-bs',type=int,default=128,help='Batch size')
+# parser.add_argument('--batch_size','-bs',type=int,default=128,help='Batch size')
 parser.add_argument('--num_epochs','-ne',type=int,default=10,help='Number of epochs')
-parser.add_argument('--model_file','-mf',type=str,default='../../model_from_lua.pkl',help='Load model filename')
+parser.add_argument('--model_file','-mf',type=str,default='/n/data_01/cs287-s18/projects/knn_00.pkl',help='Load model filename')
 parser.add_argument('--stop_instance','-halt',action='store_true',help='Stop AWS instance after training run.')
 parser.add_argument('--log_file','-l',type=str,default='stderr',help='training log file')
 args = parser.parse_args()
@@ -61,21 +62,6 @@ expn.columns = col_names
 pinned_lookup = torch.nn.Embedding.from_pretrained(torch.FloatTensor(expn.as_matrix().T),freeze=True)
 pinned_lookup.cuda()
 print("Done")
-# nicer euclidean similarity matrix at https://discuss.pytorch.org/t/build-your-own-loss-function-in-pytorch/235/7
-def similarity_matrix(mat):
-    simmat = torch.zeros(mat.size(0),mat.size(0))
-    for i in range(mat.size(0)):
-        for j in range(i,mat.size(0)):
-            simmat[i,j] = simmat[j,i] = F.cosine_similarity(mat[i],mat[j],dim=0)[0]
-    return simmat
-
-simmat = similarity_matrix(pinned_lookup.weight.data)
-k_weights, k_nearest = simmat.sort(descending=True)
-k = 2
-k_weights, k_nearest = k_weights[:,1:k+1], k_nearest[:,1:k+1]
-k_weights = F.normalize(k_weights, dim=1)
-mult_tensor = torch.zeros(57,57)
-mult_tensor.scatter(dim=1, k_nearest, k_weights)
 
 print("Reading data from file {}".format(args.data),file=Logger)
 data = h5py.File(args.data)
@@ -89,21 +75,41 @@ train_type = [ x for x in alltypes if x not in holdouts ]
 valid_type = ['E004','E095','E098','E127']
 test_type  = ['E038','E082','E123']
 
-c_idx = [ i for i,x in enumerate( list(data['target_labels'][:]) ) if str(x, 'utf-8') in train_type ]
-
-train = torch.utils.data.TensorDataset(torch.CharTensor(data['train_in'][:,c_idx]), 
-                                       torch.CharTensor(data['train_out'][:,c_idx]))
-val = torch.utils.data.TensorDataset(torch.CharTensor(data['valid_in'][:,c_idx]), 
-                                     torch.CharTensor(data['valid_out'][:,c_idx]))
-test = torch.utils.data.TensorDataset(torch.CharTensor(data['test_in'][:,c_idx]), 
-                                      torch.CharTensor(data['test_out'][:,c_idx]))
-train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True)
-# train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True, num_workers=int(args.workers))
-val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffle=False)
-# val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffle=False, num_workers=int(args.workers))
-test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=False)
-# test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=False, num_workers=int(args.workers))
+# train = RoadmapDataset(data,expn,train_type,segment='train')
+val   = RoadmapDataset(data,expn,valid_type,segment='valid')
+test  = RoadmapDataset(data,expn,test_type,segment='test')
+# Set Loader
+# train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True)
+val_loader = torch.utils.data.DataLoader(val, batch_size=500, shuffle=False)
+test_loader = torch.utils.data.DataLoader(test, batch_size=500, shuffle=False)
 print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
+
+# nicer euclidean similarity matrix at https://discuss.pytorch.org/t/build-your-own-loss-function-in-pytorch/235/7
+def similarity_matrix(mat):
+    simmat = torch.zeros(mat.size(0),mat.size(0))
+    for i in range(mat.size(0)):
+        for j in range(i,mat.size(0)):
+            simmat[i,j] = simmat[j,i] = F.cosine_similarity(mat[i],mat[j],dim=0).item()
+    return simmat
+
+valtestdex = np.concatenate([val.expn_dex,test.expn_dex])
+traindex = np.setdiff1d(np.arange(57),valtestdex)
+simmat = torch.zeros(7,49)
+mat = pinned_lookup.weight
+for i in range(7):
+    for j in range(49):
+        simmat[i,j] = F.cosine_similarity(mat[valtestdex[i]],mat[traindex[j]],dim=0).item()
+
+k_weights, k_nearest = simmat.sort(descending=True)
+k = 2
+k_weights, k_nearest = k_weights[:,:k], k_nearest[:,:k]
+k_weights = F.normalize(k_weights, dim=1)
+tensor1 = torch.zeros(7,49)
+tensor1.scatter_(1, k_nearest, k_weights)
+tensor2 = torch.zeros(57,49)
+tensor2[valtestdex,:] = tensor1
+tensor2 = tensor2.cuda()
+# take 7,49 thing and make it bigger so easy to index into with geneexpr
 
 #criterion = torch.nn.MultiLabelSoftMarginLoss() # Loss function
 criterion = torch.nn.BCEWithLogitsLoss(size_average=False)
@@ -124,10 +130,10 @@ for inputs, geneexpr, targets in test_loader:
     inputs = to_one_hot(inputs, n_dims=4).permute(0,3,1,2).squeeze().float()
     targets = targets.float()
     inp_batch = Variable( inputs ).cuda()
-    trg_batch = Variable( targets ).cuda()        
+    trg_batch = Variable( targets ).cuda()
     moutputs = model(inp_batch) # ?, 49
-    # can i get some things?
-    outputs = moutputs * mult_tensor[geneexpr.long().cuda().squeeze()]
+    outputs = moutputs * tensor2[geneexpr.long().cuda().squeeze()]
+    outputs = outputs.sum(dim=1)
     loss = criterion(outputs.view(-1), trg_batch.view(-1))
     losses.append(loss.item())
     y_score.append( outputs.cpu().data.numpy() )

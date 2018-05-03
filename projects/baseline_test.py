@@ -46,7 +46,7 @@ elif args.model_type == 2:
 elif args.model_type == 3:
     model = BassetNorm()
 
-model.load_state_dict(torch.load(args.model_file))    
+model.load_state_dict(torch.load(args.model_file))
 model.cuda()
 num_params = sum([p.numel() for p in model.parameters()])
 print("Model successfully imported\nTotal number of parameters {}".format(num_params),file=Logger)
