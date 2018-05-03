@@ -50,7 +50,7 @@ elif args.model_type == 3:
 model.load_state_dict(torch.load(args.model_file))
 model.cuda()
 num_params = sum([p.numel() for p in model.parameters()])
-print("Model {} successfully imported\nTotal number of parameters {}".format(mf, num_params),file=Logger)
+print("Model {} successfully imported\nTotal number of parameters {}".format(args.model_file, num_params),file=Logger)
 
 expn_pth = '/n/data_02/Basset/data/expn/roadmap/57epigenomes.RPKM.pc'
 print("Reading gene expression data from:\n{}".format(expn_pth))
@@ -85,13 +85,6 @@ test_loader = torch.utils.data.DataLoader(test, batch_size=500, shuffle=False)
 print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
 
 # nicer euclidean similarity matrix at https://discuss.pytorch.org/t/build-your-own-loss-function-in-pytorch/235/7
-def similarity_matrix(mat):
-    simmat = torch.zeros(mat.size(0),mat.size(0))
-    for i in range(mat.size(0)):
-        for j in range(i,mat.size(0)):
-            simmat[i,j] = simmat[j,i] = F.cosine_similarity(mat[i],mat[j],dim=0).item()
-    return simmat
-
 valtestdex = np.concatenate([val.expn_dex,test.expn_dex])
 traindex = np.setdiff1d(np.arange(57),valtestdex)
 simmat = torch.zeros(7,49)
