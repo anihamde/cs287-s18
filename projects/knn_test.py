@@ -22,7 +22,7 @@ parser = argparse.ArgumentParser(description='training runner')
 parser.add_argument('--data','-d',type=str,default='/n/data_02/Basset/data/roadmap/histone/histone_token.h5',help='path to training data')
 parser.add_argument('--model_type','-mt',type=int,default=3,help='Model type')
 parser.add_argument('--batch_size','-bs',type=int,default=128,help='Batch size')
-parser.add_argument('--num_epochs','-ne',type=int,default=10,help='Number of epochs')
+parser.add_argument('--num_k','-k',type=int,default=2,help='Number of neighbors in KNN')
 parser.add_argument('--model_file','-mf',type=str,default='/n/data_01/cs287-s18/projects/knn_00.pkl',help='Load model filename')
 parser.add_argument('--stop_instance','-halt',action='store_true',help='Stop AWS instance after training run.')
 parser.add_argument('--log_file','-l',type=str,default='stderr',help='training log file')
@@ -95,8 +95,7 @@ for i in range(7):
         simmat[i,j] = F.cosine_similarity(mat[valtestdex[i]],mat[traindex[j]],dim=0).item()
 
 k_weights, k_nearest = simmat.sort(descending=True)
-k = 2
-k_weights, k_nearest = k_weights[:,:k], k_nearest[:,:k]
+k_weights, k_nearest = k_weights[:,:args.k], k_nearest[:,:args.k]
 k_weights = F.normalize(k_weights, dim=1)
 tensor1 = torch.zeros(7,49)
 tensor1.scatter_(1, k_nearest, k_weights)
