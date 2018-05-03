@@ -124,7 +124,7 @@ for inputs, geneexpr, targets in test_loader:
     trg_batch = Variable( targets ).cuda()
     moutputs = model(inp_batch) # ?, 49
     outputs = moutputs * tensor2[geneexpr.long().cuda().squeeze()]
-    outputs = outputs.sum(dim=1).unsqeeze(1)
+    outputs = outputs.sum(dim=1).unsqueeze(1)
     loss = criterion(outputs.view(-1), trg_batch.view(-1))
     losses.append(loss.item())
     y_score.append( outputs.cpu().data.numpy() )
