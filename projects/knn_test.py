@@ -95,7 +95,7 @@ for i in range(7):
         simmat[i,j] = F.cosine_similarity(mat[valtestdex[i]],mat[traindex[j]],dim=0).item()
 
 k_weights, k_nearest = simmat.sort(descending=True)
-k_weights, k_nearest = k_weights[:,:args.k], k_nearest[:,:args.k]
+k_weights, k_nearest = k_weights[:,:args.num_k], k_nearest[:,:args.num_k]
 k_weights = F.normalize(k_weights, dim=1)
 tensor1 = torch.zeros(7,49)
 tensor1.scatter_(1, k_nearest, k_weights)
