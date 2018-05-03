@@ -19,7 +19,7 @@ from baseline_model import *
 # todo; really need to import all this?
 
 parser = argparse.ArgumentParser(description='training runner')
-parser.add_argument('--data','-d',type=str,default='/n/data_02/Basset/data/mini_roadmap.h5',help='path to training data')
+parser.add_argument('--data','-d',type=str,default='/n/data_02/Basset/data/roadmap/histone/histone_token.h5',help='path to training data')
 parser.add_argument('--model_type','-mt',type=int,default=0,help='Model type')
 parser.add_argument('--optimizer_type','-optim',type=int,default=0,help='SGD optimizer')
 parser.add_argument('--batch_size','-bs',type=int,default=128,help='Batch size')

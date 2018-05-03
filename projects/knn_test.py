@@ -61,26 +61,21 @@ expn.columns = col_names
 pinned_lookup = torch.nn.Embedding.from_pretrained(torch.FloatTensor(expn.as_matrix().T),freeze=True)
 pinned_lookup.cuda()
 print("Done")
+# nicer euclidean similarity matrix at https://discuss.pytorch.org/t/build-your-own-loss-function-in-pytorch/235/7
 def similarity_matrix(mat):
     simmat = torch.zeros(mat.size(0),mat.size(0))
     for i in range(mat.size(0)):
         for j in range(i,mat.size(0)):
-            pass
-    # get the product x * y
-    # here, y = x.t()
-    r = torch.mm(mat, mat.t())
-    # get the diagonal elements
-    diag = r.diag().unsqueeze(0)
-    diag = diag.expand_as(r)
-    # compute the distance matrix
-    D = diag + diag.t() - 2*r
-    return D.sqrt()
+            simmat[i,j] = simmat[j,i] = F.cosine_similarity(mat[i],mat[j],dim=0)[0]
+    return simmat
 
 simmat = similarity_matrix(pinned_lookup.weight.data)
-_, k_nearest = simmat.sort()
+k_weights, k_nearest = simmat.sort(descending=True)
 k = 2
-k_nearest = k_nearest[1:k+1]
-
+k_weights, k_nearest = k_weights[:,1:k+1], k_nearest[:,1:k+1]
+k_weights = F.normalize(k_weights, dim=1)
+mult_tensor = torch.zeros(57,57)
+mult_tensor.scatter(dim=1, k_nearest, k_weights)
 
 print("Reading data from file {}".format(args.data),file=Logger)
 data = h5py.File(args.data)
@@ -124,13 +119,15 @@ losses  = []
 y_score = []
 y_test  = []
 #val_loader.init_epoch()
-for inputs, targets in test_loader:
+for inputs, geneexpr, targets in test_loader:
+    # geneexpr_batch = pinned_lookup(geneexpr.long().cuda()).squeeze()
     inputs = to_one_hot(inputs, n_dims=4).permute(0,3,1,2).squeeze().float()
     targets = targets.float()
     inp_batch = Variable( inputs ).cuda()
-    trg_batch = Variable(targets).cuda()        
-    outputs = model(inp_batch) # ?, 49
-
+    trg_batch = Variable( targets ).cuda()        
+    moutputs = model(inp_batch) # ?, 49
+    # can i get some things?
+    outputs = moutputs * mult_tensor[geneexpr.long().cuda().squeeze()]
     loss = criterion(outputs.view(-1), trg_batch.view(-1))
     losses.append(loss.item())
     y_score.append( outputs.cpu().data.numpy() )
