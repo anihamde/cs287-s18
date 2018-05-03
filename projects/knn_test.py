@@ -19,7 +19,7 @@ import matplotlib.cm as cm
 from baseline_model import *
 
 parser = argparse.ArgumentParser(description='training runner')
-parser.add_argument('--data','-d',type=str,default='/n/data_02/Basset/data/mini_roadmap.h5',help='path to training data')
+parser.add_argument('--data','-d',type=str,default='/n/data_02/Basset/data/roadmap/histone/histone_token.h5',help='path to training data')
 parser.add_argument('--model_type','-mt',type=int,default=3,help='Model type')
 # parser.add_argument('--batch_size','-bs',type=int,default=128,help='Batch size')
 parser.add_argument('--num_epochs','-ne',type=int,default=10,help='Number of epochs')
