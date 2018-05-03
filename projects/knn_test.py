@@ -1,6 +1,4 @@
 import torch
-if __name__ == "__main__":
-    import torch.multiprocessing.set_start_method("spawn")
 import h5py
 import sys
 import subprocess
@@ -40,25 +38,77 @@ else:
 #Logger = sys.stderr
 
 if args.model_type == 0:
-    model = Basset()
+    model = Basset(output_labels=49)
 elif args.model_type == 1:
-    model = DeepSEA()
+    model = DeepSEA(output_labels=49)
 elif args.model_type == 2:
-    model = Classic()
+    model = Classic(output_labels=49)
 elif args.model_type == 3:
-    model = BassetNorm()
+    model = BassetNorm(output_labels=49)
 
+model.load_state_dict(torch.load(args.model_file))
+model.cuda()
 num_params = sum([p.numel() for p in model.parameters()])
+print("Model {} successfully imported\nTotal number of parameters {}".format(mf, num_params),file=Logger)
+
+expn_pth = '/n/data_02/Basset/data/expn/roadmap/57epigenomes.RPKM.pc'
+print("Reading gene expression data from:\n{}".format(expn_pth))
+# Gene expression dataset
+expn = pd.read_table(expn_pth,header=0)    
+col_names = expn.columns.values[1:]
+expn = expn.drop(col_names[-1],axis=1)
+expn.columns = col_names
+pinned_lookup = torch.nn.Embedding.from_pretrained(torch.FloatTensor(expn.as_matrix().T),freeze=True)
+pinned_lookup.cuda()
+print("Done")
+def similarity_matrix(mat):
+    simmat = torch.zeros(mat.size(0),mat.size(0))
+    for i in range(mat.size(0)):
+        for j in range(i,mat.size(0)):
+            pass
+    # get the product x * y
+    # here, y = x.t()
+    r = torch.mm(mat, mat.t())
+    # get the diagonal elements
+    diag = r.diag().unsqueeze(0)
+    diag = diag.expand_as(r)
+    # compute the distance matrix
+    D = diag + diag.t() - 2*r
+    return D.sqrt()
+
+simmat = similarity_matrix(pinned_lookup.weight.data)
+_, k_nearest = simmat.sort()
+k = 2
+k_nearest = k_nearest[1:k+1]
+
 
 print("Reading data from file {}".format(args.data),file=Logger)
 data = h5py.File(args.data)
 
-# train = torch.utils.data.TensorDataset(torch.CharTensor(data['train_in']), torch.CharTensor(data['train_out']))
-val = torch.utils.data.TensorDataset(torch.CharTensor(data['valid_in']), torch.CharTensor(data['valid_out']))
-test = torch.utils.data.TensorDataset(torch.CharTensor(data['test_in']), torch.CharTensor(data['test_out']))
-# train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True)
+# Set celltype holdouts
+# ['E004','E038','E082','E095','E098','E123','E127'] ['H1 Derived Mesendo','CD4 Naive Primary','Fetal Brain','Left Ventricle','Pancreas','K562','NHEK-Epidermal']
+alltypes   = [ str(x, 'utf-8') for x in list(data['target_labels'][:]) ]
+holdouts   = ['E004','E038','E082','E095','E098','E123','E127']
+
+train_type = [ x for x in alltypes if x not in holdouts ]
+valid_type = ['E004','E095','E098','E127']
+test_type  = ['E038','E082','E123']
+
+c_idx = [ i for i,x in enumerate( list(data['target_labels'][:]) ) if str(x, 'utf-8') in train_type ]
+
+train = torch.utils.data.TensorDataset(torch.CharTensor(data['train_in'][:,c_idx]), 
+                                       torch.CharTensor(data['train_out'][:,c_idx]))
+val = torch.utils.data.TensorDataset(torch.CharTensor(data['valid_in'][:,c_idx]), 
+                                     torch.CharTensor(data['valid_out'][:,c_idx]))
+test = torch.utils.data.TensorDataset(torch.CharTensor(data['test_in'][:,c_idx]), 
+                                      torch.CharTensor(data['test_out'][:,c_idx]))
+train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True)
+# train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True, num_workers=int(args.workers))
 val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffle=False)
+# val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffle=False, num_workers=int(args.workers))
 test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=False)
+# test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=False, num_workers=int(args.workers))
+print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
 
 #criterion = torch.nn.MultiLabelSoftMarginLoss() # Loss function
 criterion = torch.nn.BCEWithLogitsLoss(size_average=False)
@@ -66,35 +116,31 @@ criterion = torch.nn.BCEWithLogitsLoss(size_average=False)
 start = time.time()
 print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
 
-model_files = sorted(glob.glob('bassetnorm_*.pkl'))
+# model_files = sorted(glob.glob('bassetnorm_*.pkl'))
+# for mf in model_files:
 
-for mf in model_files:
-    model = BassetNorm()
-    model.load_state_dict(torch.load(mf))    
-    model.cuda()
-    print("Model {} successfully imported\nTotal number of parameters {}".format(mf, num_params),file=Logger)
+model.eval()
+losses  = []
+y_score = []
+y_test  = []
+#val_loader.init_epoch()
+for inputs, targets in test_loader:
+    inputs = to_one_hot(inputs, n_dims=4).permute(0,3,1,2).squeeze().float()
+    targets = targets.float()
+    inp_batch = Variable( inputs ).cuda()
+    trg_batch = Variable(targets).cuda()        
+    outputs = model(inp_batch) # ?, 49
 
-    model.eval()
-    losses  = []
-    y_score = []
-    y_test  = []
-    #val_loader.init_epoch()
-    for inputs, targets in test_loader:
-        inputs = to_one_hot(inputs, n_dims=4).permute(0,3,1,2).squeeze().float()
-        targets = targets.float()
-        inp_batch = Variable( inputs ).cuda()
-        trg_batch = Variable(targets).cuda()        
-        outputs = model(inp_batch)
-        loss = criterion(outputs.view(-1), trg_batch.view(-1))
-        losses.append(loss.item())
-        y_score.append( outputs.cpu().data.numpy() )
-        y_test.append(  targets.cpu().data.numpy() )
+    loss = criterion(outputs.view(-1), trg_batch.view(-1))
+    losses.append(loss.item())
+    y_score.append( outputs.cpu().data.numpy() )
+    y_test.append(  targets.cpu().data.numpy() )
 
-    epoch_loss = sum(losses)/len(val)
-    avg_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score))
-    timenow = timeSince(start)
-    print( "Time: {}, Validation loss: {}, Mean AUC: {}".format( timenow, epoch_loss, avg_auc),
-           file=Logger)
+epoch_loss = sum(losses)/len(val)
+avg_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score))
+timenow = timeSince(start)
+print( "Time: {}, Validation loss: {}, Mean AUC: {}".format( timenow, epoch_loss, avg_auc),
+       file=Logger)
 
 if args.stop_instance:
     Logger.close()

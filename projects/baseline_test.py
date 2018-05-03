@@ -46,8 +46,9 @@ elif args.model_type == 2:
 elif args.model_type == 3:
     model = BassetNorm()
 
+model.load_state_dict(torch.load(args.model_file))    
+model.cuda()
 num_params = sum([p.numel() for p in model.parameters()])
-
 print("Model successfully imported\nTotal number of parameters {}".format(num_params),file=Logger)
 
 print("Reading data from file {}".format(args.data),file=Logger)
@@ -66,37 +67,32 @@ criterion = torch.nn.BCEWithLogitsLoss(size_average=False)
 start = time.time()
 print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
 
-model_files = sorted(glob.glob('bassetnorm_*.pkl'))
+# model_files = sorted(glob.glob('bassetnorm_*.pkl'))
+# for mf in model_files:
 
-for mf in model_files:
-    model = BassetNorm()
-    model.load_state_dict(torch.load(mf))    
-    model.cuda()
-    print("Model {} successfully imported\nTotal number of parameters {}".format(mf, num_params),file=Logger)
+model.eval()
+losses  = []
+y_score = []
+y_test  = []
+#val_loader.init_epoch()
+for inputs, targets in test_loader:
+    inputs = to_one_hot(inputs, n_dims=4).permute(0,3,1,2).squeeze().float()
+    targets = targets.float()
+    inp_batch = Variable( inputs ).cuda()
+    trg_batch = Variable(targets).cuda()        
+    outputs = model(inp_batch)
+    loss = criterion(outputs.view(-1), trg_batch.view(-1))
+    losses.append(loss.item())
+    y_score.append( outputs.cpu().data.numpy() )
+    y_test.append(  targets.cpu().data.numpy() )
 
-    model.eval()
-    losses  = []
-    y_score = []
-    y_test  = []
-    #val_loader.init_epoch()
-    for inputs, targets in test_loader:
-        inputs = to_one_hot(inputs, n_dims=4).permute(0,3,1,2).squeeze().float()
-        targets = targets.float()
-        inp_batch = Variable( inputs ).cuda()
-        trg_batch = Variable(targets).cuda()        
-        outputs = model(inp_batch)
-        loss = criterion(outputs.view(-1), trg_batch.view(-1))
-        losses.append(loss.item())
-        y_score.append( outputs.cpu().data.numpy() )
-        y_test.append(  targets.cpu().data.numpy() )
-
-    epoch_loss = sum(losses)/len(val)
-    avg_ROC_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score), "ROC")
-    avg_PR_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score), "PR")
-    timenow = timeSince(start)
-    print( "Time: {}, Validation loss: {}, Mean ROC AUC: {}, Mean PRAUC: {}".format( 
-                                                                                timenow, epoch_loss, avg_ROC_auc,avg_PR_auc),
-           file=Logger)
+epoch_loss = sum(losses)/len(val)
+avg_ROC_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score), "ROC")
+avg_PR_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score), "PR")
+timenow = timeSince(start)
+print( "Time: {}, Validation loss: {}, Mean ROC AUC: {}, Mean PRAUC: {}".format( 
+                                                                            timenow, epoch_loss, avg_ROC_auc,avg_PR_auc),
+       file=Logger)
 
 if args.stop_instance:
     Logger.close()
