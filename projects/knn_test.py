@@ -76,18 +76,18 @@ valid_type = ['E004','E095','E098','E127']
 test_type  = ['E038','E082','E123']
 
 start = time.time()
-# train = RoadmapDataset(data,expn,train_type,segment='train')
+train = RoadmapDataset(data,expn,train_type,segment='train')
 val   = RoadmapDataset(data,expn,valid_type,segment='valid')
 test  = RoadmapDataset(data,expn,test_type,segment='test')
 # Set Loader
-# train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True)
+train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True)
 val_loader = torch.utils.data.DataLoader(val, batch_size=500, shuffle=False)
 test_loader = torch.utils.data.DataLoader(test, batch_size=500, shuffle=False)
 print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
 
 # nicer euclidean similarity matrix at https://discuss.pytorch.org/t/build-your-own-loss-function-in-pytorch/235/7
 valtestdex = np.concatenate([val.expn_dex,test.expn_dex])
-traindex = np.setdiff1d(np.arange(57),valtestdex)
+traindex = train.expn_dex
 simmat = torch.zeros(7,49)
 mat = pinned_lookup.weight
 for i in range(7):
