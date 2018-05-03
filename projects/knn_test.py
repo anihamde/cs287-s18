@@ -75,6 +75,7 @@ train_type = [ x for x in alltypes if x not in holdouts ]
 valid_type = ['E004','E095','E098','E127']
 test_type  = ['E038','E082','E123']
 
+start = time.time()
 # train = RoadmapDataset(data,expn,train_type,segment='train')
 val   = RoadmapDataset(data,expn,valid_type,segment='valid')
 test  = RoadmapDataset(data,expn,test_type,segment='test')
@@ -106,9 +107,6 @@ tensor2 = tensor2.cuda()
 
 #criterion = torch.nn.MultiLabelSoftMarginLoss() # Loss function
 criterion = torch.nn.BCEWithLogitsLoss(size_average=False)
-
-start = time.time()
-print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
 
 # model_files = sorted(glob.glob('bassetnorm_*.pkl'))
 # for mf in model_files:
