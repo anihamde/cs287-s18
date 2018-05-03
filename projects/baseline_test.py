@@ -56,6 +56,7 @@ print("Model successfully imported\nTotal number of parameters {}".format(num_pa
 print("Reading data from file {}".format(args.data),file=Logger)
 data = h5py.File(args.data)
 
+start = time.time()
 # train = torch.utils.data.TensorDataset(torch.ByteTensor(data['train_in'][:].astype('uint8')), 
 #                                        torch.ByteTensor(data['train_out'][:].astype('uint8')))
 val = torch.utils.data.TensorDataset(torch.ByteTensor(data['valid_in'][:].astype('uint8')), 
@@ -72,9 +73,6 @@ print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
 
 #criterion = torch.nn.MultiLabelSoftMarginLoss() # Loss function
 criterion = torch.nn.BCEWithLogitsLoss(size_average=False)
-
-start = time.time()
-print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
 
 # model_files = sorted(glob.glob('bassetnorm_*.pkl'))
 # for mf in model_files:
