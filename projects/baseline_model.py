@@ -368,7 +368,7 @@ class DanQCat(nn.Module):
         out = out.permute(2,0,1) # (45, ?, 320)
         out,_ = self.lstm(out, self.initHidden(out.size(1))) # (45, ?, 320)
         out = self.dropout_3(out) # (45, ?, 320)
-        out = out.transpose(1,0).reshape(-1,45*320) # (/, 39*1024)
+        out = out.transpose(1,0).reshape(-1,45*320) # (/, 45*320)
 
         # NEW
         geneexpr = F.relu(self.genelinear(geneexpr)) # (?, 500)
