@@ -416,6 +416,7 @@ class DanQCat(nn.Module):
         out = out.transpose(1,0).reshape(-1,45*320) # (/, 45*320)
 
         # NEW
+        print(geneexpr.size(),self.genelinear(geneexpr).size())
         geneexpr = F.relu(self.genelinear(geneexpr)) # (?, 500)
         out = torch.cat([out,geneexpr], dim = 1) # (?, 45*320+500)
 
