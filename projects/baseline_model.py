@@ -380,7 +380,7 @@ class DanQ(nn.Module):
 #         return self.output(out) # (?, 1)
 
 class DanQCat(nn.Module):
-    def __init__(self, dropout_prob_02=0.2, dropout_prob_03=0.5, hidden_size=320, num_layers=1,
+    def __init__(self, dropout_prob_02=0.2, dropout_prob_03=0.5, hidden_size=160, num_layers=1,
                  bidirectional=True, output_labels=1):
         # TODO: weight initialize unif[-.05,.05], bias 0
         super(DanQCat, self).__init__()
@@ -407,25 +407,16 @@ class DanQCat(nn.Module):
                 Variable(torch.zeros(self.num_layers*self.directions,bs,self.hidden_size).cuda()))
     def forward(self, x, geneexpr):
         out = F.relu(self.conv1(x)) # (?, 320, 571)
-        print(1,out.size())
         out = F.pad(out,(14,0)) # (?, 320, 585)
-        print(2,out.size())
         out = self.maxpool(out) # (?, 320, 45)
-        print(3,out.size())
         out = self.dropout_2(out) # (?, 320, 45)
-        print(4,out.size())
         out = out.permute(2,0,1) # (45, ?, 320)
-        print(5,out.size())
         out,_ = self.lstm(out, self.initHidden(out.size(1))) # (45, ?, 320)
-        print(6,out.size())
         out = self.dropout_3(out) # (45, ?, 320)
-        print(7,out.size())
         out = out.transpose(1,0).reshape(-1,45*320) # (/, 45*320)
-        print(8,out.size())
 
         # NEW
         geneexpr = F.relu(self.genelinear(geneexpr)) # (?, 500)
-        print(geneexpr.size(),out.size())
         out = torch.cat([out,geneexpr], dim = 1) # (?, 45*320+500)
 
         out = F.relu(self.linear(out)) # (?, 925)
