@@ -293,7 +293,7 @@ class DanQ(nn.Module):
 
 class DanQCat(nn.Module):
     def __init__(self, dropout_prob_02=0.2, dropout_prob_03=0.5, hidden_size=512, num_layers=1,
-                 bidirectional=True, output_labels=164):
+                 bidirectional=True, output_labels=1):
         # TODO: weight initialize unif[-.05,.05], bias 0
         super(DanQCat, self).__init__()
         self.conv1 = nn.Conv1d(4, 1024, 30, stride=1, padding=0)
@@ -332,4 +332,4 @@ class DanQCat(nn.Module):
         out = torch.cat([out,geneexpr], dim = 1) # (?, 39*1024+500)
 
         out = F.relu(self.linear(out)) # (?, 925)
-        return self.output(out) # (?, 164)
+        return self.output(out) # (?, 1)
