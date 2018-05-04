@@ -398,6 +398,8 @@ class DanQCat(nn.Module):
         self.genelinear = LinearNorm(19795, 500, weight_norm=False)
         self.linear = nn.Linear(45*320+500,925)
         
+        self.dropout_4 = nn.Dropout(p=0.2)
+        
         self.output = nn.Linear(925, output_labels)
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -417,6 +419,7 @@ class DanQCat(nn.Module):
 
         # NEW
         geneexpr = F.relu(self.genelinear(geneexpr)) # (?, 500)
+        geneexpr = self.dropout_4(geneexpr)
         out = torch.cat([out,geneexpr], dim = 1) # (?, 45*320+500)
 
         out = F.relu(self.linear(out)) # (?, 925)
