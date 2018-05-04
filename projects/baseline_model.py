@@ -407,13 +407,21 @@ class DanQCat(nn.Module):
                 Variable(torch.zeros(self.num_layers*self.directions,bs,self.hidden_size).cuda()))
     def forward(self, x, geneexpr):
         out = F.relu(self.conv1(x)) # (?, 320, 571)
+        print(1,out.size())
         out = F.pad(out,(14,0)) # (?, 320, 585)
+        print(2,out.size())
         out = self.maxpool(out) # (?, 320, 45)
+        print(3,out.size())
         out = self.dropout_2(out) # (?, 320, 45)
+        print(4,out.size())
         out = out.permute(2,0,1) # (45, ?, 320)
+        print(5,out.size())
         out,_ = self.lstm(out, self.initHidden(out.size(1))) # (45, ?, 320)
+        print(6,out.size())
         out = self.dropout_3(out) # (45, ?, 320)
+        print(7,out.size())
         out = out.transpose(1,0).reshape(-1,45*320) # (/, 45*320)
+        print(8,out.size())
 
         # NEW
         geneexpr = F.relu(self.genelinear(geneexpr)) # (?, 500)
