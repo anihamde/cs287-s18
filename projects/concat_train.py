@@ -136,6 +136,7 @@ for epoch in range(args.num_epochs):
     ctr = 0
     tot_loss = 0
     for inputs, geneexpr, targets in train_loader:
+        print(inputs.size(),geneexpr.size(),targets.size())
         geneexpr_batch = pinned_lookup(geneexpr.long().cuda()).squeeze()
         inputs = to_one_hot(inputs, n_dims=4).permute(0,3,1,2).squeeze().float()
         targets = targets.float()
