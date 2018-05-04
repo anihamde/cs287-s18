@@ -138,6 +138,7 @@ for epoch in range(args.num_epochs):
     for inputs, geneexpr, targets in train_loader:
         print(inputs.size(),geneexpr.size(),targets.size())
         geneexpr_batch = pinned_lookup(geneexpr.long().cuda()).squeeze()
+        print(geneexpr_batch.size())
         inputs = to_one_hot(inputs, n_dims=4).permute(0,3,1,2).squeeze().float()
         targets = targets.float()
         inp_batch = Variable(inputs).cuda()
