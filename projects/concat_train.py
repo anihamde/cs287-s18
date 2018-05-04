@@ -143,7 +143,7 @@ for epoch in range(args.num_epochs):
         trg_batch = Variable(targets).cuda()
         optimizer.zero_grad()
         outputs = model(inp_batch, geneexpr_batch) # change this too!
-        print(outputs.view(-1).size,trg_batch.view(-1).size)
+        print(outputs.view(-1).size(),trg_batch.view(-1).size())
         loss = criterion(outputs.view(-1), trg_batch.view(-1))
         loss.backward()
         tot_loss += loss.item()
