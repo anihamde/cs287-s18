@@ -14,26 +14,27 @@ import time
 from helpers import timeSince, asMinutes, calc_auc
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+import yaml
 from baseline_model import *
 
 parser = argparse.ArgumentParser(description='training runner')
 parser.add_argument('--data','-d',type=str,default='/n/data_02/Basset/data/mini_roadmap.h5',help='path to training data')
 parser.add_argument('--model_type','-mt',type=int,default=0,help='Model type')
-parser.add_argument('--optimizer_type','-optim',type=int,default=0,help='SGD optimizer')
+parser.add_argument('--model_file','-mf',type=str,default='stupid.pkl',help='Save model filename')
 parser.add_argument('--batch_size','-bs',type=int,default=128,help='Batch size')
 parser.add_argument('--num_epochs','-ne',type=int,default=10,help='Number of epochs')
+parser.add_argument('--optimizer_type','-optim',type=int,default=0,help='SGD optimizer')
 parser.add_argument('--learning_rate','-lr',type=float,default=0.0001,help='Learning rate')
 parser.add_argument('--rho','-r',type=float,default=0.95,help='rho for Adadelta optimizer')
 parser.add_argument('--alpha','-al',type=float,default=0.98,help='alpha value for RMSprop optimizer')
 parser.add_argument('--weight_decay','-wd',type=float,default=0.0,help='Weight decay constant for optimizer')
 parser.add_argument('--max_weight_norm','-wn',type=float,help='Max L2 norm for weight clippping')
 parser.add_argument('--clip','-c',type=float,help='Max norm for weight clipping')
-parser.add_argument('--model_file','-mf',type=str,default='stupid.pkl',help='Save model filename')
 parser.add_argument('--stop_instance','-halt',action='store_true',help='Stop AWS instance after training run.')
 parser.add_argument('--log_file','-l',type=str,default='stderr',help='training log file')
 # parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
+parser.add_argument('--architecture_file','-y',type=str,default='model.yaml',help='YAML file containing specs to build model.')
 args = parser.parse_args()
-
 print("Begin run")
 
 if args.log_file == 'stderr':
@@ -43,19 +44,28 @@ else:
     Logger = log_file
 #Logger = sys.stderr
 
+# TODO: you mean like this?
 if args.model_type == 0:
     model = Basset()
+    architecture_dict = OrderedDict([ ('model_type','basset') ]) # ,('hidden_size', args.hidden_size), etc etc
 elif args.model_type == 1:
     model = DeepSEA()
+    architecture_dict = OrderedDict([ ('model_type','deepsea') ])
 elif args.model_type == 2:
     model = Classic()
-elif args.model_type == 3:
+    architecture_dict = OrderedDict([ ('model_type','classic') ])
+if args.model_type == 3:
     model = BassetNorm()
+    architecture_dict = OrderedDict([ ('model_type','bassetnorm') ])
 elif args.model_type == 4:
-	model = DanQ()
+    model = DanQ()
+    architecture_dict = OrderedDict([ ('model_type','danq') ])
 
-num_params = sum([p.numel() for p in model.parameters()])
-    
+with open(args.architecture_file,'w') as fh:
+    [ fh.write("{}: {}\n".format(key,value)) for key,value in architecture_dict.items() ]
+    fh.close()
+
+num_params = sum([p.numel() for p in model.parameters()])    
 model.cuda()
 print("Model successfully imported\nTotal number of parameters {}".format(num_params),file=Logger)
 
