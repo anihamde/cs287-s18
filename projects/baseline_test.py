@@ -45,8 +45,10 @@ elif args.model_type == 2:
     model = Classic()
 elif args.model_type == 3:
     model = BassetNorm()
+elif args.model_type == 4:
+    model = DanQ()
 
-model.load_state_dict(torch.load(args.model_file))    
+model.load_state_dict(torch.load(args.model_file))
 model.cuda()
 num_params = sum([p.numel() for p in model.parameters()])
 print("Model successfully imported\nTotal number of parameters {}".format(num_params),file=Logger)
@@ -54,18 +56,23 @@ print("Model successfully imported\nTotal number of parameters {}".format(num_pa
 print("Reading data from file {}".format(args.data),file=Logger)
 data = h5py.File(args.data)
 
-# train = torch.utils.data.TensorDataset(torch.CharTensor(data['train_in']), torch.CharTensor(data['train_out']))
-val = torch.utils.data.TensorDataset(torch.CharTensor(data['valid_in']), torch.CharTensor(data['valid_out']))
-test = torch.utils.data.TensorDataset(torch.CharTensor(data['test_in']), torch.CharTensor(data['test_out']))
+start = time.time()
+# train = torch.utils.data.TensorDataset(torch.ByteTensor(data['train_in'][:].astype('uint8')), 
+#                                        torch.ByteTensor(data['train_out'][:].astype('uint8')))
+val = torch.utils.data.TensorDataset(torch.ByteTensor(data['valid_in'][:].astype('uint8')), 
+                                     torch.ByteTensor(data['valid_out'][:].astype('uint8')))
+test = torch.utils.data.TensorDataset(torch.ByteTensor(data['test_in'][:].astype('uint8')), 
+                                      torch.ByteTensor(data['test_out'][:].astype('uint8')))
 # train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True)
+# train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True, num_workers=int(args.workers))
 val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffle=False)
+# val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffle=False, num_workers=int(args.workers))
 test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=False)
+# test_loader = torch.utils.data.DataLoader(test, batch_size=args.batch_size, shuffle=False, num_workers=int(args.workers))
+print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
 
 #criterion = torch.nn.MultiLabelSoftMarginLoss() # Loss function
 criterion = torch.nn.BCEWithLogitsLoss(size_average=False)
-
-start = time.time()
-print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
 
 # model_files = sorted(glob.glob('bassetnorm_*.pkl'))
 # for mf in model_files:

@@ -35,3 +35,127 @@ Encode:
 Assay polyA RNA-seq
 Genome assembly (visualization) hg19
 Organism homo sapiens, available data tsv
+
+
+############ PRESENTATION ###########
+Central dogma
+DNA language of life, proteins molecules of life
+DNA polymerase, transcription. Translation turns mRNA->tRNA->amino acids->proteins
+Gene expression. Genes are regions of DNA with explicit instructions
+Notice promoter regions
+Replication is imperfect: mutations/variants
+Most work: how mutations affect proteins
+Us: how mutations affect genome (gene expression process)
+Why? Most variation does not directly affect protein structure.
+Only 2%
+Noncoding region- dark matter. Less sure about its function, but it is important
+88%, phenotype
+What do non-coding variants do? They alter transcription
+Regulate the process turning genes "on" and "off" (gradated in reality)
+This is the core of our problem: core model from DNA sequences to features.
+Features describing different facets of transcription process.
+More detail on transcription & non-coding regions.
+Here's the polymerase on the gene.
+Transcription factor proteins on non-coding regions. Complex dynamics of regulation. Activators, inhibitors.
+Sequence->feature: 3 main feature categories to understand transcription process
+Accessibility (DNAase 1 hypersensitivity) how receptive
+TF binding
+Histone modification: DNA wrapped around histones. By interacting with histones. DNA tightly wound.
+Big picture: predict these things from DNA sequences
+Foreshadow a challenge: DNA is not 1D. far up/downstream
+TF binding isn't a single feature: many different TF proteins. 
+They are sequence specific.
+They scan the DNA, looking for nucleotide patterns, or motifs
+Low-level conv kernel scanning a sentence
+Other important concept is cell type.
+All cells contain the same DNA. Uniform blob. 
+Different cell types-> different genes. Kidney vs skin cell.
+DNAase 1 hypersensitivity (protein that cuts genes). Measuring accessibility (key feature)
+Oct-4 inhibits early-stage cell differentiation
+Different colors for different cell types.
+Pink: stem cell. High pink scores near the promoter.
+Why does this make sense? Stem cells need to express this gene to avoid differentiating.
+By contrast, bone cells (yellow) need to differentiate early to become uniquely bone.
+In summary: motivation behind sequence-to-chromatin feature prediction task. Suggested how cell type contributes additional information to this task.
+
+
+
+########### VIDEOS #############
+https://www.youtube.com/watch?v=gbSIBhFwQ4s
+How DNA is packaged. 8 histone proteins attach to the DNA molecule to make the nucleosome. Multiple nucleosomes stack together to form chromatin. And later, chromosomes (which only form when cells are dividing).
+https://www.youtube.com/watch?v=SMtWvDbfHLo&feature=youtu.be
+DNA makes RNA makes protein. Transcription factors assemble at a specific promoter region along the DNA. The DNA following the promoter is a gene, recipe for protein. Mediator, RNA polymerase, etc. When the transcription initiator complex touches the activator protein (also technically a TF), the polymerase goes running. One of the strands is copied.
+https://www.youtube.com/watch?v=MkUgkDLp2iE&feature=youtu.be
+All cells have the same DNA, but use different genes. How do transcription factors find the correct sequences to turn on genes? The transcription factor scans the DNA, efficiently searching for its binding site. It can be knocked off its site by movement of the DNA, or other proteins. It can make short hops (lol). There are 1500 different types of TFs in human cells. They create a complex language of gene expression.
+
+https://www.youtube.com/watch?v=MdzUB0WWons&feature=youtu.be&t=14m27s
+Gene: it lies on a large string of DNA. A gene can be lightly or fully turned on. There are more players involved in eukaryotes than in bacteria. But in the end, our game is to get RNA polymerase stably attached to DNA, to turn genes on.
+There's an insulin gene. 25 base pairs upstream: core promoter (TATA box). Several general transcription factors that bind all over this core promoter. These factors recruit RNA polymerase. However, these factors transcribe the gene weakly (baso, leaky). They don't turn on the gene full blast. So we need other proteins and regulatory sequences.
+Upstream of the core promoter: regulatory promoter. It binds a protein called a transcriptional activator. There's also a co-activator. There's also an enhancer (really far away, but near in physical space). Additional transcriptional activators bind to the enhancer. A protein mediator help stabilize the interactions btwn all these proteins. Once all these proteins are in, the gene is turned on much more. The gene is like a kitchen faucet, not an on-off switch.
+There's also an upstream sequence called a silencer, that binds a repressor.
+How does the enhancer (that's far away) know what gene to enhance? There are special sequences called insulator, which bind "insulator binding proteins", which do their job: they insulate.
+Summary: chromosome territories. Chromatin remodeling (remove and add histones to turn a gene on and off). Transcription factors.... next: after RNA is made, how does it control the making of a protein?
+
+David Kelley's Lecture
+Gene expression/regulation. Non-encoding regions in the genome and we don't know what they do.
+Is a certain transcription factor binding this sequence? Motif searches, we can estimate this.
+State of the art: svm, decision-weight matrices, string kernels. Describes CNN
+Layers capture simple motifs -> combos of motifs, motifs in GC content environment that's more conducive to binding.
+We're not just interested in global features.
+Multi-task learning problem. There's lots of shared information across cell types.
+Bayesian optimization- choose hyperparameters
+Can we better predict transcription?
+Where do we stop? Frey's group at deep genomics
+Normalize for local GC%, distribute multi-mappers with EM, bowtie2 align with multi-mappers
+How distant regulatory elements affect gene expression. RNNs did not work better.
+Dilated convolution layers. Make prediction
+We can predict promoters, distant affectors
+They still can't interpolate across different cell types.
+Training is multi-task: predicts all cell types at once. In the last layer, each experiment has its own parameters.
+Predictions rival replicate experiment correlation.
+Broad histone modification is better helped out by dilated layers
+The model does capture cell type-specific expression
+
+
+############### DEEPSEA ###############
+DeepSEA
+Learns a regulatory sequence code (features?) from large-scale chromatin profiling data (DNAseq?)
+Enables prediction of variants with single-nucleotide sensitivity
+Improve prioritization of functional variants including eQTL and disease-associated variants
+Motifs are less powerful than evolutionary features (phyloP) and chromatin annotation (?)
+3 innovations: integrating sequence information from a wide context, learning code at multiple spatial scales (convolution), multitask joint learning of diverse chromatin factors (diff objectives) sharing predictive features.
+ENCODE: 690 TF binding profiles for 160 TFs, 125 DHS profiles, 104 histone-mark profiles. So 919 total feature/cell-type combinations. Last layer scales predictions for each feature to [0,1].
+521 Mbp of genome. Wider sequence context of 1000 bp (receptive field)
+Multitask model: share learned predictive sequence features (intermediate features) across all chromatin profile predictors (objectives).
+Predict on holdout AUC .958, beating gkm-SVM (AUC .896)
+In silico saturated mutagenesis (variant effect prediction by passing through conv model). Evaluation protocol using allelic imbalance info from digital genomic footprinting DNAase-seq data on ENCODE cell lines. The pipeline identified allelically imbalanced SNPs (variants) from 35 cell types. We used these as the standards for evaluating DHS prediction in DeepSEA.
+Model really understands on nucleotide-level: accurate predictions of DHS classifier even when trained only on reference genome, not variant data. I.e. high-confidence predictions of chromatin effect of genomic variants on the basis of genomic sequence alone. And prediction of effect of indiv SNPs on TF binding. (chromatin effect and TF binding are 2 different features)
+Extend to prioritize functional SNPs on basis of predicted chromatin effect signals (objectives)
+DeepSEA data etc
+ENCODE and Roadmap epigenomics data releases. Chromatin profile files (see supp table 1)
+200-bp bins. For each bin, label 919 chromatin features. Label 1 if more than half of the bin is in the peak region (which is determined by sampling), and 0 otherwise. For sequence->feature, only care about bins with at least one TF binding event.
+But the training samples are 1000-bp sequences centered around the bins.
+Valid set: 4000 samples on chromosome 7. Test set: chromosomes 8 and 9
+Hm how does gkm-SVM actually work? What's a kernel?
+Saturated mutagenesis for analyzing predictive sequence qualities. Assess the effect of mutating every base of input sequence (3000 substitutions per 1000-bp sequence) on chromatin feature predictions. Effect of base substitution log odds.
+Evaulation of single-nucleotide sensitivity of chromatin-feature prediction. ENCODE DGF data.  A pipeline to find allelic imbalance (Fisher's exact test). Are we planning to do this??
+What, truly, is functional SNP prioritization?
+Feed 2 sequences through model, one with reference, one with alternative. Take log odds. Compare to... something. (and compare performance to CADD, GWAVA...)
+4 evolutionary conservation features for the variant base position.
+3 variant types: HGMD single-nucleotide substitution regulatory mutations, eQTLs, and GWAS SNPs. (how are these different?) train a logistic regression model with each one
+Produce a DeepSEA functional significance score.
+
+DanQ
+CNN captures regulator motifs, RNN captures long-term dependencies. 
+Deep learning does: motif discovery, variant effect prediction, gene expression inference.
+Over 1200 GWAS identifying nearly 6500 SNPs in noncoding regions.
+Chromatin profiling data: TF binding, DNAase I sensitivity, histone-mark profiles. Across multiple cell types.
+Same data as DeepSeA. 919 features are ChIP-seq and DNAase-seq "peak sets" from uniformly processed ENCODE and Roadmap Epigenomics data releases.
+Each sample input is centered on a bin that overlaps at least one "TF binding ChIP-seeq peak". 
+Also trained a log reg baseline. Uses normalized counts of k-mers of length 1-5bp as its features.
+Also, functional SNP prioritization framework (same as DeepSEA, but I didn't understand it).
+Positive and negative SNP sets. Positive: eQTLs from the GRASP database and noncoding trait-associated SNPs identified in GWAS studies from NHGRI. Negative: 1000 genomes project SNPs with controlled minor allele frequency distribution. Trained ensemble classifiers. Features computed same as in DeepSEA. But how does this work????
+DeepBind method to turn conv kernels into motifs. Helpful for visualization!!!!! (and we could try to corroborate with LSTMviz!) Clustered motifs using RSAT matrix clustering, to confirm varied learning.
+Weight initialization is known to play a crucial role. Better initialization strategy????
+Btw, significant improvement in chromatin effect prediction does not immediately translate to an equally large improvement in functional variant prediction. A few hypotheses why (linkage disequilibrium).
+Future directions: fully recurrent model, incorporate new datasets, other data types (methylation, nucleosome positioning, transcription). Bayesian hyperparam tuning.
