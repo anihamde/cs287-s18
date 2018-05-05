@@ -380,7 +380,7 @@ class DanQ(nn.Module):
 #         return self.output(out) # (?, 1)
 
 class DanQCat(nn.Module):
-    def __init__(self, dropout_prob_02=0.2, dropout_prob_03=0.5, hidden_size=320, num_layers=1,
+    def __init__(self, dropout_prob_02=0.2, dropout_prob_03=0.5, hidden_size=160, num_layers=1,
                  bidirectional=True, output_labels=1):
         # TODO: weight initialize unif[-.05,.05], bias 0
         super(DanQCat, self).__init__()
@@ -397,6 +397,8 @@ class DanQCat(nn.Module):
         # NEW
         self.genelinear = LinearNorm(19795, 500, weight_norm=False)
         self.linear = nn.Linear(45*320+500,925)
+        
+        self.dropout_4 = nn.Dropout(p=0.2)
         
         self.output = nn.Linear(925, output_labels)
         self.hidden_size = hidden_size
@@ -416,8 +418,8 @@ class DanQCat(nn.Module):
         out = out.transpose(1,0).reshape(-1,45*320) # (/, 45*320)
 
         # NEW
-        print(geneexpr.size(),self.genelinear(geneexpr).size())
         geneexpr = F.relu(self.genelinear(geneexpr)) # (?, 500)
+        geneexpr = self.dropout_4(geneexpr)
         out = torch.cat([out,geneexpr], dim = 1) # (?, 45*320+500)
 
         out = F.relu(self.linear(out)) # (?, 925)
