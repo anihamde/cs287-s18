@@ -54,7 +54,7 @@ elif args.model_type == 1:
 elif args.model_type == 2:
     model = Classic()
     architecture_dict = OrderedDict([ ('model_type','classic') ])
-if args.model_type == 3:
+elif args.model_type == 3:
     model = BassetNorm()
     architecture_dict = OrderedDict([ ('model_type','bassetnorm') ])
 elif args.model_type == 4:

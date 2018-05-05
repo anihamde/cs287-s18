@@ -138,12 +138,15 @@ for epoch in range(args.num_epochs):
     ctr = 0
     tot_loss = 0
     for inputs, geneexpr, targets in train_loader:
+        print(inputs.size(),geneexpr.size(),targets.size())
         geneexpr_batch = pinned_lookup(geneexpr.long().cuda()).squeeze()
+        print(geneexpr_batch.size())
         inputs = to_one_hot(inputs, n_dims=4).permute(0,3,1,2).squeeze().float()
         targets = targets.float()
         inp_batch = Variable(inputs).cuda()
         trg_batch = Variable(targets).cuda()
         optimizer.zero_grad()
+        print('test',inp_batch.size(),geneexpr_batch.size())
         outputs = model(inp_batch, geneexpr_batch) # change this too!
         loss = criterion(outputs.view(-1), trg_batch.view(-1))
         loss.backward()
