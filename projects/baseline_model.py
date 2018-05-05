@@ -312,7 +312,7 @@ class DanQ(nn.Module):
         self.lstm = nn.LSTM(input_size=1024,hidden_size=hidden_size,num_layers=num_layers,bidirectional=bidirectional)
         # other relevant args: nonlinearity, dropout
         # lstm input shape: seq_len,bs,input_size
-        # hidden shape: num_layers*num_directions,bs,hidden_size
+        # hidden shape: num_layers*num_directions,bs,hidden_size 
         # output shape: seq_len,bs,hidden_size*num_directions
         self.dropout_2 = nn.Dropout(p=dropout_prob_02)
         self.dropout_3 = nn.Dropout(p=dropout_prob_03)
