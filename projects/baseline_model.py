@@ -200,9 +200,9 @@ class BassetNormCat(nn.Module):
 class BassetNormCat2(nn.Module):
     def __init__(self, dropout_prob=0.3):
         super(BassetNormCat2, self).__init__()
-        self.conv1 = Conv1dNorm(4, 300, 19, stride=1, padding=9, weight_norm=False)
-        self.conv1a = Conv1dNorm(4, 300, 11, stride=1, padding=5, weight_norm=False)
-        self.conv1b = Conv1dNorm(4, 300, 25, stride=1, padding=12, weight_norm=False)
+        self.conv1 = Conv1dNorm(4, 100, 19, stride=1, padding=9, weight_norm=False)
+        self.conv1a = Conv1dNorm(4, 100, 11, stride=1, padding=5, weight_norm=False)
+        self.conv1b = Conv1dNorm(4, 100, 25, stride=1, padding=12, weight_norm=False)
         self.conv2 = Conv1dNorm(300, 200, 11, stride=1, padding=0, weight_norm=False)
         self.conv3 = Conv1dNorm(200, 200, 7, stride=1, padding=0, weight_norm=False)
         self.maxpool_4 = nn.MaxPool1d(4,padding=0)
