@@ -251,7 +251,7 @@ class BassetNormCat_bilin(nn.Module):
         self.conv3 = Conv1dNorm(200, 200, 7, stride=1, padding=0, weight_norm=False)
         self.maxpool_4 = nn.MaxPool1d(4,padding=0)
         self.maxpool_3 = nn.MaxPool1d(3,padding=0)
-        self.bilin = nn.Bilinear(200*13,20000,200*13+500)
+        self.bilin = nn.Bilinear(200*13,19795,200*13+500)
         self.linear1 = LinearNorm(200*13+500, 1000, weight_norm=False)
         self.linear2 = LinearNorm(1000, 1000, weight_norm=False)
         self.dropout = nn.Dropout(p=dropout_prob)
