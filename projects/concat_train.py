@@ -60,7 +60,9 @@ elif args.model_type == 5:
 elif args.model_type == 6:
     model = DanQCat()
 elif args.model_type == 7:
-	model = BassetNormCat2()
+    model = BassetNormCat2()
+elif args.model_type == 8:
+    mod = BassetNormCat_bilin()
 
 num_params = sum([p.numel() for p in model.parameters()])
     
