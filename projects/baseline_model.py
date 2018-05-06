@@ -272,7 +272,7 @@ class BassetNormCat_bilin(nn.Module):
         out = F.pad(out,(1,1))
         out = self.maxpool_4(out) # (?, 500, 8)
         out = out.view(-1, 200*13) # (?, 500*8)
-        out = self.bilin(out,geneexpr) (?,200*13+500)
+        out = self.bilin(out,geneexpr) # (?,200*13+500)
         out = F.relu(self.linear1(out)) # (?, 800)
         out = self.dropout(out)
         out = F.relu(self.linear2(out)) # (?, 800)
