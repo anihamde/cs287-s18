@@ -513,7 +513,7 @@ class DanQCat_attn(nn.Module):
         for i in range(out.size(0)):
             out[i],hid = self.lstm(out[i].unsqueeze(0), self.initHidden(out.size(1)))
             hn[i] = hid[0]
-            inter = torch.squeeze(torch.matmul(geneexpr.view(geneexpr.size(0),1,320),out[i].view(out.size(0),320,1)))
+            inter = torch.squeeze(torch.matmul(geneexpr.view(geneexpr.size(1),1,320),out[i].view(out.size(0),320,1)))
             print(hn[i].size(),inter.size())
             attn[i] = torch.matmul(hn[i],inter)
         
