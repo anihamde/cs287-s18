@@ -487,7 +487,7 @@ class DanQCat_attn(nn.Module):
         self.dropout_3 = nn.Dropout(p=dropout_prob_03)
 
         # NEW
-        self.genelinear = LinearNorm(19795, hidden_size, weight_norm=False)
+        self.genelinear = LinearNorm(19795, 2*hidden_size, weight_norm=False)
         self.linear = nn.Linear(45*320,925)
         
         self.dropout_4 = nn.Dropout(p=0.2)
@@ -506,9 +506,12 @@ class DanQCat_attn(nn.Module):
         out = self.dropout_2(out) # (?, 320, 45)
         out = out.permute(2,0,1) # (45, ?, 320)
         
-        geneexpr = F.relu(self.genelinear(geneexpr)) # (160)
+        geneexpr = F.relu(self.genelinear(geneexpr)) # (?,160)
         attn = torch.zeros(out.size(0))
         hn = torch.zeros(out.size(0),2,800,160)
+        
+        print("out size",out.size())
+        print("out_0 size",out[0].size())
         
         for i in range(out.size(0)):
             out[i],hid = self.lstm(out[i].unsqueeze(0), self.initHidden(out.size(1)))
