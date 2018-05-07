@@ -514,6 +514,7 @@ class DanQCat_attn(nn.Module):
             out[i],hid = self.lstm(out[i].unsqueeze(0), self.initHidden(out.size(1)))
             print(hn.size(),hn[i].size(),hid[0].size())
             hn[i] = hid[0]
+            print(geneexpr.size(),out[i].size())
             attn[i] = torch.matmul(hn[i],torch.matmul(geneexpr,out[i]))
         
         out = torch.sum(torch.mul(attn,hn),1) # (45, ?, 320)
