@@ -512,6 +512,7 @@ class DanQCat_attn(nn.Module):
         
         for i in range(out.size(0)):
             out[i],hid = self.lstm(out[i].unsqueeze(0), self.initHidden(out.size(1)))
+            print(hn.size(),hid[0].size())
             hn[i] = hid[0]
             attn[i] = torch.matmul(hn[i],torch.matmul(geneexpr,out[i]))
         
