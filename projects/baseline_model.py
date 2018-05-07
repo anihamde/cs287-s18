@@ -508,19 +508,16 @@ class DanQCat_attn(nn.Module):
         
         geneexpr = F.relu(self.genelinear(geneexpr)) # (?,160)
         attn = torch.zeros(out.size(0))
-        hn = torch.zeros(out.size(0),2,800,160)
-        
-        print("out size",out.size())
-        print("out_0 size",out[0].size())
+        hn = torch.zeros(out.size(0),2,len(x),160)
         
         for i in range(out.size(0)):
             out[i],hid = self.lstm(out[i].unsqueeze(0), self.initHidden(out.size(1)))
-            print(hn.size(),hn[i].size(),hid[0].size())
             hn[i] = hid[0]
-            print(geneexpr.size(),out[i].size())
-            attn[i] = torch.matmul(hn[i],torch.matmul(geneexpr,out[i]))
+            inter = torch.squeeze(torch.matmul(geneexpr.view(geneexpr.size(0),1,320),out[i].view(out.size(0),320,1)))
+            print(hn[i].size(),inter.size())
+            attn[i] = torch.matmul(hn[i],inter)
         
-        out = torch.sum(torch.mul(attn,hn),1) # (45, ?, 320)
+        out = torch.sum(torch.mul(attn,hn),2) # (45, ?, 320)
             
 #         out = self.dropout_3(out) # (45, ?, 320)
 #         out = out.transpose(1,0).reshape(-1,45*320) # (/, 45*320)
