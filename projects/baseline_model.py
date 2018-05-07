@@ -516,6 +516,7 @@ class DanQCat_attn(nn.Module):
 #             print(geneexpr.size(),out.size())
 #             inter = torch.squeeze(torch.matmul(geneexpr.view(geneexpr.size(0),1,320),out[i].view(out[i].size(0),320,1)))
 #             print(hn[i].size(),inter.size())
+            print(geneexpr.size(),hn[i].size())
             attn[i] = torch.squeeze(torch.bmm(hn[i].permute(1,0,2).view(800,1,320),geneexpr.view(800,320,1))) # attn is (45,800), hn is (45,2,800,160)
         
         hn = hn.view(45,800,320)
