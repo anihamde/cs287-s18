@@ -42,7 +42,12 @@ args = parser.parse_args()
 print("Begin run")
 print(" ".join(sys.argv))
 
+def dprint(in_str,file):
+    print(in_str,file=file)
+    print(in_str,file=sys.stderr)
+
 if args.log_file == 'stderr':
+    dprint = print
     Logger = sys.stderr
 else:
     log_file = open(args.log_file,'w')
@@ -73,11 +78,11 @@ elif args.model_type == 9:
 num_params = sum([p.numel() for p in model.parameters()])
     
 model.cuda()
-print(" ".join(sys.argv),file=Logger)
-print("Model successfully imported\nTotal number of parameters {}".format(num_params),file=Logger)
+dprint(" ".join(sys.argv),file=Logger)
+dprint("Model successfully imported\nTotal number of parameters {}".format(num_params),file=Logger)
 
 expn_pth = '/n/data_02/Basset/data/expn/roadmap/57epigenomes.RPKM.pc'
-print("Reading gene expression data from:\n{}".format(expn_pth))
+dprint("Reading gene expression data from:\n{}".format(expn_pth))
 # Gene expression dataset
 expn = pd.read_table(expn_pth,header=0)    
 col_names = expn.columns.values[1:]
@@ -85,10 +90,10 @@ expn = expn.drop(col_names[-1],axis=1)
 expn.columns = col_names
 pinned_lookup = torch.nn.Embedding.from_pretrained(torch.FloatTensor(expn.as_matrix().T),freeze=True)
 pinned_lookup.cuda()
-print("Done")
+dprint("Done")
 
 start = time.time()
-print("Linking data from file {}".format(args.data),file=Logger)
+dprint("Linking data from file {}".format(args.data),file=Logger)
 
 ## Old Dataset loading
 # data = h5py.File(args.data)
@@ -125,7 +130,7 @@ train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, sh
 val_loader = torch.utils.data.DataLoader(val, batch_size=500, shuffle=False)
 test_loader = torch.utils.data.DataLoader(test, batch_size=500, shuffle=False)
 
-print("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
+dprint("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
 
 params = list(filter(lambda x: x.requires_grad, model.parameters()))
 if args.optimizer_type == 0:
@@ -149,7 +154,7 @@ criterion = torch.nn.BCEWithLogitsLoss(size_average=False)
 start = time.time()
 best_loss = np.inf
 stag_count= 0
-print("Begin training",file=Logger)
+dprint("Begin training",file=Logger)
 for epoch in range(args.num_epochs):
     model.train()
     #train_loader.init_epoch()
@@ -174,7 +179,7 @@ for epoch in range(args.num_epochs):
         ctr += 1
         if ctr % 100 == 0:
             timenow = timeSince(start)
-            print('Epoch [{}/{}], Iter [{}/{}], Time: {}, Loss: {}'.format(epoch+1, args.num_epochs, ctr,
+            dprint('Epoch [{}/{}], Iter [{}/{}], Time: {}, Loss: {}'.format(epoch+1, args.num_epochs, ctr,
                                                                            len(train)//args.batch_size, 
                                                                            timenow, tot_loss/(100*args.batch_size)),
                   file=Logger)
@@ -205,19 +210,19 @@ for epoch in range(args.num_epochs):
     elif args.scheduler == 2:
         scheduler.step()
     timenow = timeSince(start)
-    print( "Epoch [{}/{}], Time: {}, Validation loss: {}, Mean ROC AUC: {}, Mean PRAUC: {}".format( epoch+1, args.num_epochs, 
+    dprint( "Epoch [{}/{}], Time: {}, Validation loss: {}, Mean ROC AUC: {}, Mean PRAUC: {}".format( epoch+1, args.num_epochs, 
                                                                                 timenow, epoch_loss, avg_ROC_auc,avg_PR_auc),
            file=Logger)
     if epoch_loss <= best_loss:
         torch.save(model.state_dict(), args.model_file)
-        print( "Delta loss: {}, Model saved at {}".format((epoch_loss-best_loss),args.model_file) , file=Logger)
+        dprint( "Delta loss: {}, Model saved at {}".format((epoch_loss-best_loss),args.model_file) , file=Logger)
         best_loss = epoch_loss
         stag_count = 0
     else:
         stag_count += 1
     if args.early_stopping:
         if stag_count >= args.early_stopping:
-            print( "Invoking early stopping.", file=Logger)
+            dprint( "Invoking early stopping.", file=Logger)
             break
 
 if args.stop_instance:
