@@ -35,6 +35,7 @@ parser.add_argument('--model_file','-mf',type=str,default='stupid.pkl',help='Sav
 parser.add_argument('--stop_instance','-halt',action='store_true',help='Stop AWS instance after training run.')
 parser.add_argument('--log_file','-l',type=str,default='stderr',help='training log file')
 parser.add_argument('--workers', '-wk', type=int, help='number of data loading workers', default=2)
+parser.add_argument('--gene_drop_level','-gdl',type=int,default=1,help='0 indicates dropout on genes, 1 indicates dropout on the embedding.')
 args = parser.parse_args()
 
 print("Begin run")
@@ -57,11 +58,11 @@ elif args.model_type == 3:
 elif args.model_type == 4:
     model = DanQ()
 elif args.model_type == 5:
-    model = BassetNormCat()
+    model = BassetNormCat(gene_drop_lvl=args.gene_drop_level)
 elif args.model_type == 6:
     model = DanQCat()
 elif args.model_type == 7:
-    model = BassetNormCat2()
+    model = BassetNormCat2(gene_drop_lvl=args.gene_drop_level)
 elif args.model_type == 8:
     model = BassetNormCat_bilin()
 elif args.model_type == 9:

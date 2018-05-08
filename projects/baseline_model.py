@@ -150,7 +150,7 @@ class BassetNorm(nn.Module):
                 module_list[-1].weight.data.renorm_(p=2,dim=0,maxnorm=value)            
                 
 class BassetNormCat(nn.Module):
-    def __init__(self, dropout_prob=0.3):
+    def __init__(self, dropout_prob=0.3, gene_drop_lvl=1):
         super(BassetNormCat, self).__init__()
         self.conv1 = Conv1dNorm(4, 300, 19, stride=1, padding=0, weight_norm=False)
         self.conv2 = Conv1dNorm(300, 200, 11, stride=1, padding=0, weight_norm=False)
@@ -162,6 +162,7 @@ class BassetNormCat(nn.Module):
         self.linear2 = LinearNorm(1000, 1000, weight_norm=False)
         self.dropout = nn.Dropout(p=dropout_prob)
         self.output = nn.Linear(1000, 1)
+        self.gdl = gene_drop_lvl
     def forward(self, x, geneexpr):
         #if sparse_in: # (?, 600, 4)
         #    in_seq = to_one_hot(x, n_dims=4).permute(0,3,1,2).squeeze()
@@ -178,8 +179,12 @@ class BassetNormCat(nn.Module):
         out = F.pad(out,(1,1))
         out = self.maxpool_4(out) # (?, 500, 8)
         out = out.view(-1, 200*13) # (?, 500*8)
-        geneexpr = F.relu(self.genelinear(geneexpr)) # (?, 500)
-        geneexpr = self.dropout(geneexpr)
+        if self.gdl = 0:
+            geneexpr = self.dropout(geneexpr)
+            geneexpr = F.relu(self.genelinear(geneexpr))
+        elif self.gdl = 1:
+            geneexpr = F.relu(self.genelinear(geneexpr)) # (?, 500)
+            geneexpr = self.dropout(geneexpr)
         out = torch.cat([out, geneexpr], dim=1) # (?, 200*13+500)
         out = F.relu(self.linear1(out)) # (?, 800)
         out = self.dropout(out)
@@ -198,7 +203,7 @@ class BassetNormCat(nn.Module):
                 module_list[-1].weight.data.renorm_(p=2,dim=0,maxnorm=value)
 
 class BassetNormCat2(nn.Module):
-    def __init__(self, dropout_prob=0.3):
+    def __init__(self, dropout_prob=0.3, gene_drop_lvl=1):
         super(BassetNormCat2, self).__init__()
         self.conv1 = Conv1dNorm(4, 100, 19, stride=1, padding=9, weight_norm=False)
         self.conv1a = Conv1dNorm(4, 100, 11, stride=1, padding=5, weight_norm=False)
@@ -212,6 +217,7 @@ class BassetNormCat2(nn.Module):
         self.linear2 = LinearNorm(1000, 1000, weight_norm=False)
         self.dropout = nn.Dropout(p=dropout_prob)
         self.output = nn.Linear(1000, 1)
+        self.gdl = gene_drop_lvl
     def forward(self, x, geneexpr):
         out1 = F.relu(self.conv1(x)) # 3 of these
         out1a = F.relu(self.conv1a(x))
@@ -225,7 +231,12 @@ class BassetNormCat2(nn.Module):
         out = F.pad(out,(1,1))
         out = self.maxpool_4(out) # (?, 500, 8)
         out = out.view(-1, 200*13) # (?, 500*8)
-        geneexpr = F.relu(self.genelinear(geneexpr)) # (?, 500)
+        if self.gdl = 0:
+            geneexpr = self.dropout(geneexpr)
+            geneexpr = F.relu(self.genelinear(geneexpr))
+        elif self.gdl = 1:
+            geneexpr = F.relu(self.genelinear(geneexpr)) # (?, 500)
+            geneexpr = self.dropout(geneexpr)
         out = torch.cat([out, geneexpr], dim=1) # (?, 200*13+500)
         out = F.relu(self.linear1(out)) # (?, 800)
         out = self.dropout(out)
