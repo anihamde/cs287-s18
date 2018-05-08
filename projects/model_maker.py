@@ -122,7 +122,7 @@ def BNC1_maker(in_dict):
     out_dict['L3_O'] = 1
 
 class BassetNormCat(nn.Module):
-    def __init__(self, dropout_prob=0.3, model_dict):
+    def __init__(self, model_dict, dropout_prob=0.3):
         super(BassetNormCat, self).__init__()
         md = model_dict
         self.md = md
