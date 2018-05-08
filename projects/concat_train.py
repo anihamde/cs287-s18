@@ -36,6 +36,7 @@ parser.add_argument('--stop_instance','-halt',action='store_true',help='Stop AWS
 parser.add_argument('--log_file','-l',type=str,default='stderr',help='training log file')
 parser.add_argument('--workers', '-wk', type=int, help='number of data loading workers', default=2)
 parser.add_argument('--gene_drop_level','-gdl',type=int,default=1,help='0 indicates dropout on genes, 1 indicates dropout on the embedding.')
+parser.add_argument('--early_stopping','-es',type=int,defualt=None)
 args = parser.parse_args()
 
 print("Begin run")
@@ -145,6 +146,7 @@ criterion = torch.nn.BCEWithLogitsLoss(size_average=False)
 
 start = time.time()
 best_loss = np.inf
+stag_count= 0
 print("Begin training",file=Logger)
 for epoch in range(args.num_epochs):
     model.train()
@@ -208,6 +210,13 @@ for epoch in range(args.num_epochs):
         torch.save(model.state_dict(), args.model_file)
         print( "Delta loss: {}, Model saved at {}".format((epoch_loss-best_loss),args.model_file) , file=Logger)
         best_loss = epoch_loss
+        stag_count = 0
+    else:
+        stag_count += 1
+    if args.early_stopping:
+        if stag_count >= args.early_stopping:
+            print( "Invoking early stopping.", file=Logger)
+            break
 
 if args.stop_instance:
     Logger.close()
