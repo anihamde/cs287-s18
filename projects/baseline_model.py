@@ -179,10 +179,10 @@ class BassetNormCat(nn.Module):
         out = F.pad(out,(1,1))
         out = self.maxpool_4(out) # (?, 500, 8)
         out = out.view(-1, 200*13) # (?, 500*8)
-        if self.gdl = 0:
+        if self.gdl == 0:
             geneexpr = self.dropout(geneexpr)
             geneexpr = F.relu(self.genelinear(geneexpr))
-        elif self.gdl = 1:
+        elif self.gdl == 1:
             geneexpr = F.relu(self.genelinear(geneexpr)) # (?, 500)
             geneexpr = self.dropout(geneexpr)
         out = torch.cat([out, geneexpr], dim=1) # (?, 200*13+500)
@@ -231,10 +231,10 @@ class BassetNormCat2(nn.Module):
         out = F.pad(out,(1,1))
         out = self.maxpool_4(out) # (?, 500, 8)
         out = out.view(-1, 200*13) # (?, 500*8)
-        if self.gdl = 0:
+        if self.gdl == 0:
             geneexpr = self.dropout(geneexpr)
             geneexpr = F.relu(self.genelinear(geneexpr))
-        elif self.gdl = 1:
+        elif self.gdl == 1:
             geneexpr = F.relu(self.genelinear(geneexpr)) # (?, 500)
             geneexpr = self.dropout(geneexpr)
         out = torch.cat([out, geneexpr], dim=1) # (?, 200*13+500)
