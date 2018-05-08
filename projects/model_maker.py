@@ -122,10 +122,10 @@ def BNC1_maker(in_dict):
     out_dict['L3_O'] = 1
 
 class BassetNormCat(nn.Module):
-    def __init__(self, model_dict, dropout_prob=0.3):
+    def __init__(self, model_dict):
         super(BassetNormCat, self).__init__()
         md = model_dict
-        self.md = md
+        self.md = BNC1_maker(md)
         self.conv1 = Conv1dNorm(4, md['C1_C'], md['C1_W'], stride=1, padding=md['C1_P'], weight_norm=False)
         self.conv2 = Conv1dNorm(md['C1_C'], md['C2_C'], md['C2_W'], stride=1, padding=md['C2_P'], weight_norm=False)
         self.conv3 = Conv1dNorm(md['C2_C'], md['C3_C'], md['C3_W'], stride=1, padding=md['C3_P'], weight_norm=False)
