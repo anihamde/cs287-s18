@@ -42,7 +42,7 @@ args = parser.parse_args()
 print("Begin run")
 print(" ".join(sys.argv))
 
-def dprint(in_str,file):
+def dprint(in_str,file=sys.stderr):
     print(in_str,file=file)
     print(in_str,file=sys.stderr)
 
@@ -90,7 +90,7 @@ expn = expn.drop(col_names[-1],axis=1)
 expn.columns = col_names
 pinned_lookup = torch.nn.Embedding.from_pretrained(torch.FloatTensor(expn.as_matrix().T),freeze=True)
 pinned_lookup.cuda()
-dprint("Done")
+dprint("Done",file=Logger)
 
 start = time.time()
 dprint("Linking data from file {}".format(args.data),file=Logger)
