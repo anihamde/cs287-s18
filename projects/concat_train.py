@@ -82,7 +82,7 @@ dprint(" ".join(sys.argv),file=Logger)
 dprint("Model successfully imported\nTotal number of parameters {}".format(num_params),file=Logger)
 
 expn_pth = '/n/data_02/Basset/data/expn/roadmap/57epigenomes.RPKM.pc'
-dprint("Reading gene expression data from:\n{}".format(expn_pth))
+dprint("Reading gene expression data from:\n{}".format(expn_pth),file=Logger)
 # Gene expression dataset
 expn = pd.read_table(expn_pth,header=0)    
 col_names = expn.columns.values[1:]
