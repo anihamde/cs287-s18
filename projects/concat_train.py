@@ -25,6 +25,7 @@ parser.add_argument('--optimizer_type','-optim',type=int,default=0,help='SGD opt
 parser.add_argument('--batch_size','-bs',type=int,default=128,help='Batch size')
 parser.add_argument('--num_epochs','-ne',type=int,default=10,help='Number of epochs')
 parser.add_argument('--learning_rate','-lr',type=float,default=0.0001,help='Learning rate')
+parser.add_argument('--scheduler','-s',type=int,default=0,help='Use scheduler (currently Plateau)')
 parser.add_argument('--rho','-r',type=float,default=0.95,help='rho for Adadelta optimizer')
 parser.add_argument('--alpha','-al',type=float,default=0.98,help='alpha value for RMSprop optimizer')
 parser.add_argument('--weight_decay','-wd',type=float,default=0.0,help='Weight decay constant for optimizer')
@@ -130,6 +131,14 @@ elif args.optimizer_type == 1:
 elif args.optimizer_type == 2:
     optimizer = torch.optim.RMSprop(params, lr=args.learning_rate, alpha=args.alpha, weight_decay=args.weight_decay)
 
+if args.scheduler == 1:
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='max',factor=0.8,patience=1,verbose=True)
+    # when 2 epochs in a row don't improve prauc, multiply lr by 0.8
+    # try this first, if it doesn't help, try the other thing
+elif args.scheduler == 2:
+    lamb = lambda epoch: 0.95 ** epoch
+    scheduler = LambdaLR(optimizer, lr_lambda=lamb)
+
 #criterion = torch.nn.MultiLabelSoftMarginLoss() # Loss function
 criterion = torch.nn.BCEWithLogitsLoss(size_average=False)
 
@@ -186,6 +195,10 @@ for epoch in range(args.num_epochs):
     #avg_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score), n_classes=1)
     avg_ROC_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score), "ROC")
     avg_PR_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score), "PR")
+    if args.scheduler == 1:
+        scheduler.step(avg_PR_auc)
+    elif args.scheduler == 2:
+        scheduler.step()
     timenow = timeSince(start)
     print( "Epoch [{}/{}], Time: {}, Validation loss: {}, Mean ROC AUC: {}, Mean PRAUC: {}".format( epoch+1, args.num_epochs, 
                                                                                 timenow, epoch_loss, avg_ROC_auc,avg_PR_auc),
