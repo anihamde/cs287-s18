@@ -40,6 +40,7 @@ parser.add_argument('--early_stopping','-es',type=int,defualt=None)
 args = parser.parse_args()
 
 print("Begin run")
+print(" ".join(sys.argv))
 
 if args.log_file == 'stderr':
     Logger = sys.stderr
@@ -72,6 +73,7 @@ elif args.model_type == 9:
 num_params = sum([p.numel() for p in model.parameters()])
     
 model.cuda()
+print(" ".join(sys.argv),file=Logger)
 print("Model successfully imported\nTotal number of parameters {}".format(num_params),file=Logger)
 
 expn_pth = '/n/data_02/Basset/data/expn/roadmap/57epigenomes.RPKM.pc'
