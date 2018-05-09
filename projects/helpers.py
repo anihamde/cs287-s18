@@ -2,6 +2,7 @@ import torch
 import time
 import math
 import torch
+import torch.nn.functional as F
 from torch.autograd import Variable
 from sklearn.metrics import roc_curve, auc, precision_recall_curve
 
@@ -67,6 +68,7 @@ def freeze_model(model):
 
 def calc_auc(model, y_test, y_score, auctype = "ROC"):
     if auctype == "ROC":
+        y_score = F.sigmoid(y_score)
         n_classes = y_test.shape[1] # 164
         fpr = dict()
         tpr = dict()
