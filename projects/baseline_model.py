@@ -161,7 +161,7 @@ class BassetNormCat(nn.Module):
         self.linear1 = LinearNorm(200*13, 1000, batch_norm=False, weight_norm=False)
         self.linear2 = LinearNorm(1000+500, 2000, batch_norm=False, weight_norm=False)
         self.dropout = nn.Dropout(p=dropout_prob)
-        self.output = nn.Linear(2000, 1)
+        self.output = nn.Linear(2000, 1, batch_norm=False, weight_norm=False)
         self.gdl = gene_drop_lvl
     def forward(self, x, geneexpr):
         #if sparse_in: # (?, 600, 4)
