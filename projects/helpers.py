@@ -2,7 +2,7 @@ import torch
 import time
 import math
 import torch
-import torch.nn.functional as F
+import numpy as np
 from torch.autograd import Variable
 from sklearn.metrics import roc_curve, auc, precision_recall_curve
 
