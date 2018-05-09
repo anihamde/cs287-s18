@@ -184,32 +184,33 @@ for epoch in range(args.num_epochs):
                                                                            timenow, tot_loss/(100*args.batch_size)),
                   file=Logger)
             tot_loss = 0
-        # Mid epoch eval  
-        model.eval()
-        losses  = []
-        y_score = []
-        y_test  = []
-        #val_loader.init_epoch()
-        for inputs, geneexpr, targets in val_loader:
-            geneexpr_batch = pinned_lookup(geneexpr.long().cuda()).squeeze()
-            inputs = to_one_hot(inputs, n_dims=4).permute(0,3,1,2).squeeze().float()
-            targets = targets.float()
-            inp_batch = Variable( inputs ).cuda()
-            trg_batch = Variable(targets).cuda()        
-            outputs = model(inp_batch, geneexpr_batch) # change this too!
-            loss = criterion(outputs.view(-1), trg_batch.view(-1))
-            losses.append(loss.item())
-            y_score.append( outputs.cpu().data.numpy() )
-            y_test.append(  targets.cpu().data.numpy() )
-        epoch_loss = sum(losses)/len(val)
-        #avg_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score), n_classes=1)
-        avg_ROC_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score), "ROC")
-        avg_PR_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score), "PR")
-        timenow = timeSince(start)
-        dprint( "Epoch [{}/{}], Time: {}, Validation loss: {}, Mean ROC AUC: {}, Mean PRAUC: {}".format( epoch+1, args.num_epochs, 
-                                                                                    timenow, epoch_loss, avg_ROC_auc,avg_PR_auc),
-               file=Logger)
-        model.train()
+        # Mid epoch eval
+        if ctr % 1000 == 0:
+            model.eval()
+            losses  = []
+            y_score = []
+            y_test  = []
+            #val_loader.init_epoch()
+            for inputs, geneexpr, targets in val_loader:
+                geneexpr_batch = pinned_lookup(geneexpr.long().cuda()).squeeze()
+                inputs = to_one_hot(inputs, n_dims=4).permute(0,3,1,2).squeeze().float()
+                targets = targets.float()
+                inp_batch = Variable( inputs ).cuda()
+                trg_batch = Variable(targets).cuda()        
+                outputs = model(inp_batch, geneexpr_batch) # change this too!
+                loss = criterion(outputs.view(-1), trg_batch.view(-1))
+                losses.append(loss.item())
+                y_score.append( outputs.cpu().data.numpy() )
+                y_test.append(  targets.cpu().data.numpy() )
+            epoch_loss = sum(losses)/len(val)
+            #avg_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score), n_classes=1)
+            avg_ROC_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score), "ROC")
+            avg_PR_auc = calc_auc(model, np.row_stack(y_test), np.row_stack(y_score), "PR")
+            timenow = timeSince(start)
+            dprint( "Epoch [{}/{}], Time: {}, Validation loss: {}, Mean ROC AUC: {}, Mean PRAUC: {}".format( epoch+1, args.num_epochs, 
+                                                                                        timenow, epoch_loss, avg_ROC_auc,avg_PR_auc),
+                   file=Logger)
+            model.train()
     # Final eval  
     model.eval()
     losses  = []
