@@ -141,7 +141,7 @@ elif args.optimizer_type == 2:
     optimizer = torch.optim.RMSprop(params, lr=args.learning_rate, alpha=args.alpha, weight_decay=args.weight_decay)
 
 if args.scheduler == 1:
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='max',factor=0.8,patience=1,verbose=True)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='max',factor=0.2,patience=1,verbose=True)
     # when 2 epochs in a row don't improve prauc, multiply lr by 0.8
     # try this first, if it doesn't help, try the other thing
 elif args.scheduler == 2:
