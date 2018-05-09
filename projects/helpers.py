@@ -67,8 +67,8 @@ def freeze_model(model):
 #    return roc_auc["micro"]
 
 def calc_auc(model, y_test, y_score, auctype = "ROC"):
+    y_score = 1 / ( 1 + np.exp(-y_score) ) # sigmoid it!
     if auctype == "ROC":
-        y_score = 1 / ( 1 + np.exp(-y_score) )
         n_classes = y_test.shape[1] # 164
         fpr = dict()
         tpr = dict()
@@ -81,7 +81,6 @@ def calc_auc(model, y_test, y_score, auctype = "ROC"):
         roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
         return roc_auc["micro"]
     elif auctype == "PR":
-        y_score = 1 / ( 1 + np.exp(-y_score) )
         n_classes = y_test.shape[1] # 164
         prec = dict()
         rec = dict()
