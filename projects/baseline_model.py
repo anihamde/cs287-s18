@@ -158,8 +158,8 @@ class BassetNormCat(nn.Module):
         self.maxpool_4 = nn.MaxPool1d(4,padding=0)
         self.maxpool_3 = nn.MaxPool1d(3,padding=0)
         self.genelinear = LinearNorm(19795, 500, weight_norm=False)
-        self.linear1 = LinearNorm(200*13+500, 1000, weight_norm=False)
-        self.linear2 = LinearNorm(1000, 1000, weight_norm=False)
+        self.linear1 = LinearNorm(200*13+500, 1500, weight_norm=False)
+        self.linear2 = LinearNorm(1500, 1000, weight_norm=False)
         self.dropout = nn.Dropout(p=dropout_prob)
         self.output = nn.Linear(1000, 1)
         self.gdl = gene_drop_lvl
