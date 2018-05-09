@@ -1,6 +1,7 @@
 import torch
 import h5py
 import sys
+import os
 import subprocess
 from torch.autograd import Variable
 import torch.nn as nn
@@ -141,7 +142,7 @@ elif args.optimizer_type == 2:
     optimizer = torch.optim.RMSprop(params, lr=args.learning_rate, alpha=args.alpha, weight_decay=args.weight_decay)
 
 if args.scheduler == 1:
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='max',factor=0.8,patience=1,verbose=True)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='max',factor=0.2,patience=1,verbose=True)
     # when 2 epochs in a row don't improve prauc, multiply lr by 0.8
     # try this first, if it doesn't help, try the other thing
 elif args.scheduler == 2:
@@ -153,6 +154,7 @@ criterion = torch.nn.BCEWithLogitsLoss(size_average=False)
 
 start = time.time()
 best_loss = np.inf
+inner_loss = np.inf
 stag_count= 0
 dprint("Begin training",file=Logger)
 for epoch in range(args.num_epochs):
@@ -210,6 +212,12 @@ for epoch in range(args.num_epochs):
             dprint( "Epoch [{}/{}], Time: {}, Validation loss: {}, Mean ROC AUC: {}, Mean PRAUC: {}".format( epoch+1, args.num_epochs, 
                                                                                         timenow, epoch_loss, avg_ROC_auc,avg_PR_auc),
                    file=Logger)
+            if inner_loss > avg_PR_auc:
+                inner_loss = avg_PR_auc
+                hold_tag = os.path.basename(args.model_file).split('.')[0]
+                hold_dir = os.path.dirname(args.model_file)
+                hold_fn = "{}/.{}_tmp.pkl".format(hold_dir,hold_tag)
+                torch.save(model.state_dict(), hold_fn)
             model.train()
     # Final eval  
     model.eval()
