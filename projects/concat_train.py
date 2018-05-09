@@ -217,7 +217,7 @@ for epoch in range(args.num_epochs):
                 inner_loss = avg_PR_auc
                 hold_tag = os.path.basename(args.model_file).split('.')[0]
                 hold_dir = os.path.dirname(args.model_file)
-                hold_fn = "{}/.{}_tmp.pkl".format(hold_dir,hold_tag)
+                hold_fn = os.path.join(hold_dir,".{}_tmp.pkl".format(hold_tag))
                 torch.save(model.state_dict(), hold_fn)
             model.train()
     # Final eval  
