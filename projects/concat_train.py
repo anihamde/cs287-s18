@@ -38,6 +38,7 @@ parser.add_argument('--log_file','-l',type=str,default='stderr',help='training l
 parser.add_argument('--workers', '-wk', type=int, help='number of data loading workers', default=2)
 parser.add_argument('--gene_drop_level','-gdl',type=int,default=1,help='0 indicates dropout on genes, 1 indicates dropout on the embedding.')
 parser.add_argument('--early_stopping','-es',type=int,default=None)
+parser.add_argument('--frequent_saving','-fs',action='store_true')
 args = parser.parse_args()
 
 print("Begin run")
@@ -212,7 +213,7 @@ for epoch in range(args.num_epochs):
             dprint( "Epoch [{}/{}], Time: {}, Validation loss: {}, Mean ROC AUC: {}, Mean PRAUC: {}".format( epoch+1, args.num_epochs, 
                                                                                         timenow, epoch_loss, avg_ROC_auc,avg_PR_auc),
                    file=Logger)
-            if inner_loss > avg_PR_auc:
+            if (inner_loss > avg_PR_auc) and (args.frequent_saving):
                 inner_loss = avg_PR_auc
                 hold_tag = os.path.basename(args.model_file).split('.')[0]
                 hold_dir = os.path.dirname(args.model_file)
