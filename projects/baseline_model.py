@@ -185,6 +185,8 @@ class BassetNormCat(nn.Module):
         elif self.gdl == 1:
             geneexpr = F.relu(self.genelinear(geneexpr)) # (?, 500)
             geneexpr = self.dropout(geneexpr)
+        elif self.gdl == 2:
+            geneexpr = F.normalize(self.genelinear(geneexpr), p=2, dim=1)
         out = torch.cat([out, geneexpr], dim=1) # (?, 200*13+500)
         out = F.relu(self.linear1(out)) # (?, 800)
         out = self.dropout(out)
