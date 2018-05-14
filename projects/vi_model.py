@@ -22,7 +22,8 @@ class Decoder(nn.Module):
         self.linear1 = nn.Linear(latent_dim, 200)
         self.linear2 = nn.Linear(200, 19795)
     def forward(self, z):
-        out = self.linear2(F.softplus(self.linear1(z))) # soft relu is better for counts
+        out = self.linear2(F.softplus(self.linear1(z)))
+        # soft relu is better for counts
         return out
 
 # VAE using reparameterization "rsample"

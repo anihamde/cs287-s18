@@ -35,7 +35,7 @@ parser.add_argument('--batch_size','-bs',type=int,default=57,help='Batch size')
 parser.add_argument('--num_epochs','-ne',type=int,default=20,help='Number of epochs')
 parser.add_argument('--learning_rate','-lr',type=float,default=0.0001,help='Learning rate')
 parser.add_argument('--alpha','-a',type=float,default=1.0,help='Alpha (weight of KL term in Elbo)')
-parser.add_argument('--model_file','-mf',type=str,default='stupidvi.pkl',help='Save model filename')
+parser.add_argument('--model_file','-mf',type=str,default='stupidvae.pkl',help='Save model filename')
 parser.add_argument('--init_stdev','-sd',type=float,default=0.0001,help='Weight init stdev')
 args = parser.parse_args()
 
@@ -58,39 +58,39 @@ dat = torch.utils.data.TensorDataset(imgs, torch.zeros(57,1)) # placeholder arg 
 loader = torch.utils.data.DataLoader(dat, batch_size=args.batch_size, shuffle=True)
 print(next(iter(loader))[0].size())
 
-theta = Decoder(latent_dim=args.latent_dim)
+encoder = Encoder(latent_dim=args.latent_dim)
+decoder = Decoder(latent_dim=args.latent_dim)
 if True: # initialize weights with smaller stdev to prevent instability
-    dsd = theta.state_dict()
+    esd = encoder.state_dict()
+    for param in esd:
+        esd[param].data = torch.randn(esd[param].size())*args.init_stdev
+    encoder.load_state_dict(esd)
+    dsd = decoder.state_dict()
     for param in dsd:
         dsd[param].data = torch.randn(dsd[param].size())*args.init_stdev
-    theta.load_state_dict(dsd)
+    decoder.load_state_dict(dsd)
 
-theta.cuda()
-# theta.load_state_dict(torch.load(args.model_file))
+vae = NormalVAE(encoder, decoder)
+vae.cuda()
+# vae.load_state_dict(torch.load(args.model_file))
 
 criterion = nn.PoissonNLLLoss(log_input=True)
-optim1 = torch.optim.SGD(theta.parameters(), lr = args.learning_rate)
+optim = torch.optim.SGD(vae.parameters(), lr = args.learning_rate)
 p = Normal(Variable(torch.zeros(args.batch_size, args.latent_dim)).cuda(), 
            Variable(torch.ones(args.batch_size, args.latent_dim)).cuda()) # p(z)
-mu = Variable(torch.randn(args.batch_size,args.latent_dim)) # variational parameters
-logvar = Variable(torch.randn(args.batch_size,args.latent_dim))
-optim2 = torch.optim.SGD([mu,logvar], lr = args.learning_rate)
 
 # TODO: to make this stochastic, shuffle and make smaller batches.
 start = time.time()
-theta.train()
-for epoch in range(args.num_epochs*2):
+vae.train()
+for epoch in range(args.num_epochs):
     # Keep track of reconstruction loss and total kl
     total_recon_loss = 0
     total_kl = 0
     total = 0
     for img, _ in loader:
         # no need to Variable(img).cuda()
-        optim1.zero_grad()
-        optim2.zero_grad()
-        q = Normal(loc=mu, scale=logvar.mul(0.5).exp())
-        # Reparameterized sample.
-        out = q.rsample()
+        optim.zero_grad()
+        out, q = vae(img) # out is decoded distro sample, q is distro
         kl = kl_divergence(q, p).sum() # KL term
         recon_loss = criterion(out, img) # reconstruction term
         loss = (recon_loss + args.alpha * kl) / args.batch_size
@@ -98,12 +98,9 @@ for epoch in range(args.num_epochs*2):
         total_kl += kl.item() / args.batch_size
         total += 1
         loss.backward()
-        if epoch % 2:
-            optim1.step()
-        else:
-            optim2.step()
+        optim.step()
     timenow = timeSince(start)
     print ('Time %s, Epoch [%d/%d], Recon Loss: %.4f, KL Loss: %.4f, ELBO Loss: %.4f' 
             %(timenow, epoch+1, args.num_epochs, total_recon_loss/total , total_kl/total, (total_recon_loss+total_kl)/total))
     # TODO: add eval loop for big VAE
-    torch.save(theta.state_dict(), args.model_file)
+    torch.save(vae.state_dict(), args.model_file)
