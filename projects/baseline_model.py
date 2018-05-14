@@ -335,19 +335,18 @@ class DanQ(nn.Module):
         print(len(JASPAR_motifs))
         print(len(JASPAR_motifs[0]))
         print(len(JASPAR_motifs[0][0]))
-        print(len(JASPAR_motifs[0][0][0]))
 
-#         for i in xrange(len(JASPAR_motifs)):
-#             m = JASPAR_motifs[i][::-1,:]
-#             w = len(m)
-#             #conv_weights[0][i,:,:,0] = 0
-#             #start = (30-w)/2
-#             start = np.random.randint(low=3, high=30-w+1-3)
-#             conv_weights[0][i,:,start:start+w,0] = m.T - 0.25
-#             #conv_weights[1][i] = -0.5
-#             conv_weights[1][i] = np.random.uniform(low=-1.0,high=0.0)
+        for i in xrange(len(JASPAR_motifs)):
+            m = JASPAR_motifs[i][::-1,:]
+            w = len(m)
+            #conv_weights[0][i,:,:,0] = 0
+            #start = (30-w)/2
+            start = np.random.randint(low=3, high=30-w+1-3)
+            conv_weights[0][i,:,start:start+w,0] = m.T - 0.25
+            #conv_weights[1][i] = -0.5
+            conv_weights[1][i] = np.random.uniform(low=-1.0,high=0.0)
 
-#         conv_layer.set_weights(conv_weights)
+        conv_layer.set_weights(conv_weights)
 
         
         
