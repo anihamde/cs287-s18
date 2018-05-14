@@ -318,7 +318,7 @@ class DeepSEA(nn.Module):
 
 class DanQ(nn.Module):
     def __init__(self, dropout_prob_02=0.2, dropout_prob_03=0.5, hidden_size=512, num_layers=1,
-                 bidirectional=True, output_labels=164):
+                 bidirectional=True, output_labels=56):
         # TODO: weight initialize unif[-.05,.05], bias 0
         super(DanQ, self).__init__()
         self.conv1 = nn.Conv1d(4, 1024, 30, stride=1, padding=0)
@@ -326,15 +326,10 @@ class DanQ(nn.Module):
         
         conv_weights = self.conv1.weight
         
-        print(conv_weights.size())
-
         JASPAR_motifs = list(np.load('JASPAR_CORE_2016_vertebrates.npy', encoding = 'latin1'))
 
         reverse_motifs = [JASPAR_motifs[19][::-1,::-1], JASPAR_motifs[97][::-1,::-1], JASPAR_motifs[98][::-1,::-1], JASPAR_motifs[99][::-1,::-1], JASPAR_motifs[100][::-1,::-1], JASPAR_motifs[101][::-1,::-1]]
         JASPAR_motifs = JASPAR_motifs + reverse_motifs
-        print(len(JASPAR_motifs))
-        print(len(JASPAR_motifs[0]))
-        print(len(JASPAR_motifs[0][0]))
 
         for i in range(len(JASPAR_motifs)):
             m = JASPAR_motifs[i][::-1,:]
