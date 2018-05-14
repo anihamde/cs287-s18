@@ -72,8 +72,8 @@ criterion = nn.PoissonNLLLoss(log_input=True)
 optim1 = torch.optim.SGD(theta.parameters(), lr = args.learning_rate)
 p = Normal(Variable(torch.zeros(args.batch_size, args.latent_dim)).cuda(), 
            Variable(torch.ones(args.batch_size, args.latent_dim)).cuda()) # p(z)
-mu = Variable(torch.randn(args.batch_size,args.latent_dim)) # variational parameters
-logvar = Variable(torch.randn(args.batch_size,args.latent_dim))
+mu = Variable(torch.randn(args.batch_size,args.latent_dim).cuda(),requires_grad=True) # variational parameters
+logvar = Variable(torch.randn(args.batch_size,args.latent_dim).cuda(),requires_grad=True)
 optim2 = torch.optim.SGD([mu,logvar], lr = args.learning_rate)
 
 # TODO: to make this stochastic, shuffle and make smaller batches.
