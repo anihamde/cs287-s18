@@ -61,9 +61,9 @@ elif args.model_type == 4:
     model = DanQ()
 #     architecture_dict = OrderedDict([ ('model_type','danq') ])
 
-with open(args.architecture_file,'w') as fh:
-    [ fh.write("{}: {}\n".format(key,value)) for key,value in architecture_dict.items() ]
-    fh.close()
+# with open(args.architecture_file,'w') as fh:
+#     [ fh.write("{}: {}\n".format(key,value)) for key,value in architecture_dict.items() ]
+#     fh.close()
 
 num_params = sum([p.numel() for p in model.parameters()])    
 model.cuda()
