@@ -318,7 +318,7 @@ class DeepSEA(nn.Module):
 
 class DanQ(nn.Module):
     def __init__(self, dropout_prob_02=0.2, dropout_prob_03=0.5, hidden_size=512, num_layers=1,
-                 bidirectional=True, output_labels=56):
+                 bidirectional=True, output_labels=164):
         # TODO: weight initialize unif[-.05,.05], bias 0
         super(DanQ, self).__init__()
         self.conv1 = nn.Conv1d(4, 1024, 30, stride=1, padding=0)
