@@ -322,6 +322,32 @@ class DanQ(nn.Module):
         # TODO: weight initialize unif[-.05,.05], bias 0
         super(DanQ, self).__init__()
         self.conv1 = nn.Conv1d(4, 1024, 30, stride=1, padding=0)
+        
+        
+        conv_weights = self.conv1.weight
+        
+        print(conv_weights.size())
+
+        JASPAR_motifs = list(np.load('JASPAR_CORE_2016_vertebrates.npy'))
+
+        reverse_motifs = [JASPAR_motifs[19][::-1,::-1], JASPAR_motifs[97][::-1,::-1], JASPAR_motifs[98][::-1,::-1], JASPAR_motifs[99][::-1,::-1], JASPAR_motifs[100][::-1,::-1], JASPAR_motifs[101][::-1,::-1]]
+        JASPAR_motifs = JASPAR_motifs + reverse_motifs
+
+#         for i in xrange(len(JASPAR_motifs)):
+#             m = JASPAR_motifs[i][::-1,:]
+#             w = len(m)
+#             #conv_weights[0][i,:,:,0] = 0
+#             #start = (30-w)/2
+#             start = np.random.randint(low=3, high=30-w+1-3)
+#             conv_weights[0][i,:,start:start+w,0] = m.T - 0.25
+#             #conv_weights[1][i] = -0.5
+#             conv_weights[1][i] = np.random.uniform(low=-1.0,high=0.0)
+
+#         conv_layer.set_weights(conv_weights)
+
+        
+        
+        
         self.maxpool = nn.MaxPool1d(15,padding=0)
         self.lstm = nn.LSTM(input_size=1024,hidden_size=hidden_size,num_layers=num_layers,bidirectional=bidirectional)
         # other relevant args: nonlinearity, dropout
