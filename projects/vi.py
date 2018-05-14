@@ -81,7 +81,7 @@ p = Normal(Variable(torch.zeros(args.batch_size, args.latent_dim)).cuda(),
 # TODO: to make this stochastic, shuffle and make smaller batches.
 start = time.time()
 vae.train() # TODO: switch btwn train and eval for appropriate parts
-for epoch in range(NUM_EPOCHS):
+for epoch in range(args.num_epochs):
     # Keep track of reconstruction loss and total kl
     total_recon_loss = 0
     total_kl = 0
