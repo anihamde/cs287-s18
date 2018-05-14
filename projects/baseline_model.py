@@ -342,7 +342,7 @@ class DanQ(nn.Module):
             #conv_weights[0][i,:,:,0] = 0
             #start = (30-w)/2
             start = np.random.randint(low=3, high=30-w+1-3)
-            conv_weights[i,:,start:start+w] = m.T - 0.25
+            conv_weights[i,:,start:start+w].weight = m.T - 0.25
             #conv_weights[1][i] = -0.5
             conv_weights[i][:] = np.random.uniform(low=-1.0,high=0.0)
 
