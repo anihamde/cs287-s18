@@ -335,6 +335,7 @@ class DanQ(nn.Module):
         print(len(JASPAR_motifs))
         print(len(JASPAR_motifs[0]))
         print(len(JASPAR_motifs[0][0]))
+        print(len(JASPAR_motifs[0][0][0]))
 
 #         for i in xrange(len(JASPAR_motifs)):
 #             m = JASPAR_motifs[i][::-1,:]
