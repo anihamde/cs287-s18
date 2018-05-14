@@ -141,3 +141,24 @@ class NormalVAE(nn.Module):
         z_sample = q_normal.rsample()
         # z_sample = mu (no sampling)
         return self.decoder(z_sample), q_normal
+
+############## OLD WAY ################
+class Encoder(nn.Module):
+    def __init__(self, latent_dim=2):
+        super(Encoder, self).__init__()
+        self.linear1 = nn.Linear(19795, 200)
+        self.linear2 = nn.Linear(200, latent_dim)
+        self.linear3 = nn.Linear(200, latent_dim)
+    def forward(self, x):
+        x = x.view(-1,784) # change
+        h = F.relu(self.linear1(x))
+        return self.linear2(h), self.linear3(h)
+
+class Decoder(nn.Module):
+    def __init__(self, latent_dim=2):
+        super(Decoder, self).__init__()
+        self.linear1 = nn.Linear(latent_dim, 200)
+        self.linear2 = nn.Linear(200, 19795)
+    def forward(self, z):
+        out = self.linear2(F.softplus(self.linear1(z))) # softrelu. softplus better for counts
+        return out # change whatever

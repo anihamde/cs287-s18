@@ -159,3 +159,30 @@ DeepBind method to turn conv kernels into motifs. Helpful for visualization!!!!!
 Weight initialization is known to play a crucial role. Better initialization strategy????
 Btw, significant improvement in chromatin effect prediction does not immediately translate to an equally large improvement in functional variant prediction. A few hypotheses why (linkage disequilibrium).
 Future directions: fully recurrent model, incorporate new datasets, other data types (methylation, nucleosome positioning, transcription). Bayesian hyperparam tuning.
+
+
+5/10 Old Questions
+How our project is relevant to ML at large: missing data. Multiclass predictions where some of the classes are missing. (add this in the tex)
+How are we going to do attention on an RNA sequence? Start-end? Frey's group at deep genomics. Really long-term dependencies? (Maybe features that involve long-term dependencies will be harder to pick up under our LSTM)
+Adversarial autoencoder- prior with a clover-type structure, or other models?
+Can we use LSTMviz for our networks?
+
+Why did Kelley say RNN's don't work better?
+I don't understand: Training is multi-task: predicts all cell types at once. In the last layer, each experiment has its own parameters. Broad histone modification is better helped out by dilated layers.
+What is gene expression inference? (DanQ cites Chen)
+Difference between Basset and Basenji?
+gkm-SVM?
+Evaulation of single-nucleotide sensitivity of chromatin-feature prediction. ENCODE DGF data.  A pipeline to find allelic imbalance (Fisher's exact test). Are we planning to do this??
+What the hell is functional SNP prioritization?
+3 variant types: HGMD single-nucleotide substitution regulatory mutations, eQTLs, and GWAS SNPs. (how are these different?)
+Positive and negative SNP sets. Positive: eQTLs from the GRASP database and noncoding trait-associated SNPs identified in GWAS studies from NHGRI. Negative: 1000 genomes project SNPs with controlled minor allele frequency distribution. Trained ensemble classifiers. Features computed same as in DeepSEA. But how does this work????
+Like DanQ, we could try turning conv kernels into motifs and corroborate the visualizations with LSTMviz.
+Weight initialization is known to play a crucial role. Better initialization strategy????
+At some point I should learn more NLP models.
+Functional Snp prioritization?
+
+Implement DanQ
+Encode API
+AAE
+Read Basenji, virtual ChIP-seq
+
