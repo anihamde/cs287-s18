@@ -159,9 +159,9 @@ class BassetNormCat(nn.Module):
         self.maxpool_3 = nn.MaxPool1d(3,padding=0)
         self.genelinear = LinearNorm(19795, 500, batch_norm=False, weight_norm=False)
         self.linear1 = LinearNorm(200*13, 1000, batch_norm=False, weight_norm=False)
-        self.linear2 = LinearNorm(1000+500, 2000, batch_norm=False, weight_norm=False)
+        self.linear2 = LinearNorm(1000, 1000, batch_norm=False, weight_norm=False)
         self.dropout = nn.Dropout(p=dropout_prob)
-        self.output = nn.Linear(2000, 1)
+        self.output = nn.Linear(1000+500, 1)
         self.gdl = gene_drop_lvl
     def forward(self, x, geneexpr):
         #if sparse_in: # (?, 600, 4)
@@ -181,8 +181,10 @@ class BassetNormCat(nn.Module):
         out = out.view(-1, 200*13) # (?, 500*8)
         out = F.relu(self.linear1(out)) # (?, 800)
         out = self.dropout(out)
+        out = F.relu(self.linear2(out)) # (?, 800)
+        out = self.dropout(out)
         if self.gdl == 0:
-            geneexpr = self.dropout(geneexpr)
+            #geneexpr = self.dropout(geneexpr)
             geneexpr = F.relu(self.genelinear(geneexpr))
         elif self.gdl == 1:
             geneexpr = F.relu(self.genelinear(geneexpr)) # (?, 500)
@@ -190,8 +192,6 @@ class BassetNormCat(nn.Module):
         elif self.gdl == 2:
             geneexpr = F.normalize(self.genelinear(geneexpr), p=2, dim=1)
         out = torch.cat([out, geneexpr], dim=1) # (?, 200*13+500)
-        out = F.relu(self.linear2(out)) # (?, 800)
-        out = self.dropout(out)
         return self.output(out) # (?, 1)
     def clip_norms(self, value):
         key_chain = [ key for key in self.state_dict().keys() if 'weight' in key ]
