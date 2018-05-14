@@ -32,10 +32,11 @@ parser = argparse.ArgumentParser(description='training runner')
 parser.add_argument('--model_type','-m',type=int,default=0,help='Model type')
 parser.add_argument('--latent_dim','-ld',type=int,default=2,help='Latent dimension')
 parser.add_argument('--batch_size','-bs',type=int,default=57,help='Batch size')
-parser.add_argument('--num_epochs','-ne',type=int,default=50,help='Number of epochs')
+parser.add_argument('--num_epochs','-ne',type=int,default=20,help='Number of epochs')
 parser.add_argument('--learning_rate','-lr',type=float,default=0.0001,help='Learning rate')
 parser.add_argument('--alpha','-a',type=float,default=1.0,help='Alpha (weight of KL term in Elbo)')
 parser.add_argument('--model_file','-mf',type=str,default='stupidvae.pkl',help='Save model filename')
+parser.add_argument('--init_stdev','-sd',type=float,default=0.0001,help='Weight init stdev')
 args = parser.parse_args()
 
 expn_pth = '~/57epigenomes.RPKM.pc'
@@ -61,9 +62,8 @@ print(img.size())
 
 encoder = Encoder(latent_dim=args.latent_dim)
 esd = encoder.state_dict()
-stdev = 10**-3
 for param in esd:
-    esd[param].data = torch.randn(esd[param].size())*stdev
+    esd[param].data = torch.randn(esd[param].size())*args.init_stdev
 
 encoder.load_state_dict(esd)
 
@@ -92,7 +92,7 @@ for epoch in range(args.num_epochs):
         out, q = vae(img) # out is decoded distro sample, q is distro
         kl = kl_divergence(q, p).sum() # KL term
         recon_loss = criterion(out, img) # reconstruction term # TODO: test
-        loss = (recon_loss + alpha * kl) / args.batch_size
+        loss = (recon_loss + args.alpha * kl) / args.batch_size
         total_recon_loss += recon_loss.item() / args.batch_size
         total_kl += kl.item() / args.batch_size
         total += 1
@@ -100,5 +100,5 @@ for epoch in range(args.num_epochs):
         optim.step()
     timenow = timeSince(start)
     print ('Time %s, Epoch [%d/%d], Recon Loss: %.4f, KL Loss: %.4f, ELBO Loss: %.4f' 
-            %(timenow, epoch+1, NUM_EPOCHS, total_recon_loss/total , total_kl/total, (total_recon_loss+total_kl)/total))
+            %(timenow, epoch+1, args.num_epochs, total_recon_loss/total , total_kl/total, (total_recon_loss+total_kl)/total))
     # TODO: maybe print every 100 batches?
