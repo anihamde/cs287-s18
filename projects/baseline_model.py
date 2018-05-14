@@ -332,7 +332,7 @@ class DanQ(nn.Module):
 
         reverse_motifs = [JASPAR_motifs[19][::-1,::-1], JASPAR_motifs[97][::-1,::-1], JASPAR_motifs[98][::-1,::-1], JASPAR_motifs[99][::-1,::-1], JASPAR_motifs[100][::-1,::-1], JASPAR_motifs[101][::-1,::-1]]
         JASPAR_motifs = JASPAR_motifs + reverse_motifs
-        
+        print(type(JASPAR_motifs))
         print(shape(JASPAR_motifs))
 
 #         for i in xrange(len(JASPAR_motifs)):
