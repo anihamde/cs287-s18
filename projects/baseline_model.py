@@ -346,7 +346,6 @@ class DanQ(nn.Module):
             #conv_weights[1][i] = -0.5
 #             conv_weights[i][:] = np.random.uniform(low=-1.0,high=0.0)
 
-        print(type(self.conv1.weight),type(conv_weights))
         self.conv1.weight = conv_weights
 
         
