@@ -328,7 +328,7 @@ class DanQ(nn.Module):
         
         print(conv_weights.size())
 
-        JASPAR_motifs = list(np.load('JASPAR_CORE_2016_vertebrates.npy'))
+        JASPAR_motifs = list(np.load('JASPAR_CORE_2016_vertebrates.npy', encoding = 'latin1'))
 
         reverse_motifs = [JASPAR_motifs[19][::-1,::-1], JASPAR_motifs[97][::-1,::-1], JASPAR_motifs[98][::-1,::-1], JASPAR_motifs[99][::-1,::-1], JASPAR_motifs[100][::-1,::-1], JASPAR_motifs[101][::-1,::-1]]
         JASPAR_motifs = JASPAR_motifs + reverse_motifs
