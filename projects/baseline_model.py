@@ -343,9 +343,6 @@ class DanQ(nn.Module):
 
         self.conv1.weight = conv_weights
 
-        
-        
-        
         self.maxpool = nn.MaxPool1d(15,padding=0)
         self.lstm = nn.LSTM(input_size=1024,hidden_size=hidden_size,num_layers=num_layers,bidirectional=bidirectional)
         # other relevant args: nonlinearity, dropout
@@ -373,6 +370,16 @@ class DanQ(nn.Module):
         out = out.transpose(1,0).reshape(-1,39*1024) # (/, 39*1024)
         out = F.relu(self.linear(out)) # (?, 925)
         return self.output(out) # (?, 164)
+    def clip_norms(self, value):
+        key_chain = [ key for key in self.state_dict().keys() if 'weight' in key ]
+        for key in key_chain:
+            module_list = [self]
+            for key_level in key.split('.')[:-1]:
+                module_list.append( getattr(module_list[-1], key_level) )
+            if key.split('.')[-1] == 'weight_g':
+                module_list[-1].weight_g.data.clamp_(min=0.0,max=value)
+            elif key.split('.')[-1] == 'weight' and len(module_list[-1].weight.data.size()) > 1:
+                module_list[-1].weight.data.renorm_(p=2,dim=0,maxnorm=value)
 
 # class DanQCat(nn.Module):
 #     def __init__(self, dropout_prob_02=0.2, dropout_prob_03=0.5, hidden_size=512, num_layers=1,
