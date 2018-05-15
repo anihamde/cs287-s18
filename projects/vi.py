@@ -76,14 +76,14 @@ for epoch in range(args.num_epochs*2):
     total = 0
     for img, _ in loader:
         # no need to Variable(img).cuda()
-optim1.zero_grad()
-optim2.zero_grad()
-q = Normal(loc=mu, scale=logvar.mul(0.5).exp())
-# Reparameterized sample.
-qsamp = q.rsample()
-kl = kl_divergence(q, p).sum() # KL term
-out = theta(qsamp)
-recon_loss = criterion(out, img) # reconstruction term
+        optim1.zero_grad()
+        optim2.zero_grad()
+        q = Normal(loc=mu, scale=logvar.mul(0.5).exp())
+        # Reparameterized sample.
+        qsamp = q.rsample()
+        kl = kl_divergence(q, p).sum() # KL term
+        out = theta(qsamp)
+        recon_loss = criterion(out, img) # reconstruction term
         loss = (recon_loss + args.alpha * kl) / args.batch_size
         total_recon_loss += recon_loss.item() / args.batch_size
         total_kl += kl.item() / args.batch_size
