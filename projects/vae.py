@@ -30,8 +30,7 @@ parser.add_argument('--model_file','-mf',type=str,default='stupidvae.pkl',help='
 parser.add_argument('--init_stdev','-sd',type=float,default=0.0001,help='Weight init stdev')
 args = parser.parse_args()
 
-expn_pth = '~/57epigenomes.RPKM.pc' # change for GCP
-# expn_pth = '/n/data_02/Basset/data/expn/roadmap/57epigenomes.RPKM.pc'
+expn_pth = '/n/data_02/Basset/data/expn/roadmap/57epigenomes.RPKM.pc'
 print("Reading gene expression data from:\n{}".format(expn_pth))
 # Gene expression dataset
 expn = pd.read_table(expn_pth,header=0)

@@ -21,8 +21,7 @@ parser.add_argument('-visdom', '--visdom_flag', action="store_true", help='Wheth
 parser.add_argument('-i-tsne', '--tsne_iter', default=100, type=int, help='epoch when tsne visualization runs')
 args = parser.parse_args()
 
-expn_pth = '~/57epigenomes.RPKM.pc' # change for GCP
-# expn_pth = '/n/data_02/Basset/data/expn/roadmap/57epigenomes.RPKM.pc'
+expn_pth = '/n/data_02/Basset/data/expn/roadmap/57epigenomes.RPKM.pc'
 print("Reading gene expression data from:\n{}".format(expn_pth))
 # Gene expression dataset
 expn = pd.read_table(expn_pth,header=0)
