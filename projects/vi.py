@@ -24,7 +24,8 @@ parser.add_argument('--model_type','-m',type=int,default=0,help='Model type')
 parser.add_argument('--latent_dim','-ld',type=int,default=2,help='Latent dimension')
 parser.add_argument('--batch_size','-bs',type=int,default=56,help='Batch size')
 parser.add_argument('--num_epochs','-ne',type=int,default=20,help='Number of epochs')
-parser.add_argument('--learning_rate','-lr',type=float,default=0.0001,help='Learning rate')
+parser.add_argument('--learning_rate1','-lr1',type=float,default=0.0001,help='Learning rate for theta')
+parser.add_argument('--learning_rate2','-lr2',type=float,default=0.0001,help='Learning rate for lambda')
 parser.add_argument('--alpha','-a',type=float,default=1.0,help='Alpha (weight of KL term in Elbo)')
 parser.add_argument('--model_file','-mf',type=str,default='stupidvi.pkl',help='Save model filename')
 parser.add_argument('--init_stdev','-sd',type=float,default=0.0001,help='Weight init stdev')
@@ -59,12 +60,12 @@ theta.cuda()
 # theta.load_state_dict(torch.load(args.model_file))
 
 criterion = nn.PoissonNLLLoss(log_input=True, size_average=False)
-optim1 = torch.optim.SGD(theta.parameters(), lr = args.learning_rate)
+optim1 = torch.optim.SGD(theta.parameters(), lr = args.learning_rate1)
 p = Normal(Variable(torch.zeros(args.batch_size, args.latent_dim)).cuda(), 
            Variable(torch.ones(args.batch_size, args.latent_dim)).cuda()) # p(z)
 mu = Variable(torch.randn(args.batch_size,args.latent_dim).cuda(),requires_grad=True) # variational parameters
 logvar = Variable(torch.randn(args.batch_size,args.latent_dim).cuda(),requires_grad=True)
-optim2 = torch.optim.SGD([mu,logvar], lr = args.learning_rate)
+optim2 = torch.optim.SGD([mu,logvar], lr = args.learning_rate2)
 
 # TODO: to make this stochastic, shuffle and make smaller batches.
 start = time.time()
@@ -91,10 +92,12 @@ for epoch in range(args.num_epochs*2):
         loss.backward()
         if epoch % 2:
             optim1.step()
+            wv = 'Theta'
         else:
             optim2.step()
+            wv = 'Lambda'
     timenow = timeSince(start)
-    print ('Time %s, Epoch [%d/%d], Recon Loss: %.4f, KL Loss: %.4f, ELBO Loss: %.4f' 
-            %(timenow, epoch+1, args.num_epochs, total_recon_loss/total , total_kl/total, (total_recon_loss+total_kl)/total))
+    print ('Time %s, Epoch [%d/%d], Tuning %s, Recon Loss: %.4f, KL Loss: %.4f, ELBO Loss: %.4f' 
+            %(timenow, (epoch+1)//2, args.num_epochs, wv, total_recon_loss/total , total_kl/total, (total_recon_loss+total_kl)/total))
     # TODO: add eval loop for big VAE
     torch.save(theta.state_dict(), args.model_file)
