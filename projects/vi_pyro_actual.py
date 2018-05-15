@@ -36,7 +36,7 @@ imgs = torch.poisson(pinned_lookup.weight) # discretize data
 # imgs = pinned_lookup.weight.round()
 # imgs = pinned_lookup.weight
 dat = torch.utils.data.TensorDataset(imgs, torch.zeros(56,1)) # placeholder arg required pytorch <0.4.0...
-loader = torch.utils.data.DataLoader(dat, batch_size=args.batch_size, shuffle=True)
+loader = torch.utils.data.DataLoader(dat, batch_size=args.batch_size, shuffle=False)
 print(next(iter(loader))[0].size())
 
 # setup the VAE
