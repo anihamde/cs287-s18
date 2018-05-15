@@ -325,6 +325,7 @@ class DanQ(nn.Module):
         
         
         conv_weights = self.conv1.weight
+        conv_bias = self.conv1.bias
         
         JASPAR_motifs = list(np.load('JASPAR_CORE_2016_vertebrates.npy', encoding = 'latin1'))
 
@@ -339,9 +340,10 @@ class DanQ(nn.Module):
             start = np.random.randint(low=3, high=30-w+1-3)
             conv_weights[i,:,start:start+w].weight = m.T - 0.25
             #conv_weights[1][i] = -0.5
-#             conv_weights[i][:] = np.random.uniform(low=-1.0,high=0.0)
+            conv_bias[i] = np.random.uniform(low=-1.0,high=0.0)
 
         self.conv1.weight = conv_weights
+        self.conv1.bias = conv_bias
 
         self.maxpool = nn.MaxPool1d(15,padding=0)
         self.lstm = nn.LSTM(input_size=1024,hidden_size=hidden_size,num_layers=num_layers,bidirectional=bidirectional)
