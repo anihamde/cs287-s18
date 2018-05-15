@@ -18,15 +18,6 @@ from vi_model import *
 # import matplotlib.pyplot as plt
 # import matplotlib.cm as cm
 # from baseline_model import *
-# import torch.distributions.constraints as constraints
-# import pyro
-# from pyro.optim import Adam
-# from pyro.infer import SVI, Trace_ELBO
-# import pyro.distributions as dist
-# from __future__ import print_function
-# import sys
-# import os
-# import math
 
 parser = argparse.ArgumentParser(description='training runner')
 parser.add_argument('--model_type','-m',type=int,default=0,help='Model type')
