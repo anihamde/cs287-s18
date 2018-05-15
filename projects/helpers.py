@@ -91,3 +91,10 @@ def calc_auc(model, y_test, y_score, auctype = "ROC"):
         prec["micro"], rec["micro"], _ = precision_recall_curve(y_test.ravel(), y_score.ravel())
         pr_auc["micro"] = auc(rec["micro"], prec["micro"])
         return pr_auc["micro"]
+
+# only for normal-normal!
+# dude i literally copied this out of the pytorch source code
+def kl_divergence(p, q):
+    var_ratio = (p.scale / q.scale).pow(2)
+    t1 = ((p.loc - q.loc) / q.scale).pow(2)
+    return 0.5 * (var_ratio + t1 - 1 - var_ratio.log())

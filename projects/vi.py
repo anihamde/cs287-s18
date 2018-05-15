@@ -47,7 +47,8 @@ imgs = torch.poisson(pinned_lookup.weight) # discretize data
 # imgs = pinned_lookup.weight
 dat = torch.utils.data.TensorDataset(imgs, torch.zeros(56,1)) # placeholder arg required pytorch <0.4.0...
 loader = torch.utils.data.DataLoader(dat, batch_size=args.batch_size, shuffle=True)
-print(next(iter(loader))[0].size())
+img, _ = next(iter(loader))
+print(img.size())
 
 theta = Decoder(latent_dim=args.latent_dim)
 if True: # initialize weights with smaller stdev to prevent instability
@@ -93,11 +94,15 @@ for epoch in range(args.num_epochs*2):
         if epoch % 2:
             optim1.step()
             wv = 'Theta'
+            print(theta.linear1.weight[:56:4])
+            print(theta.linear2.weight)
         else:
             optim2.step()
             wv = 'Lambda'
+            print(mu[:56:4])
+            print(logvar[:56:4])
     timenow = timeSince(start)
     print ('Time %s, Epoch [%d/%d], Tuning %s, Recon Loss: %.4f, KL Loss: %.4f, ELBO Loss: %.4f' 
-            %(timenow, (epoch+1)//2, args.num_epochs, wv, total_recon_loss/total , total_kl/total, (total_recon_loss+total_kl)/total))
+            %(timenow, (epoch+2)//2, args.num_epochs, wv, total_recon_loss/total , total_kl/total, (total_recon_loss+total_kl)/total))
     # TODO: add eval loop for big VAE
     torch.save(theta.state_dict(), args.model_file)
