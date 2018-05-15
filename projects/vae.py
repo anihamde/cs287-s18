@@ -22,7 +22,7 @@ from vi_model import *
 parser = argparse.ArgumentParser(description='training runner')
 parser.add_argument('--model_type','-m',type=int,default=0,help='Model type')
 parser.add_argument('--latent_dim','-ld',type=int,default=2,help='Latent dimension')
-parser.add_argument('--batch_size','-bs',type=int,default=57,help='Batch size')
+parser.add_argument('--batch_size','-bs',type=int,default=56,help='Batch size')
 parser.add_argument('--num_epochs','-ne',type=int,default=20,help='Number of epochs')
 parser.add_argument('--learning_rate','-lr',type=float,default=0.0001,help='Learning rate')
 parser.add_argument('--alpha','-a',type=float,default=1.0,help='Alpha (weight of KL term in Elbo)')
@@ -37,14 +37,14 @@ expn = pd.read_table(expn_pth,header=0)
 col_names = expn.columns.values[1:]
 expn = expn.drop(col_names[-1],axis=1) # 19795*57 right now # TODO: is this all right?
 expn.columns = col_names
-pinned_lookup = torch.nn.Embedding.from_pretrained(torch.FloatTensor(expn.as_matrix().T),freeze=True)
+pinned_lookup = torch.nn.Embedding.from_pretrained(torch.FloatTensor(expn.as_matrix().T[1:]),freeze=True) # [1:] is new!
 pinned_lookup.cuda()
 
 torch.manual_seed(3435)
 imgs = torch.poisson(pinned_lookup.weight) # discretize data
 # imgs = pinned_lookup.weight.round()
 # imgs = pinned_lookup.weight
-dat = torch.utils.data.TensorDataset(imgs, torch.zeros(57,1)) # placeholder arg required pytorch <0.4.0...
+dat = torch.utils.data.TensorDataset(imgs, torch.zeros(56,1)) # placeholder arg required pytorch <0.4.0...
 loader = torch.utils.data.DataLoader(dat, batch_size=args.batch_size, shuffle=True)
 print(next(iter(loader))[0].size())
 
@@ -64,7 +64,7 @@ vae = NormalVAE(encoder, decoder)
 vae.cuda()
 # vae.load_state_dict(torch.load(args.model_file))
 
-criterion = nn.PoissonNLLLoss(log_input=True)
+criterion = nn.PoissonNLLLoss(log_input=True, size_average=False)
 optim = torch.optim.SGD(vae.parameters(), lr = args.learning_rate)
 p = Normal(Variable(torch.zeros(args.batch_size, args.latent_dim)).cuda(), 
            Variable(torch.ones(args.batch_size, args.latent_dim)).cuda()) # p(z)

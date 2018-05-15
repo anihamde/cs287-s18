@@ -28,14 +28,14 @@ expn = pd.read_table(expn_pth,header=0)
 col_names = expn.columns.values[1:]
 expn = expn.drop(col_names[-1],axis=1) # 19795*57 right now # TODO: is this all right?
 expn.columns = col_names
-pinned_lookup = torch.nn.Embedding.from_pretrained(torch.FloatTensor(expn.as_matrix().T),freeze=True)
+pinned_lookup = torch.nn.Embedding.from_pretrained(torch.FloatTensor(expn.as_matrix().T[1:]),freeze=True) # [1:] is new!
 pinned_lookup.cuda()
 
 torch.manual_seed(3435)
 imgs = torch.poisson(pinned_lookup.weight) # discretize data
 # imgs = pinned_lookup.weight.round()
 # imgs = pinned_lookup.weight
-dat = torch.utils.data.TensorDataset(imgs, torch.zeros(57,1)) # placeholder arg required pytorch <0.4.0...
+dat = torch.utils.data.TensorDataset(imgs, torch.zeros(56,1)) # placeholder arg required pytorch <0.4.0...
 loader = torch.utils.data.DataLoader(dat, batch_size=args.batch_size, shuffle=True)
 print(next(iter(loader))[0].size())
 
