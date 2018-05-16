@@ -59,6 +59,8 @@ elif args.model_type == 3:
     architecture_dict = OrderedDict([ ('model_type','bassetnorm') ])
 elif args.model_type == 4:
     model = DanQ()
+elif args.model_type == 5:
+    model = BassetNorm_JASPAR()
 #     architecture_dict = OrderedDict([ ('model_type','danq') ])
 
 # with open(args.architecture_file,'w') as fh:
