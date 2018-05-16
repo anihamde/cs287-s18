@@ -154,8 +154,8 @@ class BassetNorm_JASPAR(nn.Module):
         super(BassetNorm_JASPAR, self).__init__()
         self.conv1 = Conv1dNorm(4, 1000, 19, stride=1, padding=0, weight_norm=False)
         
-        conv_weights = self.conv1.weight
-        conv_bias = self.conv1.bias
+        conv_weights = self.conv1.conv.weight
+        conv_bias = self.conv1.conv.bias
         
         JASPAR_motifs = list(np.load('JASPAR_CORE_2016_vertebrates.npy', encoding = 'latin1'))
 
@@ -172,8 +172,8 @@ class BassetNorm_JASPAR(nn.Module):
             #conv_weights[1][i] = -0.5
             conv_bias[i].weight = np.random.uniform(low=-1.0,high=0.0)
 
-        self.conv1.weight = conv_weights
-        self.conv1.bias = conv_bias
+        self.conv1.conv.weight = conv_weights
+        self.conv1.conv.bias = conv_bias
         
         self.conv2 = Conv1dNorm(1000, 1400, 11, stride=1, padding=0, weight_norm=False)
         self.conv3 = Conv1dNorm(1400, 1600, 7, stride=1, padding=0, weight_norm=False)
