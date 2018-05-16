@@ -24,11 +24,12 @@ parser.add_argument('--model_type','-m',type=int,default=0,help='Model type')
 parser.add_argument('--latent_dim','-ld',type=int,default=2,help='Latent dimension')
 parser.add_argument('--batch_size','-bs',type=int,default=56,help='Batch size')
 parser.add_argument('--num_epochs','-ne',type=int,default=20,help='Number of epochs')
+parser.add_argument('--clip','-c',type=float,default=5.0,help='Max norm for weight clipping')
 parser.add_argument('--learning_rate1','-lr1',type=float,default=0.0001,help='Learning rate for theta')
 parser.add_argument('--learning_rate2','-lr2',type=float,default=0.0001,help='Learning rate for lambda')
 parser.add_argument('--alpha','-a',type=float,default=1.0,help='Alpha (weight of KL term in Elbo)')
 parser.add_argument('--model_file','-mf',type=str,default='stupidvi.pkl',help='Save model filename')
-parser.add_argument('--init_stdev','-sd',type=float,default=0.0001,help='Weight init stdev')
+parser.add_argument('--init_stdev','-sd',type=float,default=0.001,help='Weight init stdev')
 args = parser.parse_args()
 
 expn_pth = '/n/data_02/Basset/data/expn/roadmap/57epigenomes.RPKM.pc'
@@ -91,6 +92,10 @@ for epoch in range(args.num_epochs*2):
         total_kl += kl.item() / args.batch_size
         total += 1
         loss.backward()
+        if args.clip:
+            torch.nn.utils.clip_grad_norm(theta.parameters(), args.clip)
+            torch.nn.utils.clip_grad_norm(mu, args.clip)
+            torch.nn.utils.clip_grad_norm(theta.parameters(), args.clip)
         if epoch % 2:
             optim1.step()
             wv = 'Theta'
