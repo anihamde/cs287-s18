@@ -73,9 +73,9 @@ elif args.model_type == 6:
 elif args.model_type == 7:
     model = BassetNormCat2(gene_drop_lvl=args.gene_drop_level)
 elif args.model_type == 8:
-    model = BassetNormCat_bilin()
+    model = BassetNormCat_Tucker() # not actually cat; has JASPAR
 elif args.model_type == 9:
-    model = DanQ_attn()
+    model = DanQ_attn() # not actually cat; has JASPAR
 
 num_params = sum([p.numel() for p in model.parameters()])
     
