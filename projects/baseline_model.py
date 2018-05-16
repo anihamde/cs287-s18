@@ -346,7 +346,7 @@ class DanQ(nn.Module):
         self.conv1.bias = conv_bias
 
         self.maxpool = nn.MaxPool1d(15,padding=0)
-        self.lstm = nn.LSTM(input_size=1024,hidden_size=hidden_size,num_layers=num_layers,batch_first=True,bidirectional=bidirectional)
+        self.lstm = nn.LSTM(input_size=1024,hidden_size=hidden_size,num_layers=num_layers,bidirectional=bidirectional)
         # other relevant args: nonlinearity, dropout
         # lstm input shape: seq_len,bs,input_size
         # hidden shape: num_layers*num_directions,bs,hidden_size 
@@ -366,6 +366,7 @@ class DanQ(nn.Module):
         out = F.relu(self.conv1(x)) # (?, 1024, 571)
         out = F.pad(out,(14,0)) # (?, 1024, 585)
         out = self.maxpool(out) # (?, 1024, 39)
+        print(out.size())
         out = self.dropout_2(out) # (?, 1024, 39)
         out = out.permute(2,0,1) # (39, ?, 1024)
         out,_ = self.lstm(out, self.initHidden(out.size(1))) # (39, ?, 1024)
