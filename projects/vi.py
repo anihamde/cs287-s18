@@ -61,7 +61,7 @@ if True: # initialize weights with smaller stdev to prevent instability
 theta.cuda()
 # theta.load_state_dict(torch.load(args.model_file))
 
-criterion = nn.PoissonNLLLoss(log_input=True, size_average=False, full=True)
+criterion = nn.PoissonNLLLoss(log_input=True, size_average=False, full=False)
 optim1 = torch.optim.SGD(theta.parameters(), lr = args.learning_rate1)
 p = Normal(Variable(torch.zeros(args.batch_size, args.latent_dim)).cuda(), 
            Variable(torch.ones(args.batch_size, args.latent_dim)).cuda()) # p(z)
@@ -111,3 +111,5 @@ for epoch in range(args.num_epochs*2):
             %(timenow, (epoch+2)//2, args.num_epochs, wv, total_recon_loss/total , total_kl/total, (total_recon_loss+total_kl)/total))
     # TODO: add eval loop for big VAE
     torch.save(theta.state_dict(), args.model_file)
+    np.save('mu',mu.numpy())
+    np.save('logvar',logvar.numpy())
