@@ -362,6 +362,7 @@ class DanQ(nn.Module):
         return (Variable(torch.zeros(self.num_layers*self.directions,bs,self.hidden_size).cuda()), 
                 Variable(torch.zeros(self.num_layers*self.directions,bs,self.hidden_size).cuda()))
     def forward(self, x):
+        print(x.size())
         out = F.relu(self.conv1(x)) # (?, 1024, 571)
         out = F.pad(out,(14,0)) # (?, 1024, 585)
         out = self.maxpool(out) # (?, 1024, 39)
