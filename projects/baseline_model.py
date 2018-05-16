@@ -198,7 +198,7 @@ class BassetNorm_JASPAR(nn.Module):
         out = F.relu(self.conv3(out)) # (?, 500, 32)
         out = F.pad(out,(1,1))
         out = self.maxpool_4(out) # (?, 500, 8)
-        out = out.view(-1, 200*13) # (?, 500*8)
+        out = out.view(-1, 1600*13) # (?, 500*8)
         out = F.relu(self.linear1(out)) # (?, 800)
         out = self.dropout(out)
         out = F.relu(self.linear2(out)) # (?, 800)
