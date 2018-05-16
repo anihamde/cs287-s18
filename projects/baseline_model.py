@@ -474,7 +474,7 @@ class DanQCat(nn.Module):
 
 class DanQ_attn(nn.Module):
     def __init__(self, dropout_prob_02=0.2, dropout_prob_03=0.5, dropout_prob_04=0.2, hidden_size=512, num_layers=1,linear_size=925,lstm_dropout=0.0,
-                 bidirectional=True, output_labels=164):
+                 bidirectional=True, output_labels=1):
         # TODO: weight initialize unif[-.05,.05], bias 0
         super(DanQ_attn, self).__init__()
         self.conv1 = nn.Conv1d(4, 1024, 30, stride=1, padding=0)
