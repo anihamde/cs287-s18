@@ -472,28 +472,47 @@ class DanQCat(nn.Module):
         out = F.relu(self.linear(out)) # (?, 925)
         return self.output(out) # (?, 1)
 
-class DanQCat_attn(nn.Module):
-    def __init__(self, dropout_prob_02=0.2, dropout_prob_03=0.5, hidden_size=160, num_layers=1,
-                 bidirectional=True, output_labels=1):
+class DanQ_attn(nn.Module):
+    def __init__(self, dropout_prob_02=0.2, dropout_prob_03=0.5, dropout_prob_04=0.2, hidden_size=512, num_layers=1,linear_size=925,lstm_dropout=0.0,
+                 bidirectional=True, output_labels=164):
         # TODO: weight initialize unif[-.05,.05], bias 0
-        super(DanQCat_attn, self).__init__()
-        self.conv1 = nn.Conv1d(4, 320, 26, stride=1, padding=0)
-        self.maxpool = nn.MaxPool1d(13,padding=0)
-        self.lstm = nn.LSTM(input_size=320,hidden_size=hidden_size,num_layers=num_layers,bidirectional=bidirectional)
+        super(DanQ, self).__init__()
+        self.conv1 = nn.Conv1d(4, 1024, 30, stride=1, padding=0)
+        
+        
+        conv_weights = self.conv1.weight
+        conv_bias = self.conv1.bias
+        
+        JASPAR_motifs = list(np.load('JASPAR_CORE_2016_vertebrates.npy', encoding = 'latin1'))
+
+        reverse_motifs = [JASPAR_motifs[19][::-1,::-1], JASPAR_motifs[97][::-1,::-1], JASPAR_motifs[98][::-1,::-1], JASPAR_motifs[99][::-1,::-1], JASPAR_motifs[100][::-1,::-1], JASPAR_motifs[101][::-1,::-1]]
+        JASPAR_motifs = JASPAR_motifs + reverse_motifs
+
+        for i in range(len(JASPAR_motifs)):
+            m = JASPAR_motifs[i][::-1,:]
+            w = len(m)
+            #conv_weights[0][i,:,:,0] = 0
+            #start = (30-w)/2
+            start = np.random.randint(low=3, high=30-w+1-3)
+            conv_weights[i,:,start:start+w].weight = m.T - 0.25
+            #conv_weights[1][i] = -0.5
+            conv_bias[i].weight = np.random.uniform(low=-1.0,high=0.0)
+
+        self.conv1.weight = conv_weights
+        self.conv1.bias = conv_bias
+
+        self.maxpool = nn.MaxPool1d(15,padding=0)
+        self.lstm = nn.LSTM(input_size=1024,hidden_size=hidden_size,num_layers=num_layers,bidirectional=bidirectional,dropout=lstm_dropout)
         # other relevant args: nonlinearity, dropout
         # lstm input shape: seq_len,bs,input_size
-        # hidden shape: num_layers*num_directions,bs,hidden_size
+        # hidden shape: num_layers*num_directions,bs,hidden_size 
         # output shape: seq_len,bs,hidden_size*num_directions
         self.dropout_2 = nn.Dropout(p=dropout_prob_02)
         self.dropout_3 = nn.Dropout(p=dropout_prob_03)
-
-        # NEW
-        self.genelinear = LinearNorm(19795, 2*hidden_size, weight_norm=False)
-        self.linear = nn.Linear(45*320,925)
-        
-        self.dropout_4 = nn.Dropout(p=0.2)
-        
-        self.output = nn.Linear(925, output_labels)
+        self.genelinear = LinearNorm(19795, hidden_size*2, weight_norm=False)
+        self.linear = nn.Linear(hidden_size*2,linear_size)
+        self.dropout_4 = nn.Dropout(p=dropout_prob_04)
+        self.output = nn.Linear(linear_size, output_labels)
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.directions = bidirectional + 1
@@ -501,32 +520,30 @@ class DanQCat_attn(nn.Module):
         return (Variable(torch.zeros(self.num_layers*self.directions,bs,self.hidden_size).cuda()), 
                 Variable(torch.zeros(self.num_layers*self.directions,bs,self.hidden_size).cuda()))
     def forward(self, x, geneexpr):
-        out = F.relu(self.conv1(x)) # (?, 320, 571)
-        out = F.pad(out,(14,0)) # (?, 320, 585)
-        out = self.maxpool(out) # (?, 320, 45)
-        out = self.dropout_2(out) # (?, 320, 45)
-        out = out.permute(2,0,1) # (45, ?, 320)
-        
-        geneexpr = F.relu(self.genelinear(geneexpr)) # (?,160)
-        attn = torch.zeros(out.size(0))
-        hn = torch.zeros(out.size(0),2,len(x),160)
-        
-        for i in range(out.size(0)):
-            out[i],hid = self.lstm(out[i].unsqueeze(0), self.initHidden(out.size(1)))
-            hn[i] = hid[0]
-#             print(geneexpr.size(),out.size())
-#             inter = torch.squeeze(torch.matmul(geneexpr.view(geneexpr.size(0),1,320),out[i].view(out[i].size(0),320,1)))
-#             print(hn[i].size(),inter.size())
-            print(geneexpr.unsqueeze(1).size(),hn[i].permute(1,0,2).size())
-            attn[i] = torch.squeeze(torch.bmm(hn[i].permute(1,0,2).contiguous().view(800,1,320),geneexpr.unsqueeze(1))) # attn is (45,800), hn is (45,2,800,160)
-        
-        hn = hn.view(45,800,320)
-        attn = attn.unsqueeze(2).expand(-1,-1,320)
-        
-        out = torch.sum(torch.mul(attn,hn),0) # (45, ?, 320)
-            
-#         out = self.dropout_3(out) # (45, ?, 320)
-#         out = out.transpose(1,0).reshape(-1,45*320) # (/, 45*320)
-
-        out = F.relu(self.linear(out)) # (?, 925)
-        return self.output(out) # (?, 1)
+        out = F.relu(self.conv1(x)) # (?, 1024, 571)
+        out = F.pad(out,(14,0)) # (?, 1024, 585)
+        out = self.maxpool(out) # (?, 1024, 39)
+        out = self.dropout_2(out) # (?, 1024, 39)
+        out = out.permute(2,0,1) # (39, ?, 1024)
+        out,_ = self.lstm(out, self.initHidden(out.size(1))) # (39,?,1024)
+        out = self.dropout_3(out) # (39,?,1024)
+        out = out.permute(1,0,2) # (?,39,1024)
+      	geneexpr = F.relu(self.genelinear(geneexpr)) # (?,1024)
+        geneexpr = geneexpr.unsqueeze(2) # (?,1024,1)
+        scores = torch.bmm(out,geneexpr) # (?,39,1)
+        attn_dist = F.softmax(scores,dim=1) # (?,39,1)
+    	out = torch.bmm(attn_dist.transpose(2,1),out) # (?,1,1024)
+        out = out.squeeze(1) # (?,1024)
+        out = F.relu(self.linear(out)) # (?,925)
+        out = self.dropout_4(out) # (?,925)
+        return self.output(out)
+    def clip_norms(self, value):
+        key_chain = [ key for key in self.state_dict().keys() if 'weight' in key ]
+        for key in key_chain:
+            module_list = [self]
+            for key_level in key.split('.')[:-1]:
+                module_list.append( getattr(module_list[-1], key_level) )
+            if key.split('.')[-1] == 'weight_g':
+                module_list[-1].weight_g.data.clamp_(min=0.0,max=value)
+            elif key.split('.')[-1] == 'weight' and len(module_list[-1].weight.data.size()) > 1:
+                module_list[-1].weight.data.renorm_(p=2,dim=0,maxnorm=value)
