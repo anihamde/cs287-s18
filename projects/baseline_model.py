@@ -532,7 +532,7 @@ class DanQ_attn(nn.Module):
         geneexpr = geneexpr.unsqueeze(2) # (?,1024,1)
         scores = torch.bmm(out,geneexpr) # (?,39,1)
         attn_dist = F.softmax(scores,dim=1) # (?,39,1)
-    	out = torch.bmm(attn_dist.transpose(2,1),out) # (?,1,1024)
+        out = torch.bmm(attn_dist.transpose(2,1),out) # (?,1,1024)
         out = out.squeeze(1) # (?,1024)
         out = F.relu(self.linear(out)) # (?,925)
         out = self.dropout_4(out) # (?,925)
