@@ -346,7 +346,7 @@ class DanQ(nn.Module):
         self.conv1.bias = conv_bias
 
         self.maxpool = nn.MaxPool1d(15,padding=0)
-        self.lstm = nn.LSTM(input_size=1024,hidden_size=hidden_size,num_layers=num_layers,bidirectional=bidirectional)
+        self.lstm = nn.LSTM(input_size=1024,hidden_size=hidden_size,num_layers=num_layers,batch_first=True,bidirectional=bidirectional)
         # other relevant args: nonlinearity, dropout
         # lstm input shape: seq_len,bs,input_size
         # hidden shape: num_layers*num_directions,bs,hidden_size 
@@ -390,7 +390,7 @@ class DanQ(nn.Module):
 #         super(DanQCat, self).__init__()
 #         self.conv1 = nn.Conv1d(4, 1024, 30, stride=1, padding=0)
 #         self.maxpool = nn.MaxPool1d(15,padding=0)
-#         self.lstm = nn.LSTM(input_size=1024,hidden_size=hidden_size,num_layers=num_layers,bidirectional=bidirectional)
+#         self.lstm = nn.LSTM(input_size=1024,hidden_size=hidden_size,num_layers=num_layers,batch_first=True,bidirectional=bidirectional)
 #         # other relevant args: nonlinearity, dropout
 #         # lstm input shape: seq_len,bs,input_size
 #         # hidden shape: num_layers*num_directions,bs,hidden_size
@@ -433,7 +433,7 @@ class DanQCat(nn.Module):
         super(DanQCat, self).__init__()
         self.conv1 = nn.Conv1d(4, 320, 26, stride=1, padding=0)
         self.maxpool = nn.MaxPool1d(13,padding=0)
-        self.lstm = nn.LSTM(input_size=320,hidden_size=hidden_size,num_layers=num_layers,bidirectional=bidirectional)
+        self.lstm = nn.LSTM(input_size=320,hidden_size=hidden_size,num_layers=num_layers,batch_first=True,bidirectional=bidirectional)
         # other relevant args: nonlinearity, dropout
         # lstm input shape: seq_len,bs,input_size
         # hidden shape: num_layers*num_directions,bs,hidden_size
@@ -479,7 +479,7 @@ class DanQCat_attn(nn.Module):
         super(DanQCat_attn, self).__init__()
         self.conv1 = nn.Conv1d(4, 320, 26, stride=1, padding=0)
         self.maxpool = nn.MaxPool1d(13,padding=0)
-        self.lstm = nn.LSTM(input_size=320,hidden_size=hidden_size,num_layers=num_layers,bidirectional=bidirectional)
+        self.lstm = nn.LSTM(input_size=320,hidden_size=hidden_size,num_layers=num_layers,batch_first=True,bidirectional=bidirectional)
         # other relevant args: nonlinearity, dropout
         # lstm input shape: seq_len,bs,input_size
         # hidden shape: num_layers*num_directions,bs,hidden_size
