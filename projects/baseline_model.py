@@ -528,7 +528,7 @@ class DanQ_attn(nn.Module):
         out,_ = self.lstm(out, self.initHidden(out.size(1))) # (39,?,1024)
         out = self.dropout_3(out) # (39,?,1024)
         out = out.permute(1,0,2) # (?,39,1024)
-      	geneexpr = F.relu(self.genelinear(geneexpr)) # (?,1024)
+        geneexpr = F.relu(self.genelinear(geneexpr)) # (?,1024)
         geneexpr = geneexpr.unsqueeze(2) # (?,1024,1)
         scores = torch.bmm(out,geneexpr) # (?,39,1)
         attn_dist = F.softmax(scores,dim=1) # (?,39,1)
