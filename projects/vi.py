@@ -61,7 +61,7 @@ if True: # initialize weights with smaller stdev to prevent instability
 theta.cuda()
 # theta.load_state_dict(torch.load(args.model_file))
 
-criterion = nn.PoissonNLLLoss(log_input=True, size_average=False)
+criterion = nn.PoissonNLLLoss(log_input=True, size_average=False, full=True)
 optim1 = torch.optim.SGD(theta.parameters(), lr = args.learning_rate1)
 p = Normal(Variable(torch.zeros(args.batch_size, args.latent_dim)).cuda(), 
            Variable(torch.ones(args.batch_size, args.latent_dim)).cuda()) # p(z)
