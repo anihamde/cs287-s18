@@ -99,13 +99,13 @@ for epoch in range(args.num_epochs*2):
         if epoch % 2:
             optim1.step()
             wv = 'Theta'
-            print(theta.linear1.weight[:56:4])
-            print(theta.linear2.weight)
+            # print(theta.linear1.weight[:56:4])
+            # print(theta.linear2.weight)
         else:
             optim2.step()
             wv = 'Lambda'
-            print(mu[:56:4])
-            print(logvar[:56:4])
+            # print(mu[:56:4])
+            # print(logvar[:56:4])
     timenow = timeSince(start)
     print ('Time %s, Epoch [%d/%d], Tuning %s, Recon Loss: %.4f, KL Loss: %.4f, ELBO Loss: %.4f' 
             %(timenow, (epoch+2)//2, args.num_epochs, wv, total_recon_loss/total , total_kl/total, (total_recon_loss+total_kl)/total))
