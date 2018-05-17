@@ -14,11 +14,12 @@ from vi_model import *
 
 parser = argparse.ArgumentParser(description="parse args")
 parser.add_argument('-n', '--num-epochs', default=101, type=int, help='number of training epochs')
-parser.add_argument('-tf', '--test-frequency', default=5, type=int, help='how often we evaluate the test set')
-parser.add_argument('-lr', '--learning-rate', default=1.0e-3, type=float, help='learning rate')
-parser.add_argument('--cuda', action='store_true', default=False, help='whether to use cuda')
-parser.add_argument('-visdom', '--visdom_flag', action="store_true", help='Whether plotting in visdom is desired')
-parser.add_argument('-i-tsne', '--tsne_iter', default=100, type=int, help='epoch when tsne visualization runs')
+parser.add_argument('--latent_dim','-ld',type=int,default=2,help='Latent dimension')
+# parser.add_argument('-tf', '--test-frequency', default=5, type=int, help='how often we evaluate the test set')
+# parser.add_argument('-lr', '--learning-rate', default=1.0e-3, type=float, help='learning rate')
+# parser.add_argument('--cuda', action='store_true', default=False, help='whether to use cuda')
+# parser.add_argument('-visdom', '--visdom_flag', action="store_true", help='Whether plotting in visdom is desired')
+# parser.add_argument('-i-tsne', '--tsne_iter', default=100, type=int, help='epoch when tsne visualization runs')
 args = parser.parse_args()
 
 expn_pth = '/n/data_02/Basset/data/expn/roadmap/57epigenomes.RPKM.pc'
@@ -40,7 +41,7 @@ loader = torch.utils.data.DataLoader(dat, batch_size=args.batch_size, shuffle=Fa
 print(next(iter(loader))[0].size())
 
 # setup the VAE
-vae = PyroVAE()
+vae = PyroVAE(latent_dim=args.latent_dim)
 adam_args = {"lr": args.learning_rate}
 optimizer = Adam(adam_args)
 svi = SVI(vae.model, vae.guide, optimizer, loss=Trace_ELBO())
