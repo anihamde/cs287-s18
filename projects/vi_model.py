@@ -63,8 +63,8 @@ class PyroVAE(nn.Module):
         pyro.module("decoder", self.decoder)
         with pyro.iarange("data", x.size(0)):
             # setup hyperparameters for prior p(z)
-            z_loc = x.new_zeros(torch.Size((x.size(0), self.z_dim)))
-            z_scale = x.new_ones(torch.Size((x.size(0), self.z_dim)))
+            z_loc = x.new_zeros(torch.Size((x.size(0), self.latent_dim)))
+            z_scale = x.new_ones(torch.Size((x.size(0), self.latent_dim)))
             # sample from prior (value will be sampled by guide when computing the ELBO)
             z = pyro.sample("latent", dist.Normal(z_loc, z_scale).independent(1))
             # decode the latent code z
@@ -103,7 +103,7 @@ class PyroVI(nn.Module):
         self.cuda()
         self.latent_dim = latent_dim
 
-    # define the model p(x|z)p(z). here x is bs,19795. TODO: how does this translate to 56 case?
+    # define the model p(x|z)p(z). here x is bs,19795.
     def model(self, x):
         # register PyTorch module `theta` with Pyro
         pyro.module("theta", self.theta)
@@ -123,8 +123,8 @@ class PyroVI(nn.Module):
     # are we subsampling?
     # define the guide (i.e. variational distribution) q(z|x)
     def guide(self, x):
-        z_loc = pyro.param("z_loc", torch.randn(57,self.latent_dim))
-        z_scale = pyro.param("z_scale", torch.randn(57,self.latent_dim).mul(0.5).exp())
+        z_loc = pyro.param("z_loc", torch.randn(56,self.latent_dim))
+        z_scale = pyro.param("z_scale", torch.randn(56,self.latent_dim).mul(0.5).exp())
         with pyro.iarange("data", x.size(0)):
             # use the encoder to get the parameters used to define q(z|x)
             # z_loc, z_scale = self.encoder.forward(x)
