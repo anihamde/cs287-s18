@@ -91,7 +91,7 @@ valtestdex = np.concatenate([val.expn_dex,test.expn_dex])
 traindex = train.expn_dex
 simmat = torch.zeros(7,49)
 # mat = pinned_lookup.weight
-mat = np.load('mu.npy')
+mat = np.vstack([np.zeros((1,19795)),np.load('mu.npy')])
 for i in range(7):
     for j in range(49):
         simmat[i,j] = F.cosine_similarity(mat[valtestdex[i]],mat[traindex[j]],dim=0).item()
