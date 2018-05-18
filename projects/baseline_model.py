@@ -287,7 +287,7 @@ class BassetNormCat(nn.Module):
 class BassetNormCat_JASPAR(nn.Module):
     def __init__(self, dropout_prob=0.3, gene_drop_lvl=1):
         super(BassetNormCat_JASPAR, self).__init__()
-        self.conv1 = Conv1dNorm(4, 1000, 19, stride=1, padding=0, weight_norm=False)
+        self.conv1 = Conv1dNorm(4, 600, 19, stride=1, padding=0, weight_norm=False)
         
         conv_weights = self.conv1.conv.weight
         conv_bias = self.conv1.conv.bias
@@ -310,13 +310,13 @@ class BassetNormCat_JASPAR(nn.Module):
         self.conv1.conv.weight = conv_weights
         self.conv1.conv.bias = conv_bias
         
-        self.conv2 = Conv1dNorm(1000, 1400, 11, stride=1, padding=0, weight_norm=False)
-        self.conv3 = Conv1dNorm(1400, 1600, 7, stride=1, padding=0, weight_norm=False)
+        self.conv2 = Conv1dNorm(600, 300, 11, stride=1, padding=0, weight_norm=False)
+        self.conv3 = Conv1dNorm(300, 200, 7, stride=1, padding=0, weight_norm=False)
         self.maxpool_4 = nn.MaxPool1d(4,padding=0)
         self.maxpool_3 = nn.MaxPool1d(3,padding=0)
         self.genelinear = LinearNorm(19795, 500, batch_norm=False, weight_norm=False)
-        self.linear1 = LinearNorm(1600*13, 2000, weight_norm=False)
-        self.linear2 = LinearNorm(2000, 1000, weight_norm=False)
+        self.linear1 = LinearNorm(200*13, 1000, weight_norm=False)
+        self.linear2 = LinearNorm(1000, 1000, weight_norm=False)
         self.dropout = nn.Dropout(p=dropout_prob)
         self.output = nn.Linear(1000+500, 1)
         self.gdl = gene_drop_lvl
