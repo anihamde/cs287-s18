@@ -285,7 +285,7 @@ class BassetNormCat(nn.Module):
                 module_list[-1].weight.data.renorm_(p=2,dim=0,maxnorm=value)
 
 class BassetNormCat_JASPAR(nn.Module):
-    def __init__(self, dropout_prob=0.3, gene_drop_lvl):
+    def __init__(self, dropout_prob=0.3, gene_drop_lvl=1):
         super(BassetNormCat_JASPAR, self).__init__()
         self.conv1 = Conv1dNorm(4, 1000, 19, stride=1, padding=0, weight_norm=False)
         
