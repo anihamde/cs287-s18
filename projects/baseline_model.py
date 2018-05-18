@@ -283,6 +283,82 @@ class BassetNormCat(nn.Module):
                 module_list[-1].weight_g.data.clamp_(min=0.0,max=value)
             elif key.split('.')[-1] == 'weight' and len(module_list[-1].weight.data.size()) > 1:
                 module_list[-1].weight.data.renorm_(p=2,dim=0,maxnorm=value)
+
+class BassetNormCat_JASPAR(nn.Module):
+    def __init__(self, dropout_prob=0.3, output_labels=164):
+        super(BassetNormCat_JASPAR, self).__init__()
+        self.conv1 = Conv1dNorm(4, 1000, 19, stride=1, padding=0, weight_norm=False)
+        
+        conv_weights = self.conv1.conv.weight
+        conv_bias = self.conv1.conv.bias
+        
+        JASPAR_motifs = list(np.load('JASPAR_CORE_2016_vertebrates.npy', encoding = 'latin1'))
+
+        reverse_motifs = [JASPAR_motifs[19][::-1,::-1], JASPAR_motifs[97][::-1,::-1], JASPAR_motifs[98][::-1,::-1], JASPAR_motifs[99][::-1,::-1], JASPAR_motifs[100][::-1,::-1], JASPAR_motifs[101][::-1,::-1]]
+        JASPAR_motifs = JASPAR_motifs + reverse_motifs
+
+        for i in range(len(JASPAR_motifs)):
+            m = JASPAR_motifs[i][::-1,:]
+            w = len(m)
+            #conv_weights[0][i,:,:,0] = 0
+            #start = (30-w)/2
+            start = np.random.randint(low=3, high=max(4,19-w+1-3))
+            conv_weights[i,:,start:start+w].weight = m.T - 0.25
+            #conv_weights[1][i] = -0.5
+            conv_bias[i].weight = np.random.uniform(low=-1.0,high=0.0)
+
+        self.conv1.conv.weight = conv_weights
+        self.conv1.conv.bias = conv_bias
+        
+        self.conv2 = Conv1dNorm(1000, 1400, 11, stride=1, padding=0, weight_norm=False)
+        self.conv3 = Conv1dNorm(1400, 1600, 7, stride=1, padding=0, weight_norm=False)
+        self.maxpool_4 = nn.MaxPool1d(4,padding=0)
+        self.maxpool_3 = nn.MaxPool1d(3,padding=0)
+        self.genelinear = LinearNorm(19795, 500, batch_norm=False, weight_norm=False)
+        self.linear1 = LinearNorm(1600*13, 2000, weight_norm=False)
+        self.linear2 = LinearNorm(2000, 1000, weight_norm=False)
+        self.dropout = nn.Dropout(p=dropout_prob)
+        self.output = nn.Linear(1000+500, output_labels)
+    def forward(self, x):
+        #if sparse_in: # (?, 600, 4)
+        #    in_seq = to_one_hot(x, n_dims=4).permute(0,3,1,2).squeeze()
+        #else:
+        #    in_seq = x.squeeze()
+        x = F.pad(x,(9,9))
+        out = F.relu(self.conv1(x)) # (?, 4, 580)
+        out = self.maxpool_3(out) # (?, 30, 145)
+        out = F.pad(out,(5,5))
+        out = F.relu(self.conv2(out)) # (?, 300, 140)
+        out = self.maxpool_4(out) # (?, 300, 35)
+        out = F.pad(out,(3,3))
+        out = F.relu(self.conv3(out)) # (?, 500, 32)
+        out = F.pad(out,(1,1))
+        out = self.maxpool_4(out) # (?, 500, 8)
+        out = out.view(-1, 1600*13) # (?, 500*8)
+        out = F.relu(self.linear1(out)) # (?, 800)
+        out = self.dropout(out)
+        out = F.relu(self.linear2(out)) # (?, 800)
+        out = self.dropout(out)
+        if self.gdl == 0:
+            #geneexpr = self.dropout(geneexpr)
+            geneexpr = F.relu(self.genelinear(geneexpr))
+        elif self.gdl == 1:
+            geneexpr = F.relu(self.genelinear(geneexpr)) # (?, 500)
+            geneexpr = self.dropout(geneexpr)
+        elif self.gdl == 2:
+            geneexpr = F.normalize(self.genelinear(geneexpr), p=2, dim=1)
+        out = torch.cat([out, geneexpr], dim=1) # (?, 200*13+500)
+        return self.output(out) # (?, 164)
+    def clip_norms(self, value):
+        key_chain = [ key for key in self.state_dict().keys() if 'weight' in key ]
+        for key in key_chain:
+            module_list = [self]
+            for key_level in key.split('.')[:-1]:
+                module_list.append( getattr(module_list[-1], key_level) )
+            if key.split('.')[-1] == 'weight_g':
+                module_list[-1].weight_g.data.clamp_(min=0.0,max=value)
+            elif key.split('.')[-1] == 'weight' and len(module_list[-1].weight.data.size()) > 1:
+                module_list[-1].weight.data.renorm_(p=2,dim=0,maxnorm=value)               
                 
 class BassetNormTucker(nn.Module): # with JASPAR
     def __init__(self, dropout_prob=0.3):
