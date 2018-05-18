@@ -319,7 +319,7 @@ class BassetNormCat_JASPAR(nn.Module):
         self.linear2 = LinearNorm(2000, 1000, weight_norm=False)
         self.dropout = nn.Dropout(p=dropout_prob)
         self.output = nn.Linear(1000+500, output_labels)
-    def forward(self, x):
+    def forward(self, x, geneexpr):
         #if sparse_in: # (?, 600, 4)
         #    in_seq = to_one_hot(x, n_dims=4).permute(0,3,1,2).squeeze()
         #else:
