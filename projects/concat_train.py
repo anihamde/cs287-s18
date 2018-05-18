@@ -76,6 +76,8 @@ elif args.model_type == 8:
     model = BassetNormCat_Tucker() # not actually cat; has JASPAR
 elif args.model_type == 9:
     model = DanQ_attn() # not actually cat; has JASPAR
+elif args.model_type == 10:
+    model = BassetNormCat_JASPAR() # regular ole BassetNormCat but with JASPAR motifs, so a bit bigger of a model
 
 num_params = sum([p.numel() for p in model.parameters()])
     
