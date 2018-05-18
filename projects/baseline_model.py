@@ -285,7 +285,7 @@ class BassetNormCat(nn.Module):
                 module_list[-1].weight.data.renorm_(p=2,dim=0,maxnorm=value)
 
 class BassetNormCat_JASPAR(nn.Module):
-    def __init__(self, dropout_prob=0.3, output_labels=164):
+    def __init__(self, dropout_prob=0.3, gene_drop_lvl):
         super(BassetNormCat_JASPAR, self).__init__()
         self.conv1 = Conv1dNorm(4, 1000, 19, stride=1, padding=0, weight_norm=False)
         
@@ -318,7 +318,8 @@ class BassetNormCat_JASPAR(nn.Module):
         self.linear1 = LinearNorm(1600*13, 2000, weight_norm=False)
         self.linear2 = LinearNorm(2000, 1000, weight_norm=False)
         self.dropout = nn.Dropout(p=dropout_prob)
-        self.output = nn.Linear(1000+500, output_labels)
+        self.output = nn.Linear(1000+500, 1)
+        self.gdl = gene_drop_lvl
     def forward(self, x, geneexpr):
         #if sparse_in: # (?, 600, 4)
         #    in_seq = to_one_hot(x, n_dims=4).permute(0,3,1,2).squeeze()
