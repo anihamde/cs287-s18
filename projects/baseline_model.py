@@ -77,6 +77,19 @@ class LinearNorm(nn.Module):
             return self.bn_layer( self.linear( input ) )
         except AttributeError:
             return self.linear( input )
+
+class Tucker(nn.Module):
+    def __init__(self,in1_features, in2_features, core1_features, core2_features, 
+                 out_features, core_bias=True, factor_bias=False):
+        super(Tucker, self).__init__()
+        self.w_q = nn.Linear(in1_features, core1_features, bias=factor_bias)
+        self.w_v = nn.Linear(in2_features, core2_features, bias=factor_bias)
+        self.t_c = nn.Bilinear(core1_features, core2_features, out_features, bias=core_bias)
+    def forward(self, input1, input2):
+        q_tilde = self.w_q(input1)
+        v_tilde = self.w_v(input2)
+        tk_out  = self.t_c(q_tilde, v_tilde)
+        return tk_out
         
         
 class Classic(nn.Module):
@@ -271,19 +284,19 @@ class BassetNormCat(nn.Module):
             elif key.split('.')[-1] == 'weight' and len(module_list[-1].weight.data.size()) > 1:
                 module_list[-1].weight.data.renorm_(p=2,dim=0,maxnorm=value)
                 
-class BassetNormCat_Tucker(nn.Module): # with JASPAR
-    def __init__(self, dropout_prob=0.3, gene_drop_lvl=1):
-        super(BassetNormCat_Tucker, self).__init__()
+class BassetNormTucker(nn.Module): # with JASPAR
+    def __init__(self, dropout_prob=0.3):
+        super(BassetNormTucker, self).__init__()
         self.conv1 = Conv1dNorm(4, 1000, 19, stride=1, padding=0, weight_norm=False)
-        
+        #
         conv_weights = self.conv1.conv.weight
         conv_bias = self.conv1.conv.bias
-        
+        #
         JASPAR_motifs = list(np.load('JASPAR_CORE_2016_vertebrates.npy', encoding = 'latin1'))
-
+        #
         reverse_motifs = [JASPAR_motifs[19][::-1,::-1], JASPAR_motifs[97][::-1,::-1], JASPAR_motifs[98][::-1,::-1], JASPAR_motifs[99][::-1,::-1], JASPAR_motifs[100][::-1,::-1], JASPAR_motifs[101][::-1,::-1]]
         JASPAR_motifs = JASPAR_motifs + reverse_motifs
-
+        #
         for i in range(len(JASPAR_motifs)):
             m = JASPAR_motifs[i][::-1,:]
             w = len(m)
@@ -293,24 +306,20 @@ class BassetNormCat_Tucker(nn.Module): # with JASPAR
             conv_weights[i,:,start:start+w].weight = m.T - 0.25
             #conv_weights[1][i] = -0.5
             conv_bias[i].weight = np.random.uniform(low=-1.0,high=0.0)
-
+        #
         self.conv1.conv.weight = conv_weights
         self.conv1.conv.bias = conv_bias
-        
+        #
         self.conv2 = Conv1dNorm(1000, 500, 11, stride=1, padding=0, weight_norm=False)
         self.conv3 = Conv1dNorm(500, 200, 7, stride=1, padding=0, weight_norm=False)
         self.maxpool_4 = nn.MaxPool1d(4,padding=0)
         self.maxpool_3 = nn.MaxPool1d(3,padding=0)
-        self.genelinear = LinearNorm(19795, 500, batch_norm=False, weight_norm=False)
+#        self.genelinear = LinearNorm(19795, 500, batch_norm=False, weight_norm=False)
         self.linear1 = LinearNorm(200*13, 1000, batch_norm=False, weight_norm=False)
-        self.linear2 = LinearNorm(1000, 1000, batch_norm=False, weight_norm=False)
+        self.tucker  = Tucker(19795, 1000, 80, 80, 1000, core_bias=True, factor_bias=False)
         self.dropout = nn.Dropout(p=dropout_prob)
-        
-        self.linearout = LinearNorm(1000,1,batch_norm=False,weight_norm=False) # bilinear tucker
-        self.lineargene = LinearNorm(500,1,batch_norm=False,weight_norm=False) # bilinear tucker
-        
-        
-#         self.output = nn.Linear(1000+500, 1)
+        self.output  = nn.Linear(1000, 1)
+#        self.output = nn.Linear(1000+500, 1)
         self.gdl = gene_drop_lvl
     def forward(self, x, geneexpr):
         #if sparse_in: # (?, 600, 4)
@@ -332,15 +341,6 @@ class BassetNormCat_Tucker(nn.Module): # with JASPAR
         out = self.dropout(out)
         out = F.relu(self.linear2(out)) # (?, 800)
         out = self.dropout(out)
-        if self.gdl == 0:
-            #geneexpr = self.dropout(geneexpr)
-            geneexpr = F.relu(self.genelinear(geneexpr))
-        elif self.gdl == 1:
-            geneexpr = F.relu(self.genelinear(geneexpr)) # (?, 500)
-            geneexpr = self.dropout(geneexpr)
-        elif self.gdl == 2:
-            geneexpr = F.normalize(self.genelinear(geneexpr), p=2, dim=1)
-        
         
         return(torch.mul(self.linearout(out),self.lineargene(geneexpr))) # bilinear tucker
 
