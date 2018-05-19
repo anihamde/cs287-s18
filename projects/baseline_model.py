@@ -80,16 +80,22 @@ class LinearNorm(nn.Module):
 
 class Tucker(nn.Module):
     def __init__(self,in1_features, in2_features, core1_features, core2_features, 
-                 out_features, core_bias=True, factor_bias=False):
+                 out_features, core_bias=True, factor_bias=False, core_batch_norm=True):
         super(Tucker, self).__init__()
-        self.w_q = nn.Linear(in1_features, core1_features, bias=factor_bias)
-        self.w_v = nn.Linear(in2_features, core2_features, bias=factor_bias)
+        self.w_q = nn.LinearNorm(in1_features, core1_features, bias=factor_bias, batch_norm=False, weight_norm=False)
+        self.w_v = nn.LinearNorm(in2_features, core2_features, bias=factor_bias, batch_norm=True, weight_norm=False)
         self.t_c = nn.Bilinear(core1_features, core2_features, out_features, bias=core_bias)
+        if core_batch_norm:
+            self.bn_layer = nn.BatchNorm1d(out_features, eps=1e-05, momentum=0.1,
+                                           affine=True, track_running_stats=True)
     def forward(self, input1, input2):
         q_tilde = self.w_q(input1)
         v_tilde = self.w_v(input2)
         tk_out  = self.t_c(q_tilde, v_tilde)
-        return tk_out
+        try:
+            return self.bn_layer( tk_out )
+        except AttributeError:
+            return tk_out
         
         
 class Classic(nn.Module):
