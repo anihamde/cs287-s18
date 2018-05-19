@@ -393,9 +393,9 @@ class BassetNormTucker(nn.Module): # with JASPAR
         self.maxpool_3 = nn.MaxPool1d(3,padding=0)
 #        self.genelinear = LinearNorm(19795, 500, batch_norm=False, weight_norm=False)
         self.linear1 = LinearNorm(200*13, 1000, batch_norm=False, weight_norm=False)
-        self.tucker  = Tucker(19795, 1000, 80, 80, 1000, core_bias=True, factor_bias=False)
+        self.tucker  = Tucker(19795, 1000, 80, 80, 80, core_bias=True, factor_bias=False)
         self.dropout = nn.Dropout(p=dropout_prob)
-        self.output  = nn.Linear(1000, 1)
+        self.output  = nn.Linear(80, 1)
 #        self.output = nn.Linear(1000+500, 1)
         self.gdl = gene_drop_lvl
     def forward(self, x, geneexpr):
@@ -416,14 +416,9 @@ class BassetNormTucker(nn.Module): # with JASPAR
         out = out.view(-1, 200*13) # (?, 500*8)
         out = F.relu(self.linear1(out)) # (?, 800)
         out = self.dropout(out)
-        out = F.relu(self.linear2(out)) # (?, 800)
+        out = F.relu(self.tucker(geneexpr,out))
         out = self.dropout(out)
-        
-        return(torch.mul(self.linearout(out),self.lineargene(geneexpr))) # bilinear tucker
-
-        
-#         out = torch.cat([out, geneexpr], dim=1) # (?, 200*13+500)
-#         return self.output(out) # (?, 1)
+        return self.output(out) # (?, 1)
     def clip_norms(self, value):
         key_chain = [ key for key in self.state_dict().keys() if 'weight' in key ]
         for key in key_chain:
