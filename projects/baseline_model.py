@@ -393,7 +393,7 @@ class BassetNormTucker(nn.Module): # with JASPAR
         self.maxpool_3 = nn.MaxPool1d(3,padding=0)
 #        self.genelinear = LinearNorm(19795, 500, batch_norm=False, weight_norm=False)
         self.linear1 = LinearNorm(200*13, 1000, batch_norm=False, weight_norm=False)
-        self.tucker  = Tucker(19795, 1000, 80, 80, 80, core_bias=True, factor_bias=False)
+        self.tucker  = Tucker(19795, 1000, 1, 1000, 1000, core_bias=True, factor_bias=False)
         self.dropout = nn.Dropout(p=dropout_prob)
         self.output  = nn.Linear(80, 1)
 #        self.output = nn.Linear(1000+500, 1)
