@@ -131,8 +131,8 @@ test  = RoadmapDataset(data,expn,test_type,segment='test')
 
 # Set Loader
 train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True)
-val_loader = torch.utils.data.DataLoader(val, batch_size=500, shuffle=False)
-test_loader = torch.utils.data.DataLoader(test, batch_size=500, shuffle=False)
+val_loader = torch.utils.data.DataLoader(val, batch_size=100, shuffle=False)
+test_loader = torch.utils.data.DataLoader(test, batch_size=100, shuffle=False)
 
 dprint("Dataloaders generated {}".format( timeSince(start) ),file=Logger)
 
