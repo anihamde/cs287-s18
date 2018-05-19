@@ -387,13 +387,13 @@ class BassetNormTucker(nn.Module): # with JASPAR
         self.conv1.conv.weight = conv_weights
         self.conv1.conv.bias = conv_bias
         #
-        self.conv2 = Conv1dNorm(1000, 500, 11, stride=1, padding=0, weight_norm=False)
-        self.conv3 = Conv1dNorm(500, 200, 7, stride=1, padding=0, weight_norm=False)
+        self.conv2 = Conv1dNorm(1000, 1500, 11, stride=1, padding=0, weight_norm=False)
+        self.conv3 = Conv1dNorm(1500, 2000, 7, stride=1, padding=0, weight_norm=False)
         self.maxpool_4 = nn.MaxPool1d(4,padding=0)
         self.maxpool_3 = nn.MaxPool1d(3,padding=0)
 #        self.genelinear = LinearNorm(19795, 500, batch_norm=False, weight_norm=False)
-        self.linear1 = LinearNorm(200*13, 1000, batch_norm=False, weight_norm=False)
-        self.tucker  = Tucker(19795, 1000, 1, 1000, 1000, core_bias=True, factor_bias=False)
+        self.linear1 = LinearNorm(2000*13, 1000, batch_norm=True, weight_norm=False)
+        self.tucker  = Tucker(19795, 1000, 80, 80, 80, core_bias=True, factor_bias=False)
         self.dropout = nn.Dropout(p=dropout_prob)
         self.output  = nn.Linear(80, 1)
 #        self.output = nn.Linear(1000+500, 1)
