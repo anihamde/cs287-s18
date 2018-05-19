@@ -371,8 +371,7 @@ class BassetNormTucker(nn.Module): # with JASPAR
     def __init__(self, dropout_prob=0.3):
         super(BassetNormTucker, self).__init__()
         self.conv1 = Conv1dNorm(4, 300, 19, stride=1, padding=0, weight_norm=False)
-"""
-        #
+"""     #
         conv_weights = self.conv1.conv.weight
         conv_bias = self.conv1.conv.bias
         #
@@ -393,8 +392,7 @@ class BassetNormTucker(nn.Module): # with JASPAR
         #
         self.conv1.conv.weight = conv_weights
         self.conv1.conv.bias = conv_bias
-        #
-"""
+        #  """
         self.conv2 = Conv1dNorm(300, 200, 11, stride=1, padding=0, weight_norm=False)
         self.conv3 = Conv1dNorm(200, 200, 7, stride=1, padding=0, weight_norm=False)
         self.maxpool_4 = nn.MaxPool1d(4,padding=0)
