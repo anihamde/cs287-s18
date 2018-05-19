@@ -82,8 +82,8 @@ class Tucker(nn.Module):
     def __init__(self,in1_features, in2_features, core1_features, core2_features, 
                  out_features, core_bias=True, factor_bias=False, core_batch_norm=True):
         super(Tucker, self).__init__()
-        self.w_q = nn.LinearNorm(in1_features, core1_features, bias=factor_bias, batch_norm=False, weight_norm=False)
-        self.w_v = nn.LinearNorm(in2_features, core2_features, bias=factor_bias, batch_norm=True, weight_norm=False)
+        self.w_q = LinearNorm(in1_features, core1_features, bias=factor_bias, batch_norm=False, weight_norm=False)
+        self.w_v = LinearNorm(in2_features, core2_features, bias=factor_bias, batch_norm=True, weight_norm=False)
         self.t_c = nn.Bilinear(core1_features, core2_features, out_features, bias=core_bias)
         if core_batch_norm:
             self.bn_layer = nn.BatchNorm1d(out_features, eps=1e-05, momentum=0.1,
