@@ -397,7 +397,6 @@ class BassetNormTucker(nn.Module): # with JASPAR
         self.dropout = nn.Dropout(p=dropout_prob)
         self.output  = nn.Linear(80, 1)
 #        self.output = nn.Linear(1000+500, 1)
-        self.gdl = gene_drop_lvl
     def forward(self, x, geneexpr):
         #if sparse_in: # (?, 600, 4)
         #    in_seq = to_one_hot(x, n_dims=4).permute(0,3,1,2).squeeze()
