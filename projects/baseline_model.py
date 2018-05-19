@@ -370,7 +370,8 @@ class BassetNormCat_JASPAR(nn.Module):
 class BassetNormTucker(nn.Module): # with JASPAR
     def __init__(self, dropout_prob=0.3):
         super(BassetNormTucker, self).__init__()
-        self.conv1 = Conv1dNorm(4, 1000, 19, stride=1, padding=0, weight_norm=False)
+        self.conv1 = Conv1dNorm(4, 300, 19, stride=1, padding=0, weight_norm=False)
+"""
         #
         conv_weights = self.conv1.conv.weight
         conv_bias = self.conv1.conv.bias
@@ -393,16 +394,17 @@ class BassetNormTucker(nn.Module): # with JASPAR
         self.conv1.conv.weight = conv_weights
         self.conv1.conv.bias = conv_bias
         #
-        self.conv2 = Conv1dNorm(1000, 1500, 11, stride=1, padding=0, weight_norm=False)
-        self.conv3 = Conv1dNorm(1500, 2000, 7, stride=1, padding=0, weight_norm=False)
+"""
+        self.conv2 = Conv1dNorm(300, 200, 11, stride=1, padding=0, weight_norm=False)
+        self.conv3 = Conv1dNorm(200, 200, 7, stride=1, padding=0, weight_norm=False)
         self.maxpool_4 = nn.MaxPool1d(4,padding=0)
         self.maxpool_3 = nn.MaxPool1d(3,padding=0)
 #        self.genelinear = LinearNorm(19795, 500, batch_norm=False, weight_norm=False)
-        self.flat_sz = 2000*13
-        self.linear1 = LinearNorm(self.flat_sz, 1000, batch_norm=True, weight_norm=False)
-        self.tucker  = Tucker(19795, 1000, 80, 80, 80, core_bias=True, factor_bias=False)
+        self.flat_sz = 200*13
+        self.tucker  = Tucker(19795, self.flat_sz, 100, 1000, 100, core_bias=True, factor_bias=False)
+        self.linear = LinearNorm(100, 1000, batch_norm=True, weight_norm=False)        
         self.dropout = nn.Dropout(p=dropout_prob)
-        self.output  = nn.Linear(80, 1)
+        self.output  = nn.Linear(1000, 1)
 #        self.output = nn.Linear(1000+500, 1)
     def forward(self, x, geneexpr):
         #if sparse_in: # (?, 600, 4)
@@ -420,9 +422,9 @@ class BassetNormTucker(nn.Module): # with JASPAR
         out = F.pad(out,(1,1))
         out = self.maxpool_4(out) # (?, 500, 8)
         out = out.view(-1, self.flat_sz) # (?, 500*8)
-        out = F.relu(self.linear1(out)) # (?, 800)
-        out = self.dropout(out)
         out = F.relu(self.tucker(geneexpr,out))
+        out = self.dropout(out)
+        out = F.relu(self.linear(out)) # (?, 800)
         out = self.dropout(out)
         return self.output(out) # (?, 1)
     def clip_norms(self, value):
