@@ -786,7 +786,7 @@ class lstmfirst(nn.Module):
         # TODO: weight initialize unif[-.05,.05], bias 0
         super(lstmfirst, self).__init__()
         self.lstm = nn.LSTM(input_size = 4, hidden_size = hidden_size, num_layers = num_layers, bidirectional = bidirectional)
-        self.conv1 = nn.Conv1d(hidden_size, 1024, 30, stride=1, padding=0)
+        self.conv1 = nn.Conv1d(hidden_size*2, 1024, 30, stride=1, padding=0)
         
         conv_weights = self.conv1.weight
         conv_bias = self.conv1.bias
