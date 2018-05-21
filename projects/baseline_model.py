@@ -825,8 +825,6 @@ class lstmfirst(nn.Module):
         return (Variable(torch.zeros(self.num_layers*self.directions,bs,self.hidden_size).cuda()), 
                 Variable(torch.zeros(self.num_layers*self.directions,bs,self.hidden_size).cuda()))
     def forward(self, x): # x is of size (?,4,600)
-        print(x.size())
-        print(x.shape())
         out = x.permute(2,0,1) # (600,?,4)
         out,_ = self.lstm(out,self.initHidden(out.size(1))) # (600,?,10)
         out = self.dropout_2(out) # (600,?,10)
