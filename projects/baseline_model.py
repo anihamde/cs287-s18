@@ -847,3 +847,81 @@ class lstmfirst(nn.Module):
             elif key.split('.')[-1] == 'weight' and len(module_list[-1].weight.data.size()) > 1:
                 module_list[-1].weight.data.renorm_(p=2,dim=0,maxnorm=value)
 
+
+class lstmfirst_cat(nn.Module):
+    def __init__(self, dropout_prob_02=0.3, dropout_prob_03=0.3, hidden_size=5, num_layers=1,
+                 bidirectional=True, output_labels=164):
+        # TODO: weight initialize unif[-.05,.05], bias 0
+        super(lstmfirst_cat, self).__init__()
+        self.lstm = nn.LSTM(input_size = 4, hidden_size = hidden_size, num_layers = num_layers, bidirectional = bidirectional)
+        self.conv1 = nn.Conv1d(hidden_size*2, 1024, 30, stride=1, padding=0)
+        
+        conv_weights = self.conv1.weight
+        conv_bias = self.conv1.bias
+        
+        JASPAR_motifs = list(np.load('JASPAR_CORE_2016_vertebrates.npy', encoding = 'latin1'))
+
+        reverse_motifs = [JASPAR_motifs[19][::-1,::-1], JASPAR_motifs[97][::-1,::-1], JASPAR_motifs[98][::-1,::-1], JASPAR_motifs[99][::-1,::-1], JASPAR_motifs[100][::-1,::-1], JASPAR_motifs[101][::-1,::-1]]
+        JASPAR_motifs = JASPAR_motifs + reverse_motifs
+
+        for i in range(len(JASPAR_motifs)):
+            m = JASPAR_motifs[i][::-1,:]
+            w = len(m)
+            #conv_weights[0][i,:,:,0] = 0
+            #start = (30-w)/2
+            start = np.random.randint(low=3, high=30-w+1-3)
+            conv_weights[i,:,start:start+w].weight = m.T - 0.25
+            #conv_weights[1][i] = -0.5
+            conv_bias[i].weight = np.random.uniform(low=-1.0,high=0.0)
+
+        self.conv1.weight = conv_weights
+        self.conv1.bias = conv_bias
+
+        self.maxpool = nn.MaxPool1d(15,padding=0)
+        # other relevant args: nonlinearity, dropout
+        # lstm input shape: seq_len,bs,input_size
+        # hidden shape: num_layers*num_directions,bs,hidden_size 
+        # output shape: seq_len,bs,hidden_size*num_directions
+        self.dropout_2 = nn.Dropout(p=dropout_prob_02)
+        self.dropout_3 = nn.Dropout(p=dropout_prob_03)
+        
+        self.genelinear = LinearNorm(19795, 500, weight_norm=False)
+        self.linear = nn.Linear(39*1024+500,925)
+        
+        self.dropout_4 = nn.Dropout(p=0.2)
+        
+        self.output = nn.Linear(925, output_labels)
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.directions = bidirectional + 1
+    def initHidden(self,bs):
+        return (Variable(torch.zeros(self.num_layers*self.directions,bs,self.hidden_size).cuda()), 
+                Variable(torch.zeros(self.num_layers*self.directions,bs,self.hidden_size).cuda()))
+    def forward(self, x, geneexpr): # x is of size (?,4,600)
+        out = x.permute(2,0,1) # (600,?,4)
+        out,_ = self.lstm(out,self.initHidden(out.size(1))) # (600,?,10)
+        out = self.dropout_2(out) # (600,?,10)
+        out = out.permute(1,2,0) # (?,10,600)
+        out = F.relu(self.conv1(out)) # (?,1024,571)
+        out = F.pad(out,(14,0)) # (?,1024,585)
+        out = self.maxpool(out) # (?,1024,39)
+        out = self.dropout_2(out) # (?,1024,39)
+        out = out.transpose(1,0).reshape(-1,39*1024) # (?,39*1024)
+        
+         # NEW
+        geneexpr = F.relu(self.genelinear(geneexpr)) # (?, 500)
+        geneexpr = self.dropout_4(geneexpr)
+        out = torch.cat([out,geneexpr], dim = 1) # (?, 39*1024+500)
+
+        out = F.relu(self.linear(out)) # (?, 925)
+        return self.output(out) # (?, 1)
+    def clip_norms(self, value):
+        key_chain = [ key for key in self.state_dict().keys() if 'weight' in key ]
+        for key in key_chain:
+            module_list = [self]
+            for key_level in key.split('.')[:-1]:
+                module_list.append( getattr(module_list[-1], key_level) )
+            if key.split('.')[-1] == 'weight_g':
+                module_list[-1].weight_g.data.clamp_(min=0.0,max=value)
+            elif key.split('.')[-1] == 'weight' and len(module_list[-1].weight.data.size()) > 1:
+                module_list[-1].weight.data.renorm_(p=2,dim=0,maxnorm=value)
