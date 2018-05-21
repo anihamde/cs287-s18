@@ -62,6 +62,8 @@ elif args.model_type == 4:
 elif args.model_type == 5:
     model = BassetNorm_JASPAR()
 #     architecture_dict = OrderedDict([ ('model_type','danq') ])
+elif args.model_type == 6:
+    model = lstmfirst()
 
 # with open(args.architecture_file,'w') as fh:
 #     [ fh.write("{}: {}\n".format(key,value)) for key,value in architecture_dict.items() ]
