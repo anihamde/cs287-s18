@@ -850,7 +850,7 @@ class lstmfirst(nn.Module):
 
 class lstmfirst_cat(nn.Module):
     def __init__(self, dropout_prob_02=0.3, dropout_prob_03=0.3, hidden_size=5, num_layers=1,
-                 bidirectional=True, output_labels=164):
+                 bidirectional=True, output_labels=1):
         # TODO: weight initialize unif[-.05,.05], bias 0
         super(lstmfirst_cat, self).__init__()
         self.lstm = nn.LSTM(input_size = 4, hidden_size = hidden_size, num_layers = num_layers, bidirectional = bidirectional)
