@@ -79,7 +79,6 @@ elif args.model_type == 9:
 elif args.model_type == 10:
     model = BassetNormCat_JASPAR(gene_drop_lvl=args.gene_drop_level) # regular ole BassetNormCat but with JASPAR motifs, so a bit bigger of a model
 elif args.model_type == 11:
-    print("heyoh")
     model = lstmfirst_cat()
     
 num_params = sum([p.numel() for p in model.parameters()])
