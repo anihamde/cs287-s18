@@ -15,7 +15,7 @@ class Generator(nn.Module):
         self.linear2 = nn.Linear(10000, 784)
     def forward(self, z):
         out = self.linear2(F.relu(self.linear1(z)))
-        return F.sigmoid(out.view(-1,1,28,28))
+        return torch.sigmoid(out.view(-1,1,28,28))
 
 class Discriminator(nn.Module):
     def __init__(self):
@@ -24,7 +24,7 @@ class Discriminator(nn.Module):
         self.linear2 = nn.Linear(10000, 1)
     def forward(self, x):
         x = x.view(-1,784)
-        return F.sigmoid(self.linear2(F.relu(self.linear1(x))))
+        return torch.sigmoid(self.linear2(F.relu(self.linear1(x))))
 
 
 ############## DCGAN pytorch tutorial #################
@@ -50,7 +50,7 @@ class Generator1(nn.Module):
         out = F.leaky_relu(self.deconv1(out), 0.05) # (?, 128, 4, 4)
         out = F.leaky_relu(self.deconv2(out), 0.05) # (?, 64, 7, 7)
         out = F.leaky_relu(self.deconv3(out), 0.05) # (?, 32, 14, 14)
-        out = F.sigmoid(self.deconv4(out)) # (?, 1, 28, 28)
+        out = torch.sigmoid(self.deconv4(out)) # (?, 1, 28, 28)
         return out
 
 def conv(c_in, c_out, k_size, stride=2, pad=1, bn=True):
@@ -76,7 +76,7 @@ class Discriminator1(nn.Module):
         out = F.leaky_relu(self.conv3(out), 0.05) # (?, 128, 3, 3)
         out = F.leaky_relu(self.conv4(out), 0.05) # (?, 256, 1, 1)
         out = out.squeeze()
-        return F.sigmoid(self.linear(out))
+        return torch.sigmoid(self.linear(out))
 
 # 664933 params
 class Generator2(nn.Module):
@@ -93,7 +93,7 @@ class Generator2(nn.Module):
         out = F.leaky_relu(self.deconv1(out), 0.05) # (?, 128, 4, 4)
         out = F.leaky_relu(self.deconv2(out), 0.05) # (?, 64, 7, 7)
         out = F.leaky_relu(self.deconv3(out), 0.05) # (?, 32, 14, 14)
-        out = F.sigmoid(self.deconv4(out)) # (?, 1, 28, 28)
+        out = torch.sigmoid(self.deconv4(out)) # (?, 1, 28, 28)
         return out
 
 #2394849 params
@@ -113,7 +113,7 @@ class Discriminator2(nn.Module):
         out = self.maxpool(out) # (?, 64, 6, 6)
         out = out.view(-1, self.conv_dim*2*6*6) # (?, 64*8*8)
         out = F.leaky_relu(self.linear(out), 0.05) # (?, 1024)
-        return F.sigmoid(self.output(out).squeeze())
+        return torch.sigmoid(self.output(out).squeeze())
 
 # 817074 params
 class Generator3(nn.Module):
@@ -123,7 +123,7 @@ class Generator3(nn.Module):
         self.linear2 = nn.Linear(10000, 784)
     def forward(self, z):
         out = self.linear2(F.relu(self.linear1(z)))
-        return F.sigmoid(out.view(-1,1,28,28))
+        return torch.sigmoid(out.view(-1,1,28,28))
 
 # 2394849 params
 class Discriminator3(nn.Module):
@@ -142,7 +142,7 @@ class Discriminator3(nn.Module):
         out = self.maxpool(out) # (?, 64, 6, 6)
         out = out.view(-1, self.conv_dim*2*6*6) # (?, 64*8*8)
         out = F.leaky_relu(self.linear(out), 0.05) # (?, 1024)
-        return F.sigmoid(self.output(out).squeeze())
+        return torch.sigmoid(self.output(out).squeeze())
 
 # 664993 params
 class Generator4(nn.Module):
@@ -159,7 +159,7 @@ class Generator4(nn.Module):
         out = F.leaky_relu(self.deconv1(out), 0.05) # (?, 128, 4, 4)
         out = F.leaky_relu(self.deconv2(out), 0.05) # (?, 64, 7, 7)
         out = F.leaky_relu(self.deconv3(out), 0.05) # (?, 32, 14, 14)
-        out = F.sigmoid(self.deconv4(out)) # (?, 1, 28, 28)
+        out = torch.sigmoid(self.deconv4(out)) # (?, 1, 28, 28)
         return out
 
 # 7860001 params
@@ -170,7 +170,7 @@ class Discriminator4(nn.Module):
         self.linear2 = nn.Linear(10000, 1)
     def forward(self, x):
         x = x.view(-1,784)
-        return F.sigmoid(self.linear2(F.relu(self.linear1(x))))
+        return torch.sigmoid(self.linear2(F.relu(self.linear1(x))))
 
 
 # AM221 model
@@ -227,3 +227,6 @@ class Discriminator5(nn.Module):
         x = x.view(-1, 2*2*self.d*8)
         x = torch.sigmoid(self.linear(x))
         return x
+
+# (CS287 gans all run in 20 seconds ish, mine (model 5) takes 5 minutes. 
+# Backprop eats up most time. It’s much bigger so this makes sense. Can I go faster by increasing batch size?)
