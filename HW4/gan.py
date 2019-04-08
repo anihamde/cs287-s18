@@ -24,7 +24,7 @@ parser.add_argument('--num_epochs','-ne',type=int,default=50,help='Number of epo
 parser.add_argument('--learning_rate','-lr',type=float,default=0.0001,help='Learning rate')
 parser.add_argument('--gen_file','-gf',type=str,default='stupidg.pkl',help='Save gen filename')
 parser.add_argument('--disc_file','-df',type=str,default='stupidd.pkl',help='Save disc filename')
-parser.add_argument('--track_space','-ts',action='store_true',help='Save 2D latant space viz, if ld=2')
+parser.add_argument('--track_space','-ts',action='store_true',help='Save 2D latent space viz, if ld=2')
 args = parser.parse_args()
 
 LATENT_DIM = args.latent_dim
@@ -32,6 +32,7 @@ BATCH_SIZE = args.batch_size
 NUM_EPOCHS = args.num_epochs
 learning_rate = args.learning_rate
 
+# based on AM221 code, could've just loaded this into the DataLoader without the in-between steps
 train_dataset = datasets.MNIST(root='./data/',
                             train=True, 
                             transform=transforms.ToTensor(),
@@ -84,6 +85,10 @@ elif args.model_type == 3:
 elif args.model_type == 4:
     G = Generator4(latent_dim = LATENT_DIM)
     D = Discriminator4()
+elif args.model_type == 5:
+    print('did you make sure Latent dim is 100? else errors are coming!')
+    G = Generator5()
+    D = Discriminator5()
 
 G.cuda()
 D.cuda()
@@ -151,6 +156,8 @@ for epoch in range(NUM_EPOCHS):
     print ('Val loop. Time %s, Epoch [%d/%d], D Loss: %.4f, G Loss: %.4f, Total Loss: %.4f' 
             %(timenow, epoch+1, NUM_EPOCHS, total_disc_loss/total, total_gen_loss/total, (total_disc_loss+total_gen_loss)/total))
 
+    exit()
+    assert(0==1) # sorry bro
     torch.save(G.state_dict(), args.gen_file)
     torch.save(D.state_dict(), args.disc_file)
     
@@ -170,4 +177,4 @@ for epoch in range(NUM_EPOCHS):
         Xi, Yi = np.meshgrid(x_values, y_values)
         plt.imshow(canvas, origin="upper")
         plt.tight_layout()
-        plt.savefig('latant_space_viz_gan_epoch_{}_of_{}.png'.format(epoch,NUM_EPOCHS))
+        plt.savefig('latent_space_viz_gan_epoch_{}_of_{}.png'.format(epoch,NUM_EPOCHS))

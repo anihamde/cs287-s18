@@ -19,8 +19,8 @@ TEXT = torchtext.data.Field()
 LABEL = torchtext.data.Field(sequential=False)
 
 train, val, test = torchtext.datasets.SST.splits(
-	TEXT, LABEL,
-	filter_pred=lambda ex: ex.label != 'neutral')
+    TEXT, LABEL,
+    filter_pred=lambda ex: ex.label != 'neutral')
 
 print('len(train)', len(train))
 print('vars(train[0])', vars(train[0]))
@@ -31,7 +31,7 @@ print('len(TEXT.vocab)', len(TEXT.vocab))
 print('len(LABEL.vocab)', len(LABEL.vocab))
 
 train_iter, val_iter, test_iter = torchtext.data.BucketIterator.splits(
-	(train, val, test), batch_size=bs, device=-1, repeat=False)
+    (train, val, test), batch_size=bs, device=-1, repeat=False)
 
 # Build the vocabulary with word embeddings
 url = 'https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.simple.vec'
@@ -46,18 +46,18 @@ print("Word embeddings size ", TEXT.vocab.vectors.size())
 input_size = len(TEXT.vocab)
 
 class CBOWLogReg(nn.Module):
-	def __init__(self, input_size):
-		super(CBOWLogReg, self).__init__()
-		self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
-		self.embeddings.weight.data = TEXT.vocab.vectors
-		self.linear = nn.Linear(TEXT.vocab.vectors.size(1), 2)
+    def __init__(self, input_size):
+        super(CBOWLogReg, self).__init__()
+        self.embeddings = nn.Embedding(TEXT.vocab.vectors.size(0),TEXT.vocab.vectors.size(1))
+        self.embeddings.weight.data = TEXT.vocab.vectors
+        self.linear = nn.Linear(TEXT.vocab.vectors.size(1), 2)
 
-	def forward(self, inputs): # inputs (bs,words/sentence) 10,7
-		bsz = inputs.size(0) # batch size might change
-		embeds = self.embeddings(inputs) # 10,7,300
-		out = embeds.sum(dim=1) # 10,300 (sum together embeddings across sentences)
-		out = self.linear(out) # 300,2
-		return out
+    def forward(self, inputs): # inputs (bs,words/sentence) 10,7
+        bsz = inputs.size(0) # batch size might change
+        embeds = self.embeddings(inputs) # 10,7,300
+        out = embeds.sum(dim=1) # 10,300 (sum together embeddings across sentences)
+        out = self.linear(out) # 300,2
+        return out
 
 model = CBOWLogReg(input_size)
 criterion = nn.CrossEntropyLoss()
@@ -65,23 +65,35 @@ optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 
 losses = []
 
+### silly stuff from the future ###
+i = 0
+for batch in train_iter:
+    i += 1
+    sentences = batch.text.transpose(1,0)
+    s_sentences = [' '.join([TEXT.vocab.itos[x] for x in sentence]) for sentence in sentences]
+    print(s_sentences)
+    if i == 4: break
+
+[' '.join(train[i].text) for i in range(12)]
+###
+
 for epoch in range(num_epochs):
-	train_iter.init_epoch()
-	ctr = 0
-	for batch in train_iter:
-		sentences = batch.text.transpose(1,0)
-		labels = (batch.label==1).type(torch.LongTensor)
-		# change labels from 1,2 to 1,0
-		optimizer.zero_grad()
-		outputs = model(sentences)
-		loss = criterion(outputs, labels)
-		loss.backward()
-		optimizer.step()
-		ctr += 1
-		if ctr % 100 == 0:
-			print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
-				%(epoch+1, num_epochs, ctr, len(train)//bs, loss.data[0]))
-		losses.append(loss.data[0])
+    train_iter.init_epoch()
+    ctr = 0
+    for batch in train_iter:
+        sentences = batch.text.transpose(1,0)
+        labels = (batch.label==1).type(torch.LongTensor)
+        # change labels from 1,2 to 1,0
+        optimizer.zero_grad()
+        outputs = model(sentences)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+        ctr += 1
+        if ctr % 100 == 0:
+            print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
+                %(epoch+1, num_epochs, ctr, len(train)//bs, loss.data[0]))
+        losses.append(loss.data[0])
 
 np.save("../../models/cbow_losses",np.array(losses))
 torch.save(model.state_dict(), '../../models/cbow.pkl')
@@ -91,38 +103,38 @@ torch.save(model.state_dict(), '../../models/cbow.pkl')
 correct = 0
 total = 0
 for batch in val_iter:
-	bsz = batch.text.size(1) # batch size might change
-	sentences = batch.text.transpose(1,0)
-	labels = (batch.label==1).type(torch.LongTensor).data
-	# change labels from 1,2 to 1,0
-	outputs = model(sentences)
-	_, predicted = torch.max(outputs.data, 1)
-	total += labels.size(0)
-	correct += (predicted == labels).sum()
+    bsz = batch.text.size(1) # batch size might change
+    sentences = batch.text.transpose(1,0)
+    labels = (batch.label==1).type(torch.LongTensor).data
+    # change labels from 1,2 to 1,0
+    outputs = model(sentences)
+    _, predicted = torch.max(outputs.data, 1)
+    total += labels.size(0)
+    correct += (predicted == labels).sum()
 
 print('val accuracy', correct/total)
 
 def test(model):
-	"All models should be able to be run with following command."
-	upload = []
-	# Update: for kaggle the bucket iterator needs to have batch_size 10
-	# test_iter = torchtext.data.BucketIterator(test, train=False, batch_size=10)
-	for batch in test_iter:
-		# Your prediction data here (don't cheat!)
-		sentences = batch.text.transpose(1,0)
-		probs = model(sentences)
-		_, argmax = probs.max(1)
-		upload += list(argmax.data)
+    "All models should be able to be run with following command."
+    upload = []
+    # Update: for kaggle the bucket iterator needs to have batch_size 10
+    # test_iter = torchtext.data.BucketIterator(test, train=False, batch_size=10)
+    for batch in test_iter:
+        # Your prediction data here (don't cheat!)
+        sentences = batch.text.transpose(1,0)
+        probs = model(sentences)
+        _, argmax = probs.max(1)
+        upload += list(argmax.data)
 
-	with open("cbow_predictions.csv", "w") as f:
-		writer = csv.writer(f)
-		writer.writerow(['Id','Cat'])
-		idcntr = 0
-		for u in upload:
-			if u == 0:
-				u = 2
-			writer.writerow([idcntr,u])
-			idcntr += 1
-			# f.write(str(u) + "\n")
+    with open("cbow_predictions.csv", "w") as f:
+        writer = csv.writer(f)
+        writer.writerow(['Id','Cat'])
+        idcntr = 0
+        for u in upload:
+            if u == 0:
+                u = 2
+            writer.writerow([idcntr,u])
+            idcntr += 1
+            # f.write(str(u) + "\n")
 
 test(model)
